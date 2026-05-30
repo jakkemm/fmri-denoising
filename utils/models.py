@@ -1,8 +1,7 @@
 import numpy as np
 from scipy.linalg import block_diag, toeplitz
+from sklearn.utils.extmath import randomized_svd
 from nilearn.glm.first_level.hemodynamic_models import glover_hrf
-
-from tqdm import tqdm
 
 from load_data import img_to_2d, load_data
 
@@ -14,6 +13,7 @@ class GLMdenoiser:
         self.events = events
         self.t1_img = t1_img
         self.tr = tr
+        self.condition_names = []
 
     def _build_stim_trains(self, events_df, n_scans):
         """Build binary stimulus trains at TR resolution (NOT convolved)."""
@@ -38,8 +38,7 @@ class GLMdenoiser:
     @staticmethod
     def _convolve_hrf(stim_train, hrf):
         """Full convolution truncated back to the original singal length."""
-        max_idx = len(stim_train)
-        return np.convolve(stim_train, hrf, mode="full")[:max_idx]
+        return np.convolve(stim_train, hrf, mode="full")[:len(stim_train)]
     
     def _task_matrix_from_hrf(self, stim_trains, hrf):
         """Build (n_scans, n_cond) task design matrix with `hrf` convolution."""
@@ -56,18 +55,26 @@ class GLMdenoiser:
         t = np.linspace(-1.0, 1.0, n_scans)
         return np.column_stack([t ** d for d in range(max_degree + 1)])
     
+    @staticmethod
+    def _residualize(Q, A):
+        """Project out the Q from the A"""
+        return A - Q @ (Q.T @ A)
+    
+    def _get_q_aug(self, Q_poly, noise_pcs, n_noise):
+        if n_noise <= 0 or noise_pcs is None:
+            return Q_poly
+        return np.column_stack([Q_poly, noise_pcs[:, :n_noise]])
+    
     def build_all_runs(self):
         """Load images and assemble per-run_dicts.
         
-        Returns
-        -------
-        runs : list of dicts, each containing
-               - Y           (n_scans, n_voxels)  BOLD data
-               - mean_signal (n_voxels,)           temporal mean
-               - n_scans     int
-               - stim_trains list[n_cond]           raw binary trains at TR
-               - X_poly      (n_scans, n_poly)      polynomial nuisance basis
-        condition_names : sorted list[str]
+        Each dict contains:
+          Y           (n_scans, n_voxels)    BOLD data
+          mean_signal (n_voxels)            temporal mean
+          n_scans     int
+          stim_trains list[n_cond]           raw binary trains at TR
+          X_poly      (n_scans, n_poly)      polynomial nuisance basis
+          Q_poly      (n_scans, n_poly)      orthonormal basis for X_poly (QR decomposition)
         """
         
         all_conditions = set()
@@ -79,6 +86,7 @@ class GLMdenoiser:
 
         for img, events_df in zip(self.images, self.events):
             Y, mean_signal, n_scans = img_to_2d(img)
+            Y = np.nan_to_num(Y, nan=0.0, posinf=0.0, neginf=0.0)
             
             stim_trains = self._build_stim_trains(events_df, n_scans)
             X_poly = self._build_polynomial_regressors(n_scans)
@@ -98,31 +106,12 @@ class GLMdenoiser:
 
         return runs
     
-    def _build_block_design(self, runs, hrf):
-        """
-        Assemble the joint design matrix across runs:
-          columns 0 ... n_cond-1  : task regressors (shared betas, stacked)
-          columns n_cond ... end  : polynomial regressors (block-diagonal, separate per run)
-        """
-        
-        X_task_blocks, X_poly_blocks, Y_blocks = [], [], []
-        
-        for run in runs:
-            task_block = self._task_matrix_from_hrf(run["stim_trains"], hrf)
-            
-            X_task_blocks.append(task_block)
-            X_poly_blocks.append(run["X_poly"])
-            Y_blocks.append(run["Y"])
-        
-        Y_all = np.vstack(Y_blocks)
-        X_task_all = np.vstack(X_task_blocks)   # Shared betas
-        X_poly_all = block_diag(*(r["X_poly"] for r in runs))
-        
-        X_all = np.column_stack([X_task_all, X_poly_all])
-        return X_all, Y_all
-    
     def _estimate_betas(self, runs, hrf):
-        """Fix HRF, estimate beta and poly weights with Ordinary Least Squares"""
+        """
+        Fix HRF, estimate betas with FWL (Frisch-Waugh-Lovell) trick and OLS
+        
+        Returns betas (n_cond, V) and per-voxel R-squared (V)
+        """
         
         X_res_blocks = []
         Y_res_blocks = []
@@ -143,21 +132,17 @@ class GLMdenoiser:
         
         ss_res = np.sum((Y_res - Y_hat) ** 2, axis=0)
         ss_tot = np.sum((Y_res - Y_res.mean(axis=0)) ** 2, axis=0)
-        
         r2 = np.zeros_like(ss_tot)
         mask = ss_tot > 0
         r2[mask] = 1.0 - ss_res[mask] / ss_tot[mask]
         
         return betas, r2
-    
-    @staticmethod
-    def _residualize(Q, A):
-        return A - Q @ (Q.T @ A)
 
     def _estimate_hrf_fir(self, runs, betas, best_voxels, hrf_len):
-        """Estimates HRF as in paper."""
+        """Fix betas, estimate HRF via FIR basis (polynomial trends projected out)."""
         
-        A_list, y_list = [], []
+        A_list = []
+        y_list = []
         
         for run in runs:
             Q = run["Q_poly"]
@@ -194,12 +179,13 @@ class GLMdenoiser:
                 
     def estimate_hrf(self, runs, initial_hrf, hrf_len=None, max_iter=50):
         """
-        Estimates optimal HRF by Step 2. from the paper:
+        Estimates optimal HRF by Step 2. from the paper (iterative linear fitting):
         
-        1. Fix HRF - OLS betas and polynomial weights
-        2. Select best voxels with highest R2
+        1. Fix HRF - OLS betas
+        2. Select 50 best voxels with highest R2
         3. Fix betas - OLS HRF with FIR 
         4. End when R2 > 0.99
+        Fall back to initial_hrf if R2(initial, fitted) < 0.5
         """
         
         if hrf_len is None:
@@ -213,8 +199,6 @@ class GLMdenoiser:
         current_hrf = initial_hrf.copy()
         
         for i in range(max_iter):
-            print(f"Starting iteration {i}:")
-            
             # 1. Fix HRF - estimate betas and polynomials
             betas, r2 = self._estimate_betas(runs, current_hrf)
             
@@ -230,7 +214,7 @@ class GLMdenoiser:
             r2_between = self._r2_between(prev_hrf, current_hrf)
             if r2_between > 0.99:
                 break
-            print(f"  continuing... r2 value: {r2_between:.6f}")
+            print(f"  HRF iter {i+1}: R2 value: {r2_between:.4f}")
         
         # Normalization of HRF (peak at 1.0)
         peak = np.max(current_hrf)
@@ -239,41 +223,276 @@ class GLMdenoiser:
 
         # Fallback if poorly estimated (from the paper)
         if self._r2_between(initial_hrf, current_hrf) < 0.50:
+            print("  HRF poorly estimated - reverting to initial HRF")
             current_hrf = initial_hrf.copy()
             peak = np.max(current_hrf)
             if peak > 0:
                 current_hrf /= peak
 
         return current_hrf
+    
+    def _cross_val_r2(self, runs, hrf, noise_pcs_per_run, n_noise=0):
+        """Cross Validation leaving one run out and calculating R2."""
+        
+        XtX_list = []
+        XtY_list = []
+        X_res_list = []
+        Y_res_list = []
+        
+        for i, run in enumerate(runs):
+            X_task = self._task_matrix_from_hrf(run["stim_trains"], hrf)
+            pcs_i = noise_pcs_per_run[i] if noise_pcs_per_run is not None else None
+            Q = self._get_q_aug(run["Q_poly"], pcs_i, n_noise)
+            
+            X_res = self._residualize(Q, X_task)
+            Y_res = self._residualize(Q, run["Y"])
+            
+            X_res_list.append(X_res)
+            Y_res_list.append(Y_res)
+            XtX_list.append(X_res.T @ X_res)
+            XtY_list.append(X_res.T @ Y_res)
+        
+        XtX_total = sum(XtX_list)
+        XtY_total = sum(XtY_list)
+        
+        Y_pred_blocks = []
+        Y_true_blocks = []
+        
+        for i in range(len(runs)):
+            XtX_train = XtX_total - XtX_list[i]
+            XtY_train = XtY_total - XtY_list[i]
+            betas = np.linalg.solve(XtX_train, XtY_train)
+            
+            Y_pred_blocks.append(X_res_list[i] @ betas)
+            Y_true_blocks.append(Y_res_list[i])
+        
+        Y_pred = np.vstack(Y_pred_blocks)
+        Y_true = np.vstack(Y_true_blocks)
 
-    def fit_standard_glm(self, hrf=None):
-        """Main GLM fit with provided HRF."""
+        ss_res = np.sum((Y_true - Y_pred) ** 2, axis=0)
+        ss_tot = np.sum((Y_true - Y_true.mean(axis=0)) ** 2, axis=0)
+        return np.where(ss_tot > 0, 1.0 - ss_res / ss_tot, 0.0)
+    
+    def _select_noise_pool(self, runs, cv_r2):
+        """
+        Noise pool: voxels where
+          1. cross-validated R² < 0  (not task-related)
+          2. mean signal > 0.5 x 99th percentile  (inside brain)
+        """
         
+        mean_signal = np.mean(np.vstack([run["mean_signal"] for run in runs]), axis=0)
+        threshold = 0.5 * np.percentile(mean_signal, 99)
+        mask = (cv_r2 < 0.0) & (mean_signal > threshold)
+        return np.where(mask)[0]
+
+    def _compute_noise_pcs(self, runs, noise_voxels, max_components):
+        """
+        Per-run: extract noise-pool voxels, project out poly trends,
+        unit-normalise each time-series, compute PCs via randomised SVD.
+        """
+        
+        pcs_per_run = []
+        
+        for run in runs:
+            Y_noise = run["Y"][:, noise_voxels]
+            Q = run["Q_poly"]
+
+            Y_res = self._residualize(Q, Y_noise)
+
+            # Unit-normalise each noise voxel time-series
+            norms = np.linalg.norm(Y_res, axis=0, keepdims=True)
+            Y_norm = Y_res / np.where(norms > 0, norms, 1.0)
+
+            k = min(max_components, Y_norm.shape[1], Y_norm.shape[0] - 1)
+            U, _, _ = randomized_svd(Y_norm, n_components=k, random_state=0)
+
+            # Zero-pad columns if noise pool has fewer voxels than max_components
+            if k < max_components:
+                U = np.pad(U, ((0, 0), (0, max_components - k)))
+
+            pcs_per_run.append(U)  # (T, max_components), orthonormal, perp to Q_poly
+
+        return pcs_per_run
+
+    def _select_n_noise_regressors(self, runs, hrf, noise_pcs_per_run, max_noise):
+        """
+        Steps 6-7: sweep n = 0..max_noise noise regressors, cross-validate
+        each, then pick the minimum n that captures >= 95% of the maximum
+        performance gain over task-responsive voxels.
+        """
+        
+        print(f"  Sweeping 0..{max_noise} noise regressors:")
+        r2_by_n = []
+        
+        for n in range(max_noise + 1):
+            r2 = self._cross_val_r2(runs, hrf, noise_pcs_per_run, n_noise=n)
+            r2_by_n.append(r2)
+            print(f"    n={n:2d}  median R²={np.median(r2):.4f}")
+
+        r2_array = np.array(r2_by_n)
+
+        task_mask = np.any(r2_array > 0.0, axis=0)
+        if not np.any(task_mask):
+            print("  Warning: no task voxels found; using n=0.")
+            return 0, np.zeros(max_noise + 1), r2_array
+
+        median_r2 = np.array([
+            np.median(r2_array[n, task_mask]) 
+            for n in range(max_noise + 1)
+        ])
+
+        # Minimum n within 5% of max improvement (step 7 criterion)
+        r2_baseline = median_r2[0]
+        improvement = np.max(median_r2) - r2_baseline
+        threshold = r2_baseline + 0.95 * improvement
+        crosses = np.where(median_r2 >= threshold)[0]
+        optimal_n = int(crosses[0]) if len(crosses) > 0 else 0
+
+        return optimal_n, median_r2, r2_array
+
+    def _final_fit(self, runs, hrf, noise_pcs_per_run, n_noise, n_boot=100):
+        """
+        Step 8: fit final model and estimate error bars via bootstrapping.
+
+        Speed trick: precompute XtX and XtY per run once; each bootstrap
+        sample is just a weighted sum of those.
+          -> O(n_cond^2 x V) per iteration  vs  O(T x n_cond x V) naive.
+
+        Returns
+        -------
+        beta_median : (n_cond, V)  median across bootstraps, in % BOLD
+        beta_se     : (n_cond, V)  0.5 x 68% range, in % BOLD
+        """
+        XtX_list, XtY_list, mean_signals = [], [], []
+
+        for i, run in enumerate(runs):
+            X_task = self._task_matrix_from_hrf(run["stim_trains"], hrf)
+            pcs_i = noise_pcs_per_run[i] if noise_pcs_per_run is not None else None
+            Q = self._get_q_aug(run, pcs_i, n_noise)
+
+            X_res = self._residualize(Q, X_task)
+            Y_res = self._residualize(Q, run["Y"])
+
+            XtX_list.append(X_res.T @ X_res)
+            XtY_list.append(X_res.T @ Y_res)
+            mean_signals.append(run["mean_signal"])
+
+        XtX_arr = np.array(XtX_list)   # (R, n_cond, n_cond)
+        XtY_arr = np.array(XtY_list)   # (R, n_cond, V)
+        mean_signal = np.mean(mean_signals, axis=0)  # (V,)
+
+        R = len(runs)
+        n_cond = XtY_arr.shape[1]
+        n_voxels = XtY_arr.shape[2]
+        betas_boots = np.empty((n_boot, n_cond, n_voxels))
+
+        rng = np.random.default_rng(seed=0)
+        for b in range(n_boot):
+            sample = rng.choice(R, R, replace=True)
+            counts = np.bincount(sample, minlength=R).astype(float)
+
+            # Weighted normal equations - no matrix stacking needed
+            XtX = np.einsum("r,rij->ij", counts, XtX_arr)
+            XtY = np.einsum("r,rij->ij", counts, XtY_arr)
+
+            try:
+                betas_boots[b] = np.linalg.solve(XtX, XtY)
+            except np.linalg.LinAlgError:
+                betas_boots[b], _, _, _ = np.linalg.lstsq(XtX, XtY, rcond=None)
+
+        beta_median = np.median(betas_boots, axis=0)
+        lo = np.percentile(betas_boots, 16, axis=0)
+        hi = np.percentile(betas_boots, 84, axis=0)
+        beta_se = 0.5 * (hi - lo)
+
+        # Convert to % BOLD signal change
+        safe_mean = np.where(mean_signal > 0, mean_signal, 1.0)
+        beta_median_pct = beta_median / safe_mean * 100.0
+        beta_se_pct = beta_se / safe_mean * 100.0
+
+        return beta_median_pct, beta_se_pct
+
+    def full_workflow(self, runs_num=None, max_noise: int = 10, n_boot: int = 100):
+        """
+        Run the complete GLMdenoise pipeline (steps 1-8).
+        
+        Returns dict with keys:
+          condition_names       list[str]
+          beta                  (n_cond, V)  % BOLD, median over bootstrap
+          beta_se               (n_cond, V)  % BOLD, 0.5x68% range
+          hrf                   (hrf_len,)   estimated HRF
+          cv_r2_baseline        (V,)         CV-R2 without noise regressors
+          cv_r2_final           (V,)         CV-R2 with optimal noise count
+          noise_voxels          (N,)         indices of noise-pool voxels
+          optimal_n_noise       int
+          median_r2_by_noise    (max_noise+1,)
+          runs                  list of run dicts
+        """
+        
+        # --- load data ------------------------------------------------
+        print("Building runs...")
         runs = self.build_all_runs()
-        if hrf is None:
-            hrf = glover_hrf(self.tr, oversampling=1)
-        
-        n_cond = len(self.condition_names)
-        X_all, Y_all = self._build_block_design(runs, hrf)
-        B, _, _, _ = np.linalg.lstsq(X_all, Y_all, rcond=None)
+        if runs_num is not None:
+            runs = runs[:runs_num]
+
+        # --- Step 1: initial HRF (Glover canonical) ------------------
+        initial_hrf = glover_hrf(self.tr, oversampling=1)
+
+        # --- Step 2: iterative HRF estimation ------------------------
+        print("\nStep 2: Estimating HRF...")
+        optimal_hrf = self.estimate_hrf(runs, initial_hrf)
+
+        # --- Step 3: baseline cross-validated R² ---------------------
+        print("\nStep 3: Computing cross-validated R²...")
+        cv_r2_baseline = self._cross_val_r2(runs, optimal_hrf)
+        print(f"  Median CV-R² (baseline): {np.median(cv_r2_baseline):.4f}")
+
+        # --- Step 4: noise pool --------------------------------------
+        print("\nStep 4: Selecting noise pool...")
+        noise_voxels = self._select_noise_pool(runs, cv_r2_baseline)
+        print(f"  Noise pool: {len(noise_voxels)} voxels")
+        if len(noise_voxels) == 0:
+            raise RuntimeError(
+                "Noise pool is empty — check data quality or brain masking."
+            )
+
+        # --- Step 5: PCA on noise pool -------------------------------
+        print("\nStep 5: Computing noise PCs...")
+        noise_pcs_per_run = self._compute_noise_pcs(
+            runs, noise_voxels, max_components=max_noise
+        )
+
+        # --- Steps 6-7: select number of noise regressors ------------
+        print("\nSteps 6-7: Cross-validating noise regressor counts...")
+        optimal_n, median_r2_by_noise, _ = self._select_n_noise_regressors(
+            runs, optimal_hrf, noise_pcs_per_run, max_noise=max_noise
+        )
+        print(f"  Optimal number of noise regressors: {optimal_n}")
+
+        # --- Step 3 (final): CV-R² with selected noise ---------------
+        cv_r2_final = self._cross_val_r2(
+            runs, optimal_hrf, noise_pcs_per_run, n_noise=optimal_n
+        )
+        print(f"  Median CV-R² (final):    {np.median(cv_r2_final):.4f}")
+
+        # --- Step 8: bootstrap final fit -----------------------------
+        print(f"\nStep 8: Bootstrap final fit ({n_boot} iterations)...")
+        beta_median, beta_se = self._final_fit(
+            runs, optimal_hrf, noise_pcs_per_run, optimal_n, n_boot=n_boot
+        )
 
         return {
             "condition_names": self.condition_names,
-            "beta": B[:n_cond, :],
-            "runs": runs
+            "beta": beta_median,
+            "beta_se": beta_se,
+            "hrf": optimal_hrf,
+            "cv_r2_baseline": cv_r2_baseline,
+            "cv_r2_final": cv_r2_final,
+            "noise_voxels": noise_voxels,
+            "optimal_n_noise": optimal_n,
+            "median_r2_by_noise": median_r2_by_noise,
+            "runs": runs,
         }
-
-    def full_workflow(self, runs_num=None):
-        """Main function for full GLM fit."""
-        runs = self.build_all_runs()
-        
-        k = runs_num if runs_num is not None else len(runs)
-        runs = runs[:k]
-        
-        initial_hrf = glover_hrf(self.tr, oversampling=1)
-        optimal_hrf = self.estimate_hrf(runs, initial_hrf)
-        
-        return self.fit_standard_glm(optimal_hrf)
     
 
 if __name__ == "__main__":
