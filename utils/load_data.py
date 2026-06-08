@@ -6,6 +6,15 @@ from pathlib import Path
 import json
 
 def load_data(base_path, subject):
+    """
+    Function for loading fMRI data.
+
+    Returns:
+        - list of fMRI 4D data (one run - one element in a list)
+        - list of .tsv events files as DataFrames (one run - one df)
+        - T1 high-resolution image
+        - repetition time (float)
+    """
     base_path = Path(base_path)
     
     if not base_path.is_absolute():
