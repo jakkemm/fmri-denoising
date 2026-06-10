@@ -28,30 +28,6 @@ class GLMModel:
             model_name_msg = f": {model_name}" if model_name else ""
             print(f"Initialized new model{model_name_msg}")
     
-    def _get_all_task_conditions(self):
-        nuisance_prefixes = (
-            "constant",
-            "drift",
-            "poly",
-            "hvc_",
-        )
-
-        conditions = set()
-
-        for dm in self.design_matrices:
-            for col in dm.columns:
-                col_lower = col.lower()
-
-                if any(col_lower.startswith(prefix) for prefix in nuisance_prefixes):
-                    continue
-
-                if col_lower in {"intercept"}:
-                    continue
-
-                conditions.add(col)
-
-        return sorted(conditions)
-    
     def make_design_matrices(
         self, hrf_model="spm", use_high_variance_confounds=False, n_confounds=0, drift_model=None
     ):
@@ -60,7 +36,7 @@ class GLMModel:
 
         GLMdenoise-inspired structure:
             task regressors convolved with HRF
-            + optional polynomial drift regressors
+            + optional drift regressors ('cosine' or 'polynomial')
             + optional PCA-like nuisance regressors
         """
 
@@ -112,7 +88,13 @@ class GLMModel:
 
             self.design_matrices.append(design_matrix)
 
-        self.conditions_names = self._get_all_task_conditions()
+        self.conditions_names = set(
+            condition
+            for events_df in self.events
+            for condition in events_df["trial_type"].dropna().unique()
+        )
+        self.condition_names = sorted(self.condition_names)
+        
         
         return self
     
@@ -124,7 +106,8 @@ class GLMModel:
             standardize=False,
             signal_scaling=0,
             minimize_memory=False,
-            subject_label=self.label
+            subject_label=self.label,
+            mask_img=self.mask_img
         )
         
         self.model = self.model.fit(
