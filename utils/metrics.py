@@ -1,8 +1,11 @@
-from pathlib import Path
 import pandas as pd
+import numpy as np
+
+from pathlib import Path
 
 
-METRICS_DIR = Path.cwd().parent / "contrast_metrics"
+METRICS_DIR = Path.cwd() / "metrics"
+METRICS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def calculate_contrast_metrics(model, stat_type, output_type, thresholds):
@@ -36,7 +39,7 @@ def calculate_contrast_metrics(model, stat_type, output_type, thresholds):
     
     full_df = pd.concat(all_metrics, ignore_index=True)
     
-    metrics_fname = f"{model.model_name}_{model.label}_metrics.csv"
+    metrics_fname = f"{model.model_name}_{model.label}_contrast_metrics.csv"
     full_df.to_csv(METRICS_DIR / metrics_fname, index=None)
     
     return full_df

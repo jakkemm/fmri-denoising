@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 
+import nibabel as nib
 from nilearn.glm.first_level import FirstLevelModel, make_first_level_design_matrix
-from nilearn.masking import compute_epi_mask, apply_mask
+from nilearn.masking import compute_multi_epi_mask, apply_mask
 from nilearn.image import high_variance_confounds, mean_img, concat_imgs
 
 class GLMModel:
@@ -22,7 +23,7 @@ class GLMModel:
         
         # Calculable attributes
         self.mean_func = mean_img(concat_imgs(self.images))
-        self.mask_img = compute_epi_mask(self.images)
+        self.mask_img = compute_multi_epi_mask(self.images)
         
         if self.verbose:
             model_name_msg = f": {model_name}" if model_name else ""
@@ -49,7 +50,6 @@ class GLMModel:
             frame_times = np.arange(n_scans) * self.tr
 
             run_duration_min = (n_scans * self.tr) / 60.0
-            drift_order = np.round(run_duration_min / 2.0)
             drift_order = int(run_duration_min / 2.0 + 0.5)     # + 0.5 for rounding up
 
             add_regs = None
@@ -60,6 +60,7 @@ class GLMModel:
                     img,
                     n_confounds=n_confounds,
                     detrend=True,
+                    mask_img=self.mask_img
                 )
 
                 add_regs = confounds
@@ -88,7 +89,7 @@ class GLMModel:
 
             self.design_matrices.append(design_matrix)
 
-        self.conditions_names = set(
+        self.condition_names = set(
             condition
             for events_df in self.events
             for condition in events_df["trial_type"].dropna().unique()
@@ -116,6 +117,47 @@ class GLMModel:
         )
         
         return self
+    
+    def get_denoised_images(self, nuisance_patterns=("hvc", "drift", "motion")):
+        denoised_images = []
+
+        for img, dm in zip(self.images, self.design_matrices):
+            data = img.get_fdata(dtype=np.float32)
+
+            spatial_shape = data.shape[:-1]
+            n_scans = data.shape[-1]
+
+            Y = data.reshape(-1, n_scans).T
+            X = dm.to_numpy(dtype=np.float64)
+            colnames = list(dm.columns)
+
+            # Select only nuisance columns
+            nuisance_cols = [
+                col for col in colnames
+                if any(pattern.lower() in col.lower() for pattern in nuisance_patterns)
+            ]
+
+            nuisance_idx = [colnames.index(col) for col in nuisance_cols]
+            
+            # Fit full GLM: task + nuisance + drift + etc
+            B = np.linalg.pinv(X) @ Y
+
+            # Predict nuisance contribution only and remove nuisance signal
+            Y_noise = X[:, nuisance_idx] @ B[nuisance_idx, :]
+            Y_clean = Y - Y_noise
+
+            # Reshape back to 4D
+            clean_data = Y_clean.T.reshape(*spatial_shape, n_scans)
+
+            clean_img = nib.Nifti1Image(
+                clean_data.astype(np.float32),
+                affine=img.affine,
+                header=img.header
+            )
+
+            denoised_images.append(clean_img)
+
+        return denoised_images
     
     def _make_condition_contrasts(self, condition_name):
         """
@@ -147,7 +189,7 @@ class GLMModel:
             )
             print(verbose_msg)
             
-        for condition in self.conditions_names:
+        for condition in self.condition_names:
             contrast = self._make_condition_contrasts(condition)
             
             img = self.model.compute_contrast(
