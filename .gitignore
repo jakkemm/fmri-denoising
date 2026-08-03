@@ -2,4 +2,20 @@ data
 .DS_Store
 __pycache__
 figures
-contrast_metrics
+examples
+
+# .tex build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.lof
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.xdv

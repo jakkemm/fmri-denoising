@@ -1,0 +1,97 @@
+\section{Autoregressive temporal-noise model}
+\label{section:ar-noise-model}
+
+As mentioned in Section~\ref{section:gls-prewhitening}, the assumption of uncorrelated errors is generally not appropriate for fMRI time series. This creates the need to for the covariance matrix $\mathbf{V}$ introduced in Equation~\ref{eq:general-error-covariance}. Since $\mathbf{V}$ is unknown, it must be estimated from the observed data \cite[Chapter 2.7.3]{agresti}.
+
+In time-series data, the regression errors are unlikely to be independent, especially in fMRI data. In this thesis they are assumed to be a stationary process, which satisfies: 
+
+\begin{equation}
+    \mathbb{E}\left[\varepsilon_t\right] = 0, \qquad \operatorname{Var}\left[\varepsilon_t\right] = \gamma(0) = \sigma_\varepsilon^2,
+\end{equation}
+
+and
+
+\begin{equation} 
+    \operatorname{Cov} \left[\varepsilon_t, \varepsilon_{t+s} \right] = \gamma(s), \qquad \rho(s) = \frac{\gamma(s)}{\gamma(0)},
+    \label{eq:error-autocorrelation}
+\end{equation}
+
+where $\gamma(s)$ is the autocovariance function and $\rho(s)$ is the autocorrelation function at lag $s$.
+
+The covariance matrix of the error vector can then be written as
+
+\begin{equation}
+    \boldsymbol{\Sigma} = \sigma_\varepsilon^2\mathbf{V}, \qquad V_{ij} = \rho(|i-j|).
+    \label{eq:stationary-error-covariance}
+\end{equation}
+
+Thus, $\mathbf{V}$ is the temporal correlation matrix, while $\boldsymbol{\Sigma}$ is the corresponding covariance matrix.
+
+A simple model for temporally autocorrelated regression errors is the first-order autoregressive process, denoted by AR(1) \cite{ols-ar-connection}:
+
+\begin{equation}
+    \varepsilon_t = \phi\varepsilon_{t-1} + \nu_t, \qquad \nu_t \overset{\mathrm{i.i.d.}}{\sim} \mathcal{N} \left(0, \sigma_\nu^2 \right),
+    \label{eq:ar1-error-model}
+\end{equation}
+
+where $\phi$ is the autoregressive coefficient and $\nu_t$ is the noise term.
+
+For the AR(1) process to be stationary, the autoregressive coefficient must satisfy
+
+\begin{equation}
+    |\phi| < 1.
+    \label{eq:ar1-stationarity}
+\end{equation}
+
+Under this condition, the variance and autocorrelation function are
+
+\begin{equation}
+    \sigma_\varepsilon^2 = \frac{\sigma_\nu^2}{1-\phi^2}, \qquad \rho(s) = \phi^{|s|}.
+    \label{eq:ar1-autocorrelation}
+\end{equation}
+
+In particular,
+
+\begin{equation}
+    \rho(1)=\phi, \qquad \rho(s) \longrightarrow 0 \quad \text{as } |s|\longrightarrow\infty.
+\end{equation}
+
+The temporal correlation matrix therefore has the form
+
+\begin{equation}
+    V_{ij} = \phi^{|i-j|}.
+    \label{eq:ar-covariance-elements}
+\end{equation}
+
+Since the true regression errors $\boldsymbol{\varepsilon}$ are not observed, the autoregressive coefficient must be estimated from residuals obtained from an initial OLS model fit, introduced in Equation~\ref{eq:ols-residuals}:
+
+\begin{equation}
+    \mathbf{e} = \mathbf{y}-\widehat{\mathbf{y}} = \mathbf{y} - \mathbf{X}\widehat{\boldsymbol{\beta}}_{\mathrm{OLS}}
+\end{equation}
+
+For OLS we minimize:
+\begin{equation}
+    L(\phi) = \sum_{t=2}^{n} (e_t - \phi e_{t-1})^2,
+\end{equation}
+
+finally obtaining:
+
+\begin{equation}
+    \widehat{\phi} = \frac{\sum_{t=2}^{n} e_t e_{t-1} }{\sum_{t=2}^{n}e_{t-1}^2 }.
+    \label{eq:ar1-phi-estimator}
+\end{equation}
+
+The estimated temporal correlation matrix is then constructed as
+
+\begin{equation}
+    \widehat{V}_{ij} = \widehat{\phi}^{|i-j|}.
+    \label{eq:estimated-ar1-covariance}
+\end{equation}
+
+The estimated matrix $\widehat{\mathbf{V}}$ can be used in the prewhitening transformation from Equation~\ref{eq:prewhitening-transform}:
+
+\begin{equation}
+    \mathbf{y}^{\ast} = \widehat{\mathbf{V}}^{-1/2}\mathbf{y}, \qquad \mathbf{X}^{\ast} = \widehat{\mathbf{V}}^{-1/2}\mathbf{X}.
+\end{equation}
+
+The regression model is then fitted again using the transformed data, which was thoroughly described in Section~\ref{section:gls-prewhitening}.
