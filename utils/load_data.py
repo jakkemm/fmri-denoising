@@ -5,16 +5,18 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 
+from GeneralLinearModel.constants import RawData
+
 
 def load_data(base_path, subject):
     """
-    Function for loading fMRI data.
+    Function for loading fMRI data. 
+    Requires absolute path to BIDS directory and name of directory for given subject, 
+    i.e. `load_data("~/Data/ds000105", "sub-1")`
 
     Returns:
-        - list of fMRI 4D data (one run - one element in a list)
-        - list of .tsv events files as DataFrames (one run - one df)
+        - list of RunData dataclasses containing 2D fMRI data and events_df
         - T1 high-resolution image
-        - repetition time (float)
     """
     base_path = Path(base_path)
     
@@ -33,24 +35,26 @@ def load_data(base_path, subject):
     # T1 images
     t1_path = dir_path / "anat"
     t1_file = next(t1_path.iterdir())
-    
-    # Repetition Time
-    tr_file = next(base_path.glob("*bold.json"))
-    with open(tr_file, "r") as f:
-        metadata = json.load(f)
-    
-    images = [nib.load(str(f)) for f in fmri_files]
-    events = [pd.read_csv(f, sep="\t") for f in events_files]
     t1_img = nib.load(t1_file)
-    tr = float(metadata["RepetitionTime"])
-    return images, events, t1_img, tr
+    
+    runs = []
+    
+    for y, ev in zip(fmri_files, events_files):
+        image = nib.load(str(y))
+        run = RawData(
+            Y=img_to_2d(image),
+            events_df=pd.read_csv(ev, sep="\t")
+        )
+        
+        runs.append(run)
+    
+    return runs, t1_img
 
 def img_to_2d(img):
     data = img.get_fdata(dtype=np.float32)
     n_scans = data.shape[3]
     Y = data.reshape(-1, n_scans).T          # shape: (time, voxels)
-    mean_signal = Y.mean(axis=0)             # shape: (voxels,)
-    return Y, mean_signal, n_scans
+    return Y
 
 
 if __name__ == "__main__":
