@@ -574,6 +574,16 @@ Other articles propose additionally high-pass filter to address low-frequency si
 \section{Autoregressive temporal-noise model}
 \label{section:ar-noise-model}
 
+% IMPORTANT NOTE:
+% the selection of how to use the \phi parameter is not specified
+% i will need to decide between: 
+%     - one phi per experiment
+%     - one phi per run
+%     - one phi per voxel
+% if one on the first two is chosen, do i calculate the estimated phi from all voxels? or median? 
+% something to think about
+% for now: one phi per CV (with one left-out run) calculated from all values
+
 As mentioned in Section~\ref{section:gls-prewhitening}, the assumption of uncorrelated errors is generally not appropriate for fMRI time series. This creates the need to for the covariance matrix $\mathbf{V}$ introduced in Equation~\ref{eq:general-error-covariance}. Since $\mathbf{V}$ is unknown, it must be estimated from the observed data \cite[Chapter 2.7.3]{agresti}.
 
 In time-series data, the regression errors are unlikely to be independent, especially in fMRI data. In this thesis they are assumed to be a stationary process, which satisfies: 
@@ -630,6 +640,7 @@ In particular,
 \end{equation}
 
 The temporal correlation matrix therefore has the form
+% NOTE: mention toeplitz matrix?
 
 \begin{equation}
     V_{ij} = \phi^{|i-j|}.
@@ -853,7 +864,8 @@ Let $n$ denote the number of time points in a run. A DCT-II basis function \cite
     \label{eq:dct-drift-basis}
 \end{equation}
 
-The constant component corresponding to $k=0$ produces an intercept column.
+Note, that the constant component corresponding to $k=0$ produces an intercept column.
+% QUESTION: should it be included? or should the intercept column be included separately?
 
 The number of DCT regressors should depend on the duration of the run and the selected high-pass cutoff \cite{spm-filter}. If $T$ denotes the run duration and $\tau_c$ denotes the cutoff period, an approximate rule is
 
