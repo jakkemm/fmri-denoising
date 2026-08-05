@@ -1,9 +1,10 @@
-import nibabel as nib
-import pandas as pd
-import numpy as np
-
-from pathlib import Path
 import json
+from pathlib import Path
+
+import nibabel as nib
+import numpy as np
+import pandas as pd
+
 
 def load_data(base_path, subject):
     """
@@ -31,10 +32,10 @@ def load_data(base_path, subject):
     
     # T1 images
     t1_path = dir_path / "anat"
-    t1_file = list(t1_path.iterdir())[0]
+    t1_file = next(t1_path.iterdir())
     
     # Repetition Time
-    tr_file = list(base_path.glob("*bold.json"))[0]
+    tr_file = next(base_path.glob("*bold.json"))
     with open(tr_file, "r") as f:
         metadata = json.load(f)
     
