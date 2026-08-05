@@ -5,6 +5,7 @@ import numpy as np
 from scipy.linalg import block_diag, toeplitz
 
 from general_linear_model.constants import CONST
+from utils.misc import iter_chunks
 
 
 @dataclass
@@ -54,7 +55,7 @@ class FGLSRegressor:
         numerators = np.zeros(n_runs, dtype=float)
         denominators = np.zeros(n_runs, dtype=float)
 
-        for _, Y_chunk in self._iter_chunks(Y):
+        for _, Y_chunk in iter_chunks(Y):
             beta_ols_chunk = np.linalg.solve(XtX, X.T @ Y_chunk)
 
             resid_chunk = Y_chunk - X @ beta_ols_chunk
@@ -78,17 +79,10 @@ class FGLSRegressor:
             dtype=float,
         )
 
-        for chunk_slice, Y_chunk in self._iter_chunks(Y):
+        for chunk_slice, Y_chunk in iter_chunks(Y):
             coefficients[:, chunk_slice] = (gls_operator @ Y_chunk)
 
         return coefficients
-
-    def _iter_chunks(self, Y):
-        for start in range(0, Y.shape[1], self.chunk_size):
-            stop = min(start + self.chunk_size, Y.shape[1])
-
-            chunk_slice = slice(start, stop)
-            yield chunk_slice, Y[:, chunk_slice]
 
     def _log(self, message):
         if self.verbose:
