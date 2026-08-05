@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.linalg import block_diag, fractional_matrix_power, toeplitz
 
-from GeneralLinearModel.constants import CONST
+from general_linear_model.constants import CONST
 
 
 @dataclass
@@ -17,17 +17,14 @@ class FGLSRegressor:
         if X.shape[0] != Y.shape[0]:
             raise ValueError("X and Y must have the same number of rows.")
         
-        beta_ols = np.linalg.pinv(X.T @ X) @ X.T @ Y    # (p x v)
+        beta_ols = np.linalg.solve(X.T @ X, X.T @ Y)    # (p x v)
         resid = Y - X @ beta_ols                        # (t x v)
-        print("Calculated OLS residuals.")
         
         phis = self._estimate_phis(resid, n_runs)
         W = self._create_prewhitening_matrix(phis)
-        print("Created matrix for prewhitening.")
         
         W_inv = np.linalg.pinv(W)
         self.coef_ = np.linalg.inv(X.T @ W_inv @ X) @ X.T @ W_inv @ Y
-        print("Calculated FGLS coefficients.")
         return self
     
     def predict(self, X):

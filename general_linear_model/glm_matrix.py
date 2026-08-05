@@ -1,11 +1,11 @@
 import math
 
 import numpy as np
+from scipy.linalg import block_diag
 from scipy.signal import fftconvolve
 from scipy.stats import gamma
-from scipy.linalg import block_diag
 
-from GeneralLinearModel.constants import CONST, RawData, RunData
+from general_linear_model.constants import CONST, RawData, RunData
 
 
 def canonical_hrf(time):

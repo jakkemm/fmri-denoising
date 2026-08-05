@@ -1,5 +1,5 @@
-from GeneralLinearModel.FGLS import FGLSRegressor
-from GeneralLinearModel.GLMMatrix import GLMMatrixBuilder
+from general_linear_model.fgls import FGLSRegressor
+from general_linear_model.glm_matrix import GLMMatrixBuilder
 from utils.load_data import load_data
 
 if __name__ == "__main__":

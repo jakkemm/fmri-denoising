@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from numpy.typing import NDArray
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 
 FloatArray = NDArray[np.float64]
 

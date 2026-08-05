@@ -1,11 +1,10 @@
-import json
 from pathlib import Path
 
 import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from GeneralLinearModel.constants import RawData
+from general_linear_model.constants import RawData
 
 
 def load_data(base_path, subject):
