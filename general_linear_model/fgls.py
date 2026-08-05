@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.linalg import block_diag, fractional_matrix_power, toeplitz
+from scipy.linalg import block_diag, toeplitz
 
 from general_linear_model.constants import CONST
 
@@ -21,10 +21,10 @@ class FGLSRegressor:
         resid = Y - X @ beta_ols                        # (t x v)
         
         phis = self._estimate_phis(resid, n_runs)
-        W = self._create_prewhitening_matrix(phis)
+        V = self._create_prewhitening_matrix(phis)
         
-        W_inv = np.linalg.pinv(W)
-        self.coef_ = np.linalg.inv(X.T @ W_inv @ X) @ X.T @ W_inv @ Y
+        V_inv = np.linalg.pinv(V)
+        self.coef_ = np.linalg.inv(X.T @ V_inv @ X) @ X.T @ V_inv @ Y
         return self
     
     def predict(self, X):
@@ -36,15 +36,14 @@ class FGLSRegressor:
     
     @staticmethod
     def _create_prewhitening_matrix(phis):
-        W_blocks = []
+        V_blocks = []
         
         for phi in phis:
             ar1_autocorrelations = phi ** np.arange(CONST.n_scans)
             V_hat = toeplitz(ar1_autocorrelations)
-            W = fractional_matrix_power(V_hat, -0.5)
-            W_blocks.append(W)
+            V_blocks.append(V_hat)
         
-        return block_diag(*W_blocks)
+        return block_diag(*V_blocks)
     
     @staticmethod
     def _estimate_phis(resid, n_runs):
