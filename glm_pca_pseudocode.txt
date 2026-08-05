@@ -1,0 +1,92 @@
+--------- FGLS_FIT ---------
+INPUT:
+    Run-wise data Y[r]
+    Run-wise task matrices X_task[r]
+    Run-wise drift matrices D[r]
+    Candidate component counts k = 0, ..., k_max
+
+FUNCTION FGLS_FIT(Y, X):
+    1. Fit preliminary OLS:
+           B_OLS = pinv(X) Y
+    2. Compute residuals:
+           E = Y - X B_OLS
+    3. Estimate AR(1) parameter phi from E
+    4. Construct estimated covariance matrix V_hat
+    5. Construct whitening matrix W such that:
+           W V_hat W^T = I
+    6. Whiten:
+           Y_star = W Y
+           X_star = W X
+    7. Fit whitened model:
+           B_FGLS = pinv(X_star) Y_star
+    8. Return B_FGLS
+--------- FGLS_FIT ---------
+
+
+--------- PCA REGRESSORS ---------
+1. BASELINE CROSS-VALIDATION
+
+For each held-out run q:
+
+    Construct training data by stacking all runs r != q:
+        Y_train
+        X_train = [X_task, D]
+
+    B_train = FGLS_FIT(Y_train, X_train)
+
+    Predict the task response in held-out run q:
+        Y_pred[q] = X_task[q] B_task_train
+
+Compute voxelwise cross-validated R².
+
+2. NOISE-POOL SELECTION
+
+Select voxels satisfying:
+    CV R² < 0
+    mean intensity > intensity threshold
+
+3. PCA NOISE REGRESSORS
+
+For each run r:
+
+    Extract noise-pool data:
+        Y_noise[r]
+
+    Project out drift:
+        Y_noise_detrended[r]
+            = (I - D[r] pinv(D[r])) Y_noise[r]
+
+    Normalize each voxel time series.
+
+    Perform PCA/SVD:
+        Y_noise_detrended[r] = U[r] S[r] V[r]^T
+
+    Columns of U[r] are candidate noise regressors.
+
+4. SELECT NUMBER OF COMPONENTS
+
+For each k = 0, ..., k_max:
+
+    For each run r:
+        G_k[r] = first k columns of U[r]
+        X_k[r] = [X_task[r], D[r], G_k[r]]
+
+    Perform leave-one-run-out cross-validation:
+
+        For each held-out run q:
+            Stack all runs r != q
+            B_train = FGLS_FIT(Y_train, X_k_train)
+            Predict held-out task response
+
+    Compute median cross-validated R² for this k.
+
+Select k* using the 95%-of-maximum-improvement rule.
+
+5. FINAL FIT
+
+For each run r:
+    X_final[r] = [X_task[r], D[r], first k* columns of U[r]]
+
+Stack all runs and fit:
+    B_final = FGLS_FIT(Y_all, X_final_all)
+--------- PCA REGRESSORS ---------
