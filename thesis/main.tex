@@ -853,7 +853,7 @@ Let $n$ denote the number of time points in a run. A DCT-II basis function \cite
     \label{eq:dct-drift-basis}
 \end{equation}
 
-The constant component corresponding to $k=0$ is represented separately by an intercept column, and hence will not be included as part of the DCT drift regressors.
+The constant component corresponding to $k=0$ produces an intercept column.
 
 The number of DCT regressors should depend on the duration of the run and the selected high-pass cutoff \cite{spm-filter}. If $T$ denotes the run duration and $\tau_c$ denotes the cutoff period, an approximate rule is
 
@@ -867,23 +867,207 @@ Only the low-frequency basis functions below the selected cutoff are included. T
 Including the DCT basis in the design matrix is equivalent to modeling the selected low-frequency trends jointly with the task-related regressors. Their fitted contribution can then be treated as part of the nuisance signal and removed according to Equation~\eqref{eq:glm-denoised-signal}.
 
 \section{PCA-derived nuisance regressors}
+\label{section:pca-regressors}
 
-- This method is inspired by the GLMdenoise method, described in paper \cite{glm-denoise}
-- This is an extension of the GLM-based denoising 
-- It utilizes the structure of the experiment, where there are multiple runs, since it utilizes cross-validation (CV)
+The method used in this thesis is inspired by GLMdenoise, introduced in \cite{glm-denoise}. It extends GLM-based denoising by deriving additional nuisance regressors directly from the fMRI data. The method utilizes the multiple-run structure of the experiment and leave-one-run-out cross-validation to select the number of nuisance regressors.
 
-- The main structure of the algorithm presented in \cite{glm-denoise} is as follows:
-    1. Build design matrices for each run and then concatenated matrices for GLM, including in concatenation all runs, except one
-    2. Fit the GLM for the concatenated matrix structure and predict the left-out run using the 
-    1. After the initial GLM fit for each run, except one, we use this GLM model to predict the left-out run
-    2. Next comes the selection of noise voxels for the noise pool:
-        - CV R2 value from step 1. must be less, tha 0\% (preventing voxels related to the experiment from entering the noise pool)
-        - mean signal intensity must be above minimum threshold (preventing voxels outside the brain from entering the noise pool)
-    3. Calculating noise regressors using PCA on time-series of voxels in the pool 
+The procedure follows the main structure of GLMdenoise, with two modifications. First, the drift component is represented using the DCT regressors introduced earlier rather than the polynomial regressors used in the original method. Second, ordinary least squares is replaced by the feasible generalized least squares procedure developed in the previous sections.
+
+\subsection{Selection of the noise pool}
+
+An initial model is fitted without PCA-derived nuisance regressors. For each cross-validation iteration, one run is left out and the model is fitted to all remaining runs. The training design matrices contain the task-related and drift regressors.
+
+The task-related coefficients are shared across runs, while drift and other run-specific nuisance coefficients are estimated separately for each run. When the training runs are combined, the task-related parts of the design matrices are stacked vertically, while run-specific nuisance regressors are placed in separate columns.
 
 
+For a single run, the covariance structure was derived in Equation~\ref{eq:estimated-ar1-covariance}. Therefore, for the combined training data, the covariance matrix has the block-diagonal form:
 
+\begin{equation}
+    \widehat{\mathbf{V}}_{-q} =
+    \operatorname{blockdiag}
+    \left(\widehat{\mathbf{V}}_1, \ldots, \widehat{\mathbf{V}}_{q-1}, \widehat{\mathbf{V}}_{q+1}, \ldots, \widehat{\mathbf{V}}_R\right),
+\end{equation}
 
+where $q$ denotes the left-out run and $R$ is the total number of runs.
+
+After fitting the model, the estimated task-related coefficients are used to predict the task-related signal in the left-out run:
+
+\begin{equation}
+    \widehat{\mathbf{Y}}_{\mathrm{task},q}^{(-q)} = \mathbf{X}_{\mathrm{task},q} \widehat{\mathbf{B}}_{\mathrm{task}}^{(-q)}.
+    \label{eq:pca-cv-task-prediction}
+\end{equation}
+
+The procedure is repeated until every run has been left out once. The predictions and measured signals are then concatenated across runs. Before calculating the coefficient of determination, the drift regressors are projected out from both the measured and predicted time series.
+
+For voxel $v$, the cross-validated coefficient of determination is
+
+\begin{equation}
+    R^2_{\mathrm{CV},v} = 1 - \frac{SSE_{\text{resid}}}{SS_{\text{tot}}} = 1 - \frac{\sum_i\left(y_{iv} - \widehat{y}_{iv}\right)^2}{\sum_i\left(y_{iv} - \overline{y}_v \right)^2},
+    \label{eq:pca-noise-pool-r2}
+\end{equation}
+
+where the index $i$ denotes given time point in the concatenated time points from all held-out predictions. A negative value of the $R^2$ coefficient results from sum of squared residuals being greater, than total sum of squares, which indicates that the task-related model predicts the unseen data less accurately than a model that predicts only the mean signal.
+
+Voxels are included in the noise pool if they satisfy two conditions. First,
+
+\begin{equation}
+    R^2_{\mathrm{CV},v} < 0.
+    \label{eq:pca-noise-pool-r2-condition}
+\end{equation}
+
+This reduces the risk of including task-related voxels.
+
+Second, the mean signal intensity must exceed an intensity threshold. The mean signal intensity of voxel $v$ across all runs is
+
+\begin{equation}
+    \overline{y}_v = \frac{1}{\sum_{r=1}^{R}T_r} \sum_{r=1}^{R} \sum_{t=1}^{T_r} y_{rtv},
+\end{equation}
+
+where $T_r$ is the number of time points in run $r$. Let $P_{99}$ denote the 99th percentile of the mean signal intensities across all voxels. The intensity condition is
+
+\begin{equation}
+    \overline{y}_v > \frac{1}{2}P_{99}.
+    \label{eq:pca-noise-pool-intensity-condition}
+\end{equation}
+
+This reduces the risk of including voxels outside the brain. The same spatial set of noise-pool voxels is used for every run.
+
+\subsection{Construction of the noise-pool matrices}
+
+For each run $r$, the time series of the selected voxels are collected in a matrix
+
+\begin{equation}
+    \mathbf{Y}_{\mathrm{noise},r} \in \mathbb{R}^{T \times M},
+\end{equation}
+
+where $M$ is the number of voxels in the noise pool. Each column contains the time series of one voxel.
+
+Before PCA is performed, the drift contribution is projected out, according to Equation~\ref{eq:ols-residuals}. This is done, so that the PCA don't include the parts, that the DCT drift regressors explain. Let $\mathbf{P}_r$ denote the matrix containing the DCT drift regressors (including intercept) for run $r$. Its projection matrix and the projected-out noise-pool matrix is
+
+\begin{equation}
+    \mathbf{H}_{P_r} = \mathbf{P}_r \left(\mathbf{P}_r^T\mathbf{P}_r\right)^{-1}\mathbf{P}_r^T, 
+    \qquad 
+    \widetilde{\mathbf{Y}}_{\mathrm{noise},r} = \left(\mathbf{I} - \mathbf{H}_{P_r}\right) \mathbf{Y}_{\mathrm{noise},r} = \mathbf{Z}_r.
+    \label{eq:pca-noise-pool-residualization}
+\end{equation}
+
+PCA is then applied separately to the prepared noise-pool matrix of each run. Using singular value decomposition,
+
+\begin{equation}
+    \mathbf{Z}_r = \mathbf{U}_r \mathbf{L}_r \mathbf{A}_r^T.
+    \label{eq:pca-noise-pool-svd}
+\end{equation}
+
+The columns of $\mathbf{U}_r$ are orthogonal and provide the principal components. The first columns correspond to the directions associated with the largest amounts of variance~\cite{pca}. They are treated as candidate temporal nuisance regressors for run $r$. For a candidate number $k$, the PCA-derived nuisance-regressor matrix contains all columns up to, and including, column $k$.
+
+\subsection{Cross-validation of PCA-derived regressors}
+
+For $k_{\max}$ number of considered principal components, each $k \in \left\{0,1,\ldots,k_{\max}\right\}$ requires a separate design matrix:
+
+\begin{equation}
+    \mathbf{X}_r^{(k)} =
+    \begin{bmatrix}
+        \mathbf{X}_{\mathrm{task},r} & \mathbf{P}_r & \mathbf{U}_r^{(k)}
+    \end{bmatrix}.
+    \label{eq:pca-extended-design-matrix}
+\end{equation}
+
+Leave-one-run-out cross-validation is then performed for each value of $k$. In each iteration:
+
+\begin{enumerate}
+    \item run $q$ is left out;
+    \item the model is fitted to all runs $r\neq q$ using FGLS;
+    \item the task-related coefficients are estimated from the training runs;
+    \item the task-related signal in run $q$ is predicted using Equation~\ref{eq:pca-cv-task-prediction}.
+\end{enumerate}
+
+After all folds have been completed, the voxel-wise cross-validated coefficient of determination is calculated for each candidate number of components. Only voxels, for which the $R^2 > 0$ are chosen for candidates evaluation.
+
+For each value of $k$, the median performance is 
+
+\begin{equation}
+    m(k) = \operatorname{median}_{v\in\mathcal{V}_{\mathrm{eval}}} R^2_{\mathrm{CV},v}(k) \text{, where } \mathcal{V}_{\mathrm{eval}} = \left\{ v: \ R^2_{\mathrm{RV},v}(k) > 0 \right\}
+    \label{eq:pca-median-performance}
+\end{equation}
+
+The improvement relative to the model without PCA-derived nuisance regressors is then defined as
+
+\begin{equation}
+    \Delta(k) = m(k)-m(0), \qquad \Delta_{\max} = \max_{0\leq k\leq k_{\max}} \Delta(k).
+\end{equation}
+
+The selected number of nuisance regressors $k^\ast$ is therefore the smallest value satisfying $\Delta(k) \geq 0.95 \Delta_{\max}$. This ensures selection of model whose improvement is within 5\% of the maximum observed improvement. It avoids adding components that provide little additional predictive benefit and which can lead to overfitting.
+
+Finally, the model containing $k^{\ast}$ PCA-derived regressors is fitted to all available runs using FGLS. The fitted PCA contribution is then treated as part of the nuisance signal and can be removed according to the denoising procedure defined earlier.
+
+\subsection{Principal Component Analysis}
+
+Principal Component Analysis is used here to derive a low-dimensional set of nuisance regressors from the time series of the noise-pool voxels. Its main purpose is to reduce dimensionality while preserving as much of the variance in the original data as possible.
+
+PCA represents the data using principal components. The first principal component is the linear combination of the original variables with the largest variance. The second component has the largest possible variance, while being orthogonal to the first component, repeating the procedure for the next components.
+
+Let $\mathbf{X}$ be a data matrix and $\boldsymbol{\Sigma}$ its sample covariance matrix:
+
+\begin{equation}
+    \mathbf{X} \in \mathbb{R}^{n\times p}, \qquad \boldsymbol{\Sigma} = \frac{1}{n-1}\mathbf{X}^T\mathbf{X}
+\end{equation}
+
+The first solving vector $\boldsymbol{\alpha}_1$ maximizes:
+
+\begin{equation}
+    \operatorname{Var} \left[ \mathbf{X}\boldsymbol{\alpha_1} \right] 
+    = \boldsymbol{\alpha}_1^T \boldsymbol{\Sigma}\boldsymbol{\alpha}_1 
+    \quad \text{subject to } \boldsymbol{\alpha}_1^T \boldsymbol{\alpha}_1 = 1.
+\end{equation}
+
+The second solving vector $\boldsymbol{\alpha}_2$ maximizes $\boldsymbol{\alpha}_2^T \boldsymbol{\Sigma}\boldsymbol{\alpha}_2$ subject to $\operatorname{Cov}\left[\mathbf{X}\boldsymbol{\alpha}_1, \mathbf{X}\boldsymbol{\alpha}_2\right]$, and so on.
+
+The solving vectors are the eigenvectors of the covariance matrix $\boldsymbol{\Sigma}$.
+
+In this thesis, PCA is computed using singular value decomposition \cite[Chapter 3.5]{pca}. Let the rank of $\mathbf{X}$ be $r$. Its reduced SVD is
+
+\begin{equation}
+    \mathbf{X} = \mathbf{U} \mathbf{L} \mathbf{A}^T,
+    \label{eq:svd}
+\end{equation}
+
+where
+
+\begin{equation}
+    \mathbf{U} \in \mathbb{R}^{n\times r}, \qquad \mathbf{A} \in \mathbb{R}^{p\times r}, \qquad \mathbf{L} \in \mathbb{R}^{r\times r}.
+\end{equation}
+
+The columns of $\mathbf{U}$ and $\mathbf{A}$ are orthonormal, while $\mathbf{L}$ is a diagonal matrix:
+
+\begin{equation}
+    \mathbf{U}^T\mathbf{U} = \mathbf{I}_r, \qquad \mathbf{A}^T\mathbf{A} = \mathbf{I}_r, \qquad \mathbf{L} = \operatorname{diag} \left(\ell_1, \ell_2, \ldots \ell_r\right).
+\end{equation}
+
+From Equation~\eqref{eq:svd},
+
+\begin{align}
+    \mathbf{X}^T\mathbf{X} 
+    &= \mathbf{A} \mathbf{L}^T \mathbf{U}^T  \, \mathbf{U} \mathbf{L} \mathbf{A}^T  \\
+    &= \mathbf{A} \mathbf{L}^T \mathbf{I} \mathbf{L} \mathbf{A}^T \\
+    &= \mathbf{A} \mathbf{L} \mathbf{L} \mathbf{A}^T \\
+    &= \mathbf{A} \mathbf{L}^2 \mathbf{A}^T. 
+\end{align}
+
+Thus, the columns of $\mathbf{A}$ are eigenvectors of $\mathbf{X}^T\mathbf{X}$ and of the sample covariance matrix $\boldsymbol{\Sigma}$. The corresponding covariance eigenvalues are
+
+\begin{equation}
+    \lambda_j = \frac{\ell_j^2}{n-1}.
+\end{equation}
+
+The principal-component score matrix is
+
+\begin{equation}
+    \mathbf{Z} = \mathbf{X}\mathbf{A} = \mathbf{U}\mathbf{L}.
+\end{equation}
+
+Therefore, the columns of $\mathbf{U}\mathbf{L}$ contain the principal-component scores, while the columns of $\mathbf{U}$ contain normalized versions of these scores.
+
+In the present application, the observations are time points and the variables are noise-pool voxels. The leading temporal principal components are used as candidate nuisance regressors. PCA itself does not determine whether a component represents noise.
 
 
 \section{Independent Component Analysis}
