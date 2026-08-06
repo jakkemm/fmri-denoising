@@ -55,7 +55,7 @@ class FGLSRegressor:
         numerators = np.zeros(n_runs, dtype=float)
         denominators = np.zeros(n_runs, dtype=float)
 
-        for _, Y_chunk in iter_chunks(Y):
+        for _, Y_chunk in iter_chunks(Y, self.chunk_size):
             beta_ols_chunk = np.linalg.solve(XtX, X.T @ Y_chunk)
 
             resid_chunk = Y_chunk - X @ beta_ols_chunk
@@ -79,7 +79,7 @@ class FGLSRegressor:
             dtype=float,
         )
 
-        for chunk_slice, Y_chunk in iter_chunks(Y):
+        for chunk_slice, Y_chunk in iter_chunks(Y, self.chunk_size):
             coefficients[:, chunk_slice] = (gls_operator @ Y_chunk)
 
         return coefficients
