@@ -1,3 +1,5 @@
+import dataclasses
+import pickle
 from pathlib import Path
 
 import nibabel as nib
@@ -54,6 +56,14 @@ def img_to_2d(img):
     n_scans = data.shape[3]
     Y = data.reshape(-1, n_scans).T          # shape: (time, voxels)
     return Y
+
+def dataclass_to_pickle(dataclass_obj, pickle_path):
+    with open(pickle_path, "wb") as f:
+        pickle.dump(dataclasses.asdict(dataclass_obj), f)
+
+def dataclass_from_pickle(dataclass_type, pickle_path):
+    with open(pickle_path, "rb") as f:
+        return dataclass_type(**pickle.load(f))
 
 
 if __name__ == "__main__":
