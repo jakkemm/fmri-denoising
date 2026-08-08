@@ -21,6 +21,11 @@ class PCADriftRegressorExtractor:
         for _, Y_chunk in iter_chunks(Y_noise, self.chunk_size):
             Y_detrended = self._remove_drift(Y_chunk, drift_basis)
             
+            # implementing unit-norm noralization as per GLMdenoise
+            norms = np.linalg.norm(Y_detrended, axis=0)
+            valid = norms > 1e-8
+            Y_detrended[:, valid] /= norms[valid]
+            
             temporal_covariance += Y_detrended @ Y_detrended.T
         
         self._log(f"Calculated temporal covariance in {perf_counter() - t:.3f} seconds")
