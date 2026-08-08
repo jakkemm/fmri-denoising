@@ -69,6 +69,7 @@ class PCADenoisingPipeline:
         self._log("Starting cross-validation components evaluation...")
         
         components_time = 0.0
+        r2_by_k = {}
         
         for k in range(effective_k_max + 1):
             t = perf_counter()
@@ -81,12 +82,19 @@ class PCADenoisingPipeline:
                 pca_pipeline=True
             )
 
-            cv_scores[k] = result.median_r2
+            r2_by_k[k] = result.r2_per_voxel
             
             comp_time = perf_counter() - t
             components_time += comp_time
             self._log(f"Evaluated {k} components in {comp_time:.3f} seconds | R2={result.median_r2:4f} | k_max={effective_k_max}")
 
+        R2 = np.stack([r2_by_k[k] for k in range(effective_k_max + 1)], axis=0)
+        candidate_mask = np.any(R2 > 0.0, axis=0)
+
+        cv_scores = {
+            k: np.nanmedian(r2_by_k[k][candidate_mask])
+            for k in range(effective_k_max + 1)
+        }
         selected_k = self._select_component_count(cv_scores)
         
         self._log(
@@ -99,7 +107,7 @@ class PCADenoisingPipeline:
 
         # 5. Final fit
         all_design = self.glm_builder.build_runs(
-            runs=glm_runs,
+            runs=runs,
             components_by_run=components_by_run,
             n_components=selected_k,
         )
@@ -138,8 +146,7 @@ class PCADenoisingPipeline:
         threshold = 0.95 * maximum_improvement
 
         eligible = [
-            k
-            for k, improvement in improvements.items()
+            k for k, improvement in improvements.items()
             if improvement >= threshold
         ]
 
