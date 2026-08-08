@@ -5,7 +5,7 @@ import numpy as np
 from scipy.linalg import block_diag, toeplitz
 
 from general_linear_model.constants import CONST
-from utils.misc import iter_chunks
+from utils.misc import iter_chunks, log
 
 
 @dataclass
@@ -86,7 +86,7 @@ class FGLSRegressor:
 
     def _log(self, message):
         if self.verbose:
-            print(f"[FGLS] {message}", flush=True)
+            log(module="FGLS", message=message)
 
     @staticmethod
     def _create_prewhitening_matrix(phis):

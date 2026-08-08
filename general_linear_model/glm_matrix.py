@@ -1,4 +1,5 @@
 import math
+from dataclasses import dataclass
 
 import numpy as np
 from scipy.linalg import block_diag
@@ -15,45 +16,77 @@ def canonical_hrf(time):
     hrf = positive_resp - undershoot / 6
     return hrf / np.max(hrf)
 
+@dataclass
 class GLMMatrixBuilder:
-    high_pass_cutoff = 128.0    # cutoff for determining number of basis functions
+    high_pass_cutoff: float = 128.0    # cutoff for determining number of basis functions
+    verbose : bool = True
     
-    def build(self, runs: list[RawData], components_by_run=None, sampling_res=0.1, n_components=0):
-        Y = np.vstack([run.Y for run in runs])
-        
-        X_task = np.vstack([
-            self.build_task_per_run(run.events_df, sampling_res)
-            for run in runs
-        ])
+    def build(self, run: RawData, components=None, n_components=0, sampling_res=0.1):
+        X_task = self.build_task_per_run(run.events_df, sampling_res)
         
         K = math.floor(2 * CONST.run_duration / self.high_pass_cutoff)
-        drift_regressors = self.build_drift(CONST.n_scans, K)
+        X_drift = self.build_drift(CONST.n_scans, K)
         
-        nuisance_blocks = []
-        
-        for run_index, run in enumerate(runs):
-            blocks = [drift_regressors]
+        blocks = [X_drift]
             
-            if n_components > 0:
-                if components_by_run is None:
-                    raise ValueError("PCA components are required when n_components is positive")
-                
-                blocks.append(components_by_run[run_index][:, n_components])
+        if n_components > 0:
+            if components is None:
+                raise ValueError("PCA components are required when n_components is positive")
             
-            nuisance_blocks.append(np.column_stack(blocks))
+            blocks.append(components[:, :n_components])
         
-        X_nuisance = block_diag(*nuisance_blocks)
+        X_nuisance = np.column_stack(blocks)
         X = np.column_stack([X_task, X_nuisance])
         
         n_task = X_task.shape[1]
+        n_drift = X_drift.shape[1]
+        n_total = X.shape[1]
+        ts, ds, ps = self._build_slices(n_task, n_drift, n_total)
+        
+        return RunData(
+            Y=run.Y,
+            X=X,
+            task_slice=ts,
+            drift_slice=ds,
+            pca_slice=ps
+        )
+    
+    def combine(self, runs: list[RunData]):
+        has_pca = runs[0].pca_slice is not None
+        
+        Y = np.vstack([run.Y for run in runs])
+        X_task = np.vstack([run.X[:, run.task_slice] for run in runs])
+        X_drift = block_diag(*[run.X[:, run.drift_slice] for run in runs])
+        
+        design_blocks = [X_task, X_drift]
+        
+        
+        if has_pca:
+            X_pca = block_diag(*[run.X[:, run.pca_slice] for run in runs])
+            design_blocks.append(X_pca)
+        
+        X = np.column_stack(design_blocks)
+        
+        n_task = X_task.shape[1]
+        n_drift = X_drift.shape[1]
+        n_total = X.shape[1]
+        ts, ds, ps = self._build_slices(n_task, n_drift, n_total)
         
         return RunData(
             Y=Y,
             X=X,
-            task_slice=slice(0, n_task),
-            drift_slice=slice(n_task, X.shape[1] - n_components),
-            pca_slice=slice(X.shape[1] - n_components, X.shape[1]) if n_components > 0 else None
+            task_slice=ts,
+            drift_slice=ds,
+            pca_slice=ps
         )
+    
+    @staticmethod
+    def _build_slices(n_task, n_drift, n_total):
+        task_slice = slice(0, n_task)
+        drift_slice = slice(n_task, n_task+n_drift)
+        pca_slice = slice(n_task+n_drift, n_total) if n_total != n_drift + n_task else None
+        
+        return task_slice, drift_slice, pca_slice
     
     @staticmethod
     def build_task_per_run(events_df, sampling_res):
@@ -83,11 +116,17 @@ class GLMMatrixBuilder:
         hrf = canonical_hrf(hrf_times)
 
         predicted_bold = np.column_stack([
-            fftconvolve(stimulus[:, i], hrf, mode="same")
+            fftconvolve(
+                stimulus[:, i],
+                hrf,
+                mode="full",
+            )[:len(high_res_times)] * sampling_res
             for i in range(stimulus.shape[1])
         ])
+        
+        frame_indices = np.rint(frame_times / sampling_res).astype(int)
 
-        return predicted_bold[::int(CONST.tr / sampling_res)]
+        return predicted_bold[frame_indices]
     
     @staticmethod
     def _build_stimulus(events_df, high_res_times):

@@ -4,3 +4,6 @@ def iter_chunks(Y, chunk_size):
 
         chunk_slice = slice(start, stop)
         yield chunk_slice, Y[:, chunk_slice]
+
+def log(module, message):
+    print(f"[{module}] {message}", flush=True)

@@ -1,29 +1,53 @@
 from dataclasses import dataclass
+from time import perf_counter
 
 import numpy as np
 
-from utils.misc import iter_chunks
+from utils.misc import iter_chunks, log
 
 
 @dataclass
 class PCADriftRegressorExtractor:
-    chunk_size = 5_000
+    chunk_size: int = 5_000
+    verbose : bool = True
     
     def fit_transform(self, Y_noise, P):
-        drift_operator = P @ np.linalg.pinv(P.T @ P) @ P.T
+        t = perf_counter()
         
+        drift_basis = self._construct_drift_basis(P)
         temporal_covariance = np.zeros((Y_noise.shape[0], Y_noise.shape[0]), dtype=float)
 
+        t = perf_counter()
         for _, Y_chunk in iter_chunks(Y_noise, self.chunk_size):
-            Y_detrended = self._remove_drift(Y_noise, drift_operator)
+            Y_detrended = self._remove_drift(Y_chunk, drift_basis)
             
             temporal_covariance += Y_detrended @ Y_detrended.T
+        
+        self._log(f"Calculated temporal covariance in {perf_counter() - t:.3f} seconds")
         
         eigenvalues, U = np.linalg.eigh(temporal_covariance)
 
         order = np.argsort(eigenvalues)[::-1]
         U = U[:, order]
-        return eigenvalues[order]
-
-    def _remove_drift(self, Y, drift_operator):
+        self._log(f"Done decomposing with PCA in {perf_counter() - t:.3f} seconds")
+        return U, eigenvalues
+    
+    def out_project_drift(self, Y, P):
+        Y_proj = np.empty_like(Y, dtype=float)
+        drift_basis = self._construct_drift_basis(P)
+        
+        for chunk_slice, Y_chunk in iter_chunks(Y, self.chunk_size):
+            Y_proj[:, chunk_slice] = self._remove_drift(Y_chunk, drift_basis)
+        
+        return Y_proj
+        
+    def _construct_drift_basis(self, P):
+        return P @ np.linalg.pinv(P.T @ P) @ P.T
+        
+    @staticmethod
+    def _remove_drift(Y, drift_operator):
         return Y - drift_operator @ Y
+
+    def _log(self, message):
+        if self.verbose:
+            log(module="PCA", message=message)
