@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-FloatArray = NDArray[np.float64]
+FloatArray = NDArray[np.float32]
+BoolArray = NDArray[np.bool_]
 
 class CONST:
     run_duration = 300

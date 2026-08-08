@@ -2,9 +2,8 @@ from dataclasses import dataclass
 from time import perf_counter
 
 import numpy as np
-from sklearn.metrics import r2_score
 
-from general_linear_model.constants import FloatArray, RawData
+from general_linear_model.constants import BoolArray, FloatArray, RunData
 from general_linear_model.fgls import FGLSRegressor
 from general_linear_model.glm_matrix import GLMMatrixBuilder
 from general_linear_model.pca import PCADriftRegressorExtractor
@@ -13,14 +12,16 @@ from utils.misc import iter_chunks, log
 
 @dataclass
 class NoisePoolResults:
-    noise_pool: FloatArray
+    noise_pool_mask: BoolArray
     r2_per_voxel: FloatArray
     mean_per_voxel: FloatArray
     threshold: float
 
 @dataclass
 class PCAComponentsResults:
-    pass
+    candidates_mask: BoolArray
+    r2_per_voxel: FloatArray
+    median_r2: float
 
 
 class LeaveOneRunOutEvaluator:
@@ -32,47 +33,24 @@ class LeaveOneRunOutEvaluator:
         self.glm_builder = GLMMatrixBuilder(verbose=self.verbose)
         self.drift_extractor = PCADriftRegressorExtractor(chunk_size=self.chunk_size, verbose=self.verbose)
 
-    def evaluate(self, runs: list[RawData], components_by_run=None, n_components=0):
+    def evaluate(self, glm_runs: list[RunData], pca_pipeline=False):
         total_start = perf_counter()
         
-        n_runs = len(runs)
-        n_time, n_voxels = runs[0].Y.shape
+        n_runs = len(glm_runs)
+        n_time, n_voxels = glm_runs[0].Y.shape
         
-        Y_true_all = np.empty((n_time * n_runs, n_voxels), dtype=float)
+        Y_true_all = np.empty((n_time * n_runs, n_voxels), dtype=np.float32)
         Y_pred_all = np.empty_like(Y_true_all)
         Y_true_raw = np.empty_like(Y_true_all)
-        
-        
-        glm_runs = []
-        
-        for i, run in enumerate(runs):
-            training_components = None
-            if components_by_run is not None:
-                training_components = components_by_run[i]
-            
-            glm_run = self.glm_builder.build(
-                run=run,
-                components=training_components,
-                n_components=n_components
-            )
-            
-            glm_runs.append(glm_run)
-        
-        self._log(f"Prepared data for individual runs in {perf_counter() - total_start:.3f}")
 
         offset = 0
 
-        for held_out_index in range(len(runs)):
-            self._log(f"Calculating run {held_out_index+1}/{len(runs)}")
+        for held_out_index in range(len(glm_runs)):
+            self._log(f"Calculating run {held_out_index+1}/{len(glm_runs)}")
             held_out_start = perf_counter()
             
-            training_indices = [index for index in range(len(runs)) if index != held_out_index]
-
+            training_indices = [index for index in range(len(glm_runs)) if index != held_out_index]
             training_runs = [glm_runs[index] for index in training_indices]
-
-            training_components = None
-            if components_by_run is not None:
-                training_components = [components_by_run[index] for index in training_indices]
 
             glm_data = self.glm_builder.combine(runs=training_runs)
 
@@ -98,12 +76,12 @@ class LeaveOneRunOutEvaluator:
             
             offset += n
             
-            self._log(f"Run {held_out_index+1}/{len(runs)} predicted in {perf_counter() - held_out_start:.3f} seconds")
+            self._log(f"Run {held_out_index+1}/{len(glm_runs)} predicted in {perf_counter() - held_out_start:.3f} seconds")
         
-        if n_components == 0:
+        if not pca_pipeline:
             CVResults = self.select_noise_pool(Y_true_raw, Y_true_all, Y_pred_all)
         else:
-            raise NotImplementedError("Not yet")
+            CVResults = self.count_components_improvement(Y_true_all, Y_pred_all)
         
         self._log(f"Done evaluating in {perf_counter() - total_start:.3f} seconds")
         return CVResults
@@ -112,14 +90,14 @@ class LeaveOneRunOutEvaluator:
     def select_noise_pool(self, Y_true_raw, Y_true, Y_pred):
         t = perf_counter()
         
-        r2_per_voxel = np.empty(Y_true.shape[1], dtype=float)
-        mean_per_voxel = np.empty(Y_true.shape[1], dtype=float)
+        r2_per_voxel = np.empty(Y_true.shape[1], dtype=np.float32)
+        mean_per_voxel = np.empty(Y_true.shape[1], dtype=np.float32)
         
         for chunk_slice, Y_true_chunk in iter_chunks(Y_true, self.chunk_size):
             Y_pred_chunk = Y_pred[:, chunk_slice]
             Y_raw_chunk = Y_true_raw[:, chunk_slice]
             
-            r2_per_voxel[chunk_slice] = r2_score(Y_true_chunk, Y_pred_chunk, multioutput="raw_values")
+            r2_per_voxel[chunk_slice] = self._calculate_r2(Y_true_chunk, Y_pred_chunk)
             mean_per_voxel[chunk_slice] = np.mean(Y_raw_chunk, axis=0)
             
         threshold = 0.5 * np.percentile(mean_per_voxel, 99)
@@ -128,11 +106,47 @@ class LeaveOneRunOutEvaluator:
         self._log(f"Calculated metrics and selected {np.sum(noise_pool_mask)} noise voxels for noise pool in {perf_counter() - t:.3f} seconds.")
         
         return NoisePoolResults(
-            noise_pool=Y_true_raw[:, noise_pool_mask],
+            noise_pool_mask=noise_pool_mask,
             r2_per_voxel=r2_per_voxel,
             mean_per_voxel=mean_per_voxel,
             threshold=threshold
         )
+    
+    def count_components_improvement(self, Y_true, Y_pred):
+        t = perf_counter()
+        
+        r2_per_voxel = np.empty(Y_true.shape[1], dtype=np.float32)
+        
+        for chunk_slice, Y_true_chunk in iter_chunks(Y_true, self.chunk_size):
+            Y_pred_chunk = Y_pred[:, chunk_slice]
+            
+            r2_per_voxel[chunk_slice] = self._calculate_r2(Y_true_chunk, Y_pred_chunk)
+        
+        candidates_mask = r2_per_voxel > 0.0
+        
+        median_r2 = np.median(r2_per_voxel[candidates_mask])
+        
+        self._log(f"Calculated per-voxel and median R2 value for current number of components in {perf_counter() - t:.3f} seconds.")
+        
+        return PCAComponentsResults(
+            candidates_mask=candidates_mask,
+            r2_per_voxel=r2_per_voxel,
+            median_r2=median_r2
+        )
+
+    @staticmethod
+    def _calculate_r2(y_true, y_pred):
+        mean_true = np.mean(y_true, axis=0, keepdims=True)
+        
+        ss_res = np.sum((y_true - y_pred)**2, axis=0)
+        ss_tot = np.sum((y_true - mean_true)**2, axis=0)
+        
+        r2 = np.full(ss_tot.shape, np.nan, dtype=np.float32)
+        
+        valid = ss_tot > 0
+
+        r2[valid] = 1.0 - ss_res[valid] / ss_tot[valid]
+        return r2
         
     
     def _log(self, message):

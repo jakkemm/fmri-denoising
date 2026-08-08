@@ -15,7 +15,7 @@ class PCADriftRegressorExtractor:
         t = perf_counter()
         
         drift_basis = self._construct_drift_basis(P)
-        temporal_covariance = np.zeros((Y_noise.shape[0], Y_noise.shape[0]), dtype=float)
+        temporal_covariance = np.zeros((Y_noise.shape[0], Y_noise.shape[0]), dtype=np.float32)
 
         t = perf_counter()
         for _, Y_chunk in iter_chunks(Y_noise, self.chunk_size):
@@ -28,12 +28,12 @@ class PCADriftRegressorExtractor:
         eigenvalues, U = np.linalg.eigh(temporal_covariance)
 
         order = np.argsort(eigenvalues)[::-1]
-        U = U[:, order]
+        U = U[:, order].astype(np.float32)
         self._log(f"Done decomposing with PCA in {perf_counter() - t:.3f} seconds")
-        return U, eigenvalues
+        return U
     
     def out_project_drift(self, Y, P):
-        Y_proj = np.empty_like(Y, dtype=float)
+        Y_proj = np.empty_like(Y, dtype=np.float32)
         drift_basis = self._construct_drift_basis(P)
         
         for chunk_slice, Y_chunk in iter_chunks(Y, self.chunk_size):
@@ -42,6 +42,7 @@ class PCADriftRegressorExtractor:
         return Y_proj
         
     def _construct_drift_basis(self, P):
+        P = np.asarray(P, dtype=np.float32)
         return P @ np.linalg.pinv(P.T @ P) @ P.T
         
     @staticmethod

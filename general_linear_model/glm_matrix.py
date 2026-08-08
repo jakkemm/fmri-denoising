@@ -10,62 +10,69 @@ from general_linear_model.constants import CONST, RawData, RunData
 
 
 def canonical_hrf(time):
-    positive_resp = gamma.pdf(time, a=6)
-    undershoot = gamma.pdf(time, a=16)
-    
-    hrf = positive_resp - undershoot / 6
-    return hrf / np.max(hrf)
+    positive_resp = gamma.pdf(time, a=6).astype(np.float32)
+    undershoot = gamma.pdf(time, a=16).astype(np.float32)
+
+    hrf = positive_resp - undershoot / np.float32(6.0)
+    return (hrf / np.max(hrf)).astype(np.float32)
 
 @dataclass
 class GLMMatrixBuilder:
     high_pass_cutoff: float = 128.0    # cutoff for determining number of basis functions
     verbose : bool = True
     
-    def build(self, run: RawData, components=None, n_components=0, sampling_res=0.1):
-        X_task = self.build_task_per_run(run.events_df, sampling_res)
+    def build_runs(self, runs: list[RawData], components_by_run=None, n_components=0, sampling_res=0.1) -> list[RunData]:
         
-        K = math.floor(2 * CONST.run_duration / self.high_pass_cutoff)
-        X_drift = self.build_drift(CONST.n_scans, K)
+        glm_runs = []
         
-        blocks = [X_drift]
+        for i, raw_run in enumerate(runs):
+            components = None
             
-        if n_components > 0:
-            if components is None:
-                raise ValueError("PCA components are required when n_components is positive")
+            X_task = self._build_task(raw_run.events_df, sampling_res)
             
-            blocks.append(components[:, :n_components])
+            K = math.floor(2 * CONST.run_duration / self.high_pass_cutoff)
+            X_drift = self._build_drift(CONST.n_scans, K)
         
-        X_nuisance = np.column_stack(blocks)
-        X = np.column_stack([X_task, X_nuisance])
+            blocks = [X_drift]
+            
+            if n_components > 0:
+                components = components_by_run[i]
+                blocks.append(components[:, :n_components])
         
-        n_task = X_task.shape[1]
-        n_drift = X_drift.shape[1]
-        n_total = X.shape[1]
-        ts, ds, ps = self._build_slices(n_task, n_drift, n_total)
+            X_nuisance = np.column_stack(blocks).astype(np.float32)
+            X = np.column_stack([X_task, X_nuisance]).astype(np.float32)
         
-        return RunData(
-            Y=run.Y,
-            X=X,
-            task_slice=ts,
-            drift_slice=ds,
-            pca_slice=ps
-        )
+            n_task = X_task.shape[1]
+            n_drift = X_drift.shape[1]
+            n_total = X.shape[1]
+            ts, ds, ps = self._build_slices(n_task, n_drift, n_total)
+        
+            glm_runs.append(
+                RunData(
+                    Y=raw_run.Y,
+                    X=X,
+                    task_slice=ts,
+                    drift_slice=ds,
+                    pca_slice=ps
+                )
+            )
+            
+        return glm_runs
     
     def combine(self, runs: list[RunData]):
         has_pca = runs[0].pca_slice is not None
         
-        Y = np.vstack([run.Y for run in runs])
-        X_task = np.vstack([run.X[:, run.task_slice] for run in runs])
-        X_drift = block_diag(*[run.X[:, run.drift_slice] for run in runs])
+        Y = np.vstack([run.Y for run in runs]).astype(np.float32)
+        X_task = np.vstack([run.X[:, run.task_slice] for run in runs]).astype(np.float32)
+        X_drift = block_diag(*[run.X[:, run.drift_slice] for run in runs]).astype(np.float32)
         
         design_blocks = [X_task, X_drift]
-        
         
         if has_pca:
             X_pca = block_diag(*[run.X[:, run.pca_slice] for run in runs])
             design_blocks.append(X_pca)
         
-        X = np.column_stack(design_blocks)
+        X = np.column_stack(design_blocks).astype(np.float32)
         
         n_task = X_task.shape[1]
         n_drift = X_drift.shape[1]
@@ -87,32 +94,28 @@ class GLMMatrixBuilder:
         pca_slice = slice(n_task+n_drift, n_total) if n_total != n_drift + n_task else None
         
         return task_slice, drift_slice, pca_slice
-    
-    @staticmethod
-    def build_task_per_run(events_df, sampling_res):
-        frame_times = np.arange(CONST.n_scans) * CONST.tr
-        task_regressors = GLMMatrixBuilder._build_task(events_df, frame_times, sampling_res)
-        return task_regressors
         
     @staticmethod
-    def build_drift(n_scans, K):
+    def _build_drift(n_scans, K):
         dct_columns = []
-        scan_indices = np.arange(n_scans)
+        scan_indices = np.arange(n_scans, dtype=np.float32)
         
         dct_columns = [
-                np.cos(np.pi * k * (2 * scan_indices + 1) / (2 * n_scans))
-                for k in range(K + 1)
-            ]
+            np.cos(np.pi * k * (2 * scan_indices + 1) / (2 * n_scans))
+            for k in range(K + 1)
+        ]
 
-        return np.column_stack(dct_columns)
+        return np.column_stack(dct_columns).astype(np.float32)
         
     @staticmethod
-    def _build_task(events_df, frame_times, sampling_res):
-        high_res_times = np.arange(0, CONST.run_duration + CONST.tr, sampling_res)
+    def _build_task(events_df, sampling_res):
+        frame_times = np.arange(CONST.n_scans, dtype=np.float32) * CONST.tr
+
+        high_res_times = np.arange(0, CONST.run_duration + CONST.tr, sampling_res, dtype=np.float32)
         
         stimulus = GLMMatrixBuilder._build_stimulus(events_df, high_res_times)
         
-        hrf_times = np.arange(0.0, 32.0 + sampling_res, sampling_res)
+        hrf_times = np.arange(0.0, 32.0 + sampling_res, sampling_res, dtype=np.float32)
         hrf = canonical_hrf(hrf_times)
 
         predicted_bold = np.column_stack([
@@ -122,7 +125,7 @@ class GLMMatrixBuilder:
                 mode="full",
             )[:len(high_res_times)] * sampling_res
             for i in range(stimulus.shape[1])
-        ])
+        ]).astype(np.float32)
         
         frame_indices = np.rint(frame_times / sampling_res).astype(int)
 
@@ -137,7 +140,7 @@ class GLMMatrixBuilder:
             
             onsets = events_df.loc[cat_mask, "onset"].to_numpy()
             durations = events_df.loc[cat_mask, "duration"].to_numpy()
-            activation = np.zeros_like(high_res_times)
+            activation = np.zeros_like(high_res_times, dtype=np.float32)
             
             for start, duration in zip(onsets, durations):
                 mask = (high_res_times >= start) & (high_res_times < start + duration)
@@ -145,4 +148,4 @@ class GLMMatrixBuilder:
 
             activations.append(activation)
         
-        return np.column_stack(activations)
+        return np.column_stack(activations).astype(np.float32)
