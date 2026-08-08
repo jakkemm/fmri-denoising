@@ -3,6 +3,7 @@ data
 __pycache__
 figures
 examples
+*.pkl
 
 # .tex build artifacts
 *.aux
