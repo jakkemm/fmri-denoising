@@ -21,11 +21,11 @@ def run_glm_pca_pipeline(subject):
     )
     final_fit = pipeline.fit(runs)
     
-    pickle_path = Path.cwd() / f"result-{subject}.pkl"
+    pickle_path = Path.cwd() / "results" / f"glm_result_{subject}.pkl"
     dataclass_to_pickle(final_fit, pickle_path)
     
 def load_glm_pca_results(subject):
-    pickle_path = Path.cwd() / f"result-{subject}.pkl"
+    pickle_path = Path.cwd() / "results" / f"glm_result_{subject}.pkl"
     final_fit = dataclass_from_pickle(PCADenoisingResult, pickle_path)
     
     return final_fit
