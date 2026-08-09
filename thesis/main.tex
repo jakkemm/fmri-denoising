@@ -173,6 +173,8 @@ The dataset contains measurements from six participants, including five females 
 
 During fMRI data acquisition, the participants performed a one-back repetition-detection task while viewing grayscale images belonging to the following visual categories:
 
+% NOTE: wymienic po przecinku, zamiast numerowac
+
 \begin{enumerate}
     \item faces,
     \item houses,
@@ -193,6 +195,7 @@ Examples of the presented stimuli are shown in Figure \ref{fig:objects-shown}, w
     \label{fig:objects-shown}
 \end{figure}
 
+% NOTE: zastanowic sie nad slowem "followed"
 The experiment followed a block design. Each run contained eight stimulus blocks, with one block corresponding to each visual category. Each block contained 12 image presentations. An image was displayed for 500 ms and was followed by a rest interval of 1500 ms. Therefore, each presentation lasted 2 seconds, and each category block - 24 seconds.
 
 The stimulus blocks were separated by 12-second rest periods. Each run also began and ended with 12 seconds of rest. Consequently, the complete experimental sequence lasted 300 seconds.
@@ -223,12 +226,16 @@ The functional data were acquired using gradient-echo echo-planar imaging on a G
     \label{tab:acquisition-params}
 \end{table}
 
+
+% NOTE: wymienic slowo functional volume, albo wyjasnic, zeby bylo wiadomo, ze to kroki czasowe
 The functional images have spatial dimensions of $40 \times 64 \times 64$. Each run contains 121 functional volumes and covers approximately five minutes of acquisition.
 
 The repetition time of 2500 ms means that the BOLD signal is not sampled separately for every individual image presentation, since the images were presented every 2 seconds. The stimulus timing will be represented by task regressors used in design matrix for General Linear Model (further explained in later section LATER ADD REFERENCE), convolved with a hemodynamic response function (HRF) to model the expected BOLD response \cite{HRF}.
 
 \subsection{Anatomical MRI acquisition}
 
+
+% NOTE: wyjasnic czym jest T1-weighted
 The dataset also contains one high-resolution T1-weighted anatomical image for each participant. These images consist of 124 slices with a slice thickness of 1.2 mm and a field of view of 24 cm. Their spatial dimensions are $124 \times 256 \times 256$.
 
 The anatomical images provide greater spatial detail than the functional images. In this thesis, they are used as an anatomical reference, for brain extraction, for registration of the functional scans, and for visualization of statistical maps. They are not subjected to the denoising methods considered in the thesis.
@@ -250,6 +257,10 @@ The event files contain the columns \verb|onset|, \verb|duration|, and \verb|tri
 
 \section{Caveats related to the dataset}
 
+
+% NOTE: leave-one-out kontra leave-one-run-out, czy to jest to samo?
+% opisac, ze sa podzialy na training-test, opisac jakie sa te podzialy i ile ich jest
+% po prostu jasniej to opisac
 The experimental conditions were repeated across 12 runs. This makes leave-one-run-out cross-validation possible. A model can be fitted using 11 runs and evaluated on the remaining run, with the procedure repeated for each run. This allows for the training-test split and clearer evaluation of the of the fitted model and can support the selection of model parameters. The multiple-run structure may also help identify run-specific noise effects.
 
 The dataset does not provide a noise-free reference image or a known ground-truth BOLD signal. The quality of denoising must therefore be evaluated indirectly using criteria such as:
@@ -262,6 +273,7 @@ The dataset does not provide a noise-free reference image or a known ground-trut
     \item reduction of anatomically impossible spatial patterns.
 \end{itemize}
 
+% NOTE: dodac zrodlo o tym, ze czasem sa wlaczane dane respiratory albo cardiac
 The dataset has also a few limitations. It contains only six participants and was acquired using an older method with relatively coarse spatial and temporal resolution. It represents one specific visual experiment with a block design. Therefore conclusions obtained using this dataset may not generalize directly to other conditions (like event-related designs, resting-state data, or experiments involving different processes). Furthermore, the dataset does not include separate respiratory or cardiac recordings that could be used to construct physiological nuisance regressors.
 
 Nevertheless, the repeated and clearly defined experimental structure makes the dataset useful for comparing denoising methods. In particular, the presence of 12 runs per participant supports within-subject cross-validation and the evaluation of the stability of task-related estimates.
@@ -281,7 +293,7 @@ Several statistical methods are considered in this thesis:
     \item General Linear Model (GLM),
     \item Independent Component Analysis (ICA),
     \item Principal Component Analysis (PCA),
-    \item lasso,
+    \item lasso,    % NOTE: rozwinac skroc i dodac cytowania kto wprowadzil te metody 
     \item basis pursuit.
 \end{enumerate}
 
@@ -293,6 +305,9 @@ This thesis focuses on methods that can be described using statistical models an
 
 A common starting point is the linear model
 
+% NOTE: opisac wymiary macierzy i czym sa 
+% oraz zalozenia wektora $E$
+% Dodac ktorych metod dotyczy
 \begin{equation}
     Y = XB + E,
 \end{equation}
@@ -330,6 +345,8 @@ The first model is the General Linear Model (GLM). It is viewed as a special cas
 
 In general for a single voxel in fMRI, the GLM can be written as
 
+% NOTE: zdefiniowac voxel zdecydowanie
+
 \begin{equation}
     \mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\varepsilon},
     \label{eq:glm-model}
@@ -346,10 +363,13 @@ where
 
 Each column of $\mathbf{X}$ represents a task-related effect or another modeled source of variability. The corresponding element of $\boldsymbol{\beta}$ describes the estimated contribution of that regressor to the BOLD time series at the considered voxel. In a voxel-wise fMRI analysis, the same design matrix is usually applied separately to each voxel, while a different coefficient vector is estimated for each voxel.
 
+
+% NOTE: Przyklad laczenia tego modelu wyzej z tym nizej, jakis prosty (np macierz 2x2)
 Equivalently, the models for all voxels can be written simultaneously as $\mathbf{Y} = \mathbf{X} \mathbf{B} + \mathbf{E}$, where each column of $\mathbf{Y}$ contains the time series of one voxel.
 
 In the Linear Model described in \cite[Chapter 2]{agresti}, the error term is commonly assumed to satisfy
 
+% opisac slowami: scentrowany wektor (E(epsilon) = 0) i ze wspolrzedne sa niezalezne i maja wariancje
 \begin{equation}
     \mathbb{E}(\boldsymbol{\varepsilon}) = \mathbf{0}, \qquad \operatorname{Var}(\boldsymbol{\varepsilon}) = \sigma^2 \mathbf{I}.
     \label{eq:ols-error-assumptions}
@@ -394,6 +414,8 @@ The fitted values are then given by
     &= \mathbf{X} \left(\mathbf{X}^T\mathbf{X}\right)^{-1}\mathbf{X}^T\mathbf{y}.
 \end{align}
 
+% NOTE: pozamieniac "Hat" na "hat"
+% dodac tez to, ze jest to macierz projekcji
 We can construct the Hat matrix \cite{hat-matrix}, that describes the transformation $\widehat{\mathbf{y}} = \mathbf{H}\mathbf{y}$:
 
 \begin{equation}
@@ -435,8 +457,9 @@ The fitted values and residuals do not by themselves define the denoised fMRI si
 
 The standard OLS model assumes that the observations have equal error variances and that their errors are uncorrelated:
 
+% zamiast operatora "and" dac therefore w nowym zdaniu
 \begin{equation}
-    \operatorname{Var}(\boldsymbol{\varepsilon}) = \sigma^2\mathbf{I} \quad \wedge \quad \forall_{i \neq j} \ \ \operatorname{Var}\left(\varepsilon_j, \varepsilon_j\right) = 0.
+    \operatorname{Var}(\boldsymbol{\varepsilon}) = \sigma^2\mathbf{I} \quad \wedge \quad \forall_{i \neq j} \ \ \operatorname{Cov}\left(\varepsilon_i, \varepsilon_j\right) = 0.
 \end{equation}
 
 This assumption is generally not possible for fMRI time series. Measurements from the same voxel at consecutive time points are commonly autocorrelated. Therefore, the covariance matrix of the errors may have a more general form \cite[Chapter 2.7.2]{agresti}:
@@ -446,7 +469,7 @@ This assumption is generally not possible for fMRI time series. Measurements fro
     \label{eq:general-error-covariance}
 \end{equation}
 
-where $\mathbf{V}$ describes the temporal correlation structure and doesn't have to be the identity matrix.
+where $\mathbf{V}$ describes the correlation structure and doesn't have to be the identity matrix.
 
 Suppose that
 
@@ -456,6 +479,8 @@ Suppose that
 \end{itemize}
 
 The spectral decomposition of $\mathbf{V}$ is
+
+% NOTE: dodac odpowiednie cytowania, skad sie biora te zalozenia
 
 \begin{equation}
     \mathbf{V} = \mathbf{Q}\boldsymbol{\Lambda}\mathbf{Q}^T,
@@ -519,11 +544,14 @@ Thus, the transformed errors are uncorrelated and have equal variance. OLS can t
 
 This is the Generalized Least Squares (GLS) estimator of $\boldsymbol{\beta}$ \cite[Equation 2.12]{agresti}.
 
+% FIND CITATIONS WHY ITS CALLED PREWHITENING
 The transformation of the data and design matrix by $\mathbf{V}^{-1/2}$ is referred to as \textit{prewhitening} in neuroimaging. If the covariance structure $\mathbf{V}$ is correctly specified and known, GLS provides the Best Linear Unbiased Estimator (BLUE) of the regression coefficients \cite{agresti}\cite{woolrich-temporal-autocorrelation}\cite{bullmore-fmri-estimation}.
 
+% znalezc cytowanie do FGLS
 In practice, $\mathbf{V}$ is unknown and must be estimated from the data. From this, the resulting procedure is described as Feasible Generalized Least Squares (FGLS). Estimation of the temporal covariance structure, including its possible autoregressive representation, will be discussed in a later section.
 
 \subsubsection{Covariance of the prewhitened residuals}
+% NOTE: dodac cytowania z agrestiego
 
 Let the hat matrix derived from Equation \ref{eq:hat-matrix} for the transformed model be
 
@@ -586,6 +614,8 @@ Other articles propose additionally high-pass filter to address low-frequency si
 
 As mentioned in Section~\ref{section:gls-prewhitening}, the assumption of uncorrelated errors is generally not appropriate for fMRI time series. This creates the need to for the covariance matrix $\mathbf{V}$ introduced in Equation~\ref{eq:general-error-covariance}. Since $\mathbf{V}$ is unknown, it must be estimated from the observed data \cite[Chapter 2.7.3]{agresti}.
 
+
+% NOTE: dodac wyjasnienie, co oznacza stacjonarnosc
 In time-series data, the regression errors are unlikely to be independent, especially in fMRI data. In this thesis they are assumed to be a stationary process, which satisfies: 
 
 \begin{equation}
@@ -635,6 +665,7 @@ Under this condition, the variance and autocorrelation function are
 
 In particular,
 
+% NOTE: opisac to o monotonicznosci, pomiedzy pierwszym a drugim zdaniem
 \begin{equation}
     \rho(1)=\phi, \qquad \rho(s) \longrightarrow 0 \quad \text{as } |s|\longrightarrow\infty.
 \end{equation}
@@ -724,6 +755,8 @@ This procedure removes only the contribution assigned to nuisance regressors, wh
 
 A typical fMRI design matrix contains:
 
+% NOTE: zamienic liste na zdanie
+
 \begin{itemize}
     \item task-related regressors;
     \item motion regressors;
@@ -746,13 +779,15 @@ The event files provided with the dataset contain the onset, duration, and categ
 
 where $n$ is the number of data points in each run.
 
-For category $k$, let $J_k$ denote the number of stimulus presentations, and let $o_{kj}$ and $d_{kj}$ denote the onset and duration of $j$-th presentation. The stimulus function can then be written as
+For category $k$, let $J_k$ denote the number of stimulus presentations, and let $o_{kj}$ and $d_{kj}$ denote the onset and duration of $j$-th presentation, respectively. The stimulus function can then be written as
 
 \begin{equation}
     s_k(t) = \sum_{j=1}^{J_k} \mathbbm{1}_{[o_{kj},\,o_{kj}+d_{kj})}(t).
     \label{eq:combined-boxcar-representation}
 \end{equation}
 
+
+% NOTE: zdefiniowac boxcar
 In the analyzed dataset, each category is presented 12 times within its block, and each individual image is displayed for 0.5 seconds. Thus, each category function is a sum of twelve 0.5-second boxcar functions separated by the corresponding interstimulus intervals.
 
 The set of categories is the same for every run, but the order of the category blocks differs. As a result, the eight columns have the same interpretation across runs but unique values.
@@ -764,13 +799,13 @@ The stimulus functions describe when the stimuli were presented, but they do not
 The task regressor for category $k$ \cite[Equation 1]{hrf-theory} is defined as
 
 \begin{equation}
-    x_k(t) = \left(s_k \ast \widetilde{h}\right)(t) + \eta(t)
+    x_k(t) = \left(s_k \ast h\right)(t) + \eta(t)
     \label{eq:boxcar-hrf-convolution}
 \end{equation}
 
 where
 \begin{enumerate}
-    \item $\widetilde{h}$ denotes the selected HRF,
+    \item $h$ denotes the selected HRF,
     \item $\eta$ denotes the noise of the measurement.
 \end{enumerate}
 
@@ -800,6 +835,7 @@ where
     g(t;\alpha,\theta) = \frac{t^{\alpha-1}e^{-t/\theta}}{\Gamma(\alpha)\theta^\alpha}.
 \end{equation}
 
+% NOTE: dodac cytowanie skad double gamma albo usunac double-gamma
 For the conventional double-gamma specification considered here,
 
 \begin{equation}
@@ -822,7 +858,7 @@ The same HRF convolution is performed for each visual category. An example showi
 \begin{figure}[ht]
     \centering
     \includegraphics[scale=0.5]{fig/example_hrf_boxcar_convolution.pdf}
-    \caption{Example showing the stimulus function active in time period $[15.0s 25.0s]$, canonical HRF and the convolution of both functions.}
+    \caption{Example showing the stimulus function active in time period $[15.0 \text{s, } 25.0\text{s}]$, canonical HRF and the convolution of both functions.}
     \label{fig:hrf-boxcar-convolution}
 \end{figure}
 
@@ -855,7 +891,7 @@ The absence of explicit motion or physiological regressors does not imply that t
 
 Drift regressors are included to model low-frequency changes in the fMRI signal. Such changes may appear, because of scanner instabilities, slow participant movement, thermal effects, or other slow-varying processes.
 
-Low-frequency drift can be represented using polynomial functions, splines, or Discrete Cosine Transform (DCT) basis functions. In this thesis, a DCT basis is considered. DCT regressors provide a controlled representation of low-frequency variation without over-fitting the drift regressors to the actual desired BOLD signal.
+Low-frequency drift can be represented using polynomial functions, splines, or Discrete Cosine Transform (DCT) basis functions. In this thesis, a DCT-II basis is considered. DCT regressors provide a controlled representation of low-frequency variation without over-fitting the drift regressors to the actual desired BOLD signal.
 
 Let $n$ denote the number of time points in a run. A DCT-II basis function \cite{dct} can be written as
 
@@ -893,6 +929,7 @@ The task-related coefficients are shared across runs, while drift and other run-
 
 
 For a single run, the covariance structure was derived in Equation~\ref{eq:estimated-ar1-covariance}. Therefore, for the combined training data, the covariance matrix has the block-diagonal form:
+% NOTE: dac przyklad macierzy
 
 \begin{equation}
     \widehat{\mathbf{V}}_{-q} =
@@ -912,9 +949,10 @@ After fitting the model, the estimated task-related coefficients are used to pre
 The procedure is repeated until every run has been left out once. The predictions and measured signals are then concatenated across runs. Before calculating the coefficient of determination, the drift regressors are projected out from both the measured and predicted time series.
 
 For voxel $v$, the cross-validated coefficient of determination is
+% NOTE: dodac, ze to jest metryka ta konkretna i ze moze osiagac wartosci < 0
 
 \begin{equation}
-    R^2_{\mathrm{CV},v} = 1 - \frac{SSE_{\text{resid}}}{SS_{\text{tot}}} = 1 - \frac{\sum_i\left(y_{iv} - \widehat{y}_{iv}\right)^2}{\sum_i\left(y_{iv} - \overline{y}_v \right)^2},
+    R^2_{\mathrm{CV},v} = 1 - \frac{SS_{\text{resid}}}{SS_{\text{tot}}} = 1 - \frac{\sum_i\left(y_{iv} - \widehat{y}_{iv}\right)^2}{\sum_i\left(y_{iv} - \overline{y}_v \right)^2},
     \label{eq:pca-noise-pool-r2}
 \end{equation}
 
@@ -936,6 +974,8 @@ Second, the mean signal intensity must exceed an intensity threshold. The mean s
 \end{equation}
 
 where $T_r$ is the number of time points in run $r$. Let $P_{99}$ denote the 99th percentile of the mean signal intensities across all voxels. The intensity condition is
+
+% NOTE: odniesc sie do artykulu zdecydowanie
 
 \begin{equation}
     \overline{y}_v > \frac{1}{2}P_{99}.
@@ -1024,6 +1064,8 @@ Let $\mathbf{X}$ be a data matrix and $\boldsymbol{\Sigma}$ its sample covarianc
     \mathbf{X} \in \mathbb{R}^{n\times p}, \qquad \boldsymbol{\Sigma} = \frac{1}{n-1}\mathbf{X}^T\mathbf{X}
 \end{equation}
 
+
+% NOTE: zacytowac ksiazke
 The first solving vector $\boldsymbol{\alpha}_1$ maximizes:
 
 \begin{equation}
@@ -1032,7 +1074,7 @@ The first solving vector $\boldsymbol{\alpha}_1$ maximizes:
     \quad \text{subject to } \boldsymbol{\alpha}_1^T \boldsymbol{\alpha}_1 = 1.
 \end{equation}
 
-The second solving vector $\boldsymbol{\alpha}_2$ maximizes $\boldsymbol{\alpha}_2^T \boldsymbol{\Sigma}\boldsymbol{\alpha}_2$ subject to $\operatorname{Cov}\left[\mathbf{X}\boldsymbol{\alpha}_1, \mathbf{X}\boldsymbol{\alpha}_2\right]$, and so on.
+The second solving vector $\boldsymbol{\alpha}_2$ maximizes $\boldsymbol{\alpha}_2^T \boldsymbol{\Sigma}\boldsymbol{\alpha}_2$ subject to $\operatorname{Cov}\left[\mathbf{X}\boldsymbol{\alpha}_1, \mathbf{X}\boldsymbol{\alpha}_2\right] = 0$, and so on.
 
 The solving vectors are the eigenvectors of the covariance matrix $\boldsymbol{\Sigma}$.
 
