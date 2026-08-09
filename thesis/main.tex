@@ -136,12 +136,11 @@ This thesis focuses solely on statistical methods. The mathematical models, that
     \item Least Absolute Shrinkage and Selection Operator (LASSO).
 \end{itemize}
 
-Denoizing procedure will be using above-mentioned methods in different combination in order to compare approaches, methodologies and analyze them in the context of one-back repetition-detection task fMRI dataset, further described in chapter~\ref{chapter:dataset}. These approaches are further described in chapter~\ref{chapter:theory} and are as follows:
+Denoizing procedure will be using above-mentioned methods in different combination in order to compare approaches, methodologies and analyze them in the context of one-back repetition-detection task fMRI dataset, further described in Chapter~\ref{chapter:dataset}. These approaches are further described in Chapters~\ref{chapter:theory}-\ref{chapter:ica} and are as follows:
 \begin{itemize}
     \item Standard nuisance GLM,
     \item PCA-assisted GLM,
     \item ICA-based denoising,
-    \item LASSO nuisance regression.
 \end{itemize}
 
 The main reason for considering these approaches is that they can be described using related linear-algebraic frameworks. Although crucially, they differ in their assumptions about the structure of the data, the construction of the model and the properties of underlying components. For example, different methods require different assumptions related to orthogonality or statistical independence. Nevertheless this narrower selection will make the comparison easier to interpret and methodologically consistent. \textit{CITATIONS NEEDED: assumptions of the individual methods}
@@ -186,7 +185,7 @@ During fMRI data acquisition, the participants performed a one-back repetition-d
     \item nonsense images.
 \end{enumerate}
 
-Examples of the presented stimuli are shown in Figure \ref{fig:objects-shown}, which is taken from the original paper \cite{dataset-cit1}.
+Examples of the presented stimuli are shown in Figure~\ref{fig:objects-shown}, which is taken from the original paper \cite{dataset-cit1}.
 
 \begin{figure}[ht]
     \centering
@@ -230,7 +229,7 @@ The functional data were acquired using gradient-echo echo-planar imaging on a G
 % NOTE: wymienic slowo functional volume, albo wyjasnic, zeby bylo wiadomo, ze to kroki czasowe
 The functional images have spatial dimensions of $40 \times 64 \times 64$. Each run contains 121 functional volumes and covers approximately five minutes of acquisition.
 
-The repetition time of 2500 ms means that the BOLD signal is not sampled separately for every individual image presentation, since the images were presented every 2 seconds. The stimulus timing will be represented by task regressors used in design matrix for General Linear Model (further explained in later section LATER ADD REFERENCE), convolved with a hemodynamic response function (HRF) to model the expected BOLD response \cite{HRF}.
+The repetition time of 2500 ms means that the BOLD signal is not sampled separately for every individual image presentation, since the images were presented every 2 seconds. The stimulus timing will be represented by task regressors used in design matrix for General Linear Model (further explained in later section LATER ADD REFERENCE), convolved with a haemodynamic response function (HRF) to model the expected BOLD response \cite{HRF}.
 
 \subsection{Anatomical MRI acquisition}
 
@@ -285,7 +284,7 @@ Nevertheless, the repeated and clearly defined experimental structure makes the 
 \newpage
 
 \chapter{Statistical foundations of the selected denoising methods}
-\label{chapter:theory}
+\label{chapter:theory-foundations}
 
 Several statistical methods are considered in this thesis:
 
@@ -337,11 +336,12 @@ The possibility of describing the selected methods within a related mathematical
 The following sections introduce the mathematical foundations of each method, the assumptions on which it is based, and its possible role in fMRI denoising.
 
 
-\section{General Linear Model}
-
-\subsection{Model definition}
+\chapter{General Linear Model}
+\label{chapter:glm}
 
 The first model is the General Linear Model (GLM). It is viewed as a special case of the Generalized Linear Model with a Gaussian response distribution and the identity link function, defined in \cite[Chapter 1.1.4]{agresti} as Linear Model. However, the name General Linear Model is conventionally used in the fMRI literature.
+
+\section{Model definition}
 
 In general for a single voxel in fMRI, the GLM can be written as
 
@@ -378,7 +378,7 @@ In the Linear Model described in \cite[Chapter 2]{agresti}, the error term is co
 The normality of the error term is not required under the Gauss-Markov assumptions \cite[Gauss-Markov theorem]{agresti}.
 % Maybe not necessary to include this
 
-\subsection{Ordinary Least Squares estimation}
+\section{Ordinary Least Squares estimation}
 
 The Ordinary Least Squares (OLS) estimator is obtained by minimizing the objective function $L$, which is equal to squared Euclidean norm of the residual vector:
 
@@ -435,16 +435,16 @@ The residual vector is therefore:
 Because
 
 \begin{equation}
-    \begin{split}
+    \begin{aligned}
         \left(\mathbf{I}-\mathbf{H}\right)\mathbf{X} &= \left(\mathbf{I}- \mathbf{X} \left(\mathbf{X}^T\mathbf{X}\right)^{-1}\mathbf{X}^T\right)\mathbf{X} \\
         &= \left(\mathbf{X}- \mathbf{X} \left(\mathbf{X}^T\mathbf{X}\right)^{-1}\mathbf{X}^T\mathbf{X}\right) \\
         &= \left(\mathbf{X}- \mathbf{X} \left(\mathbf{X}^T\mathbf{X}\right)^{-1}\left(\mathbf{X}^T\mathbf{X}\right)\right) \\
         &= \left(\mathbf{X}- \mathbf{X} \mathbf{I}\right) = 0, \\
-    \end{split}
+    \end{aligned}
     \label{eq:hat-zeroing}
 \end{equation}
 
-the residual vector in Equation \ref{eq:ols-residuals} can also be written as
+the residual vector in Equation~\eqref{eq:ols-residuals} can also be written as
 
 \begin{equation}
     \mathbf{e} = (\mathbf{I}-\mathbf{H}) (\mathbf{X}\boldsymbol{\beta} + \boldsymbol{\varepsilon}) = (\mathbf{I}-\mathbf{H})\boldsymbol{\varepsilon}.
@@ -452,7 +452,7 @@ the residual vector in Equation \ref{eq:ols-residuals} can also be written as
 
 The fitted values and residuals do not by themselves define the denoised fMRI signal. For denoising, the columns of the design matrix must first be divided into task-related and nuisance regressors. The estimated nuisance contribution can then be subtracted from the observed signal. This procedure, together with the construction of the design matrix, will be described in the later sections.
 
-\subsection{Generalized Least Squares and prewhitening}
+\section{Generalized Least Squares and prewhitening}
 \label{section:gls-prewhitening}
 
 The standard OLS model assumes that the observations have equal error variances and that their errors are uncorrelated:
@@ -522,25 +522,29 @@ Its expected value is
 
 The covariance matrix of the transformed errors is
 
-\begin{align}
-    \operatorname{Var}\left(\boldsymbol{\varepsilon}^{\ast}\right) &= \operatorname{Var}\left( \mathbf{V}^{-1/2}\boldsymbol{\varepsilon} \right) \\
-    &= \mathbf{V}^{-1/2} \operatorname{Var}(\boldsymbol{\varepsilon}) \left( \mathbf{V}^{-1/2} \right)^T \\
-    &= \mathbf{V}^{-1/2} \sigma^2\mathbf{V} \left(\mathbf{V}^{-1/2}\right)^T \\
-    &= \sigma^2\ \mathbf{V}^{-1/2} \mathbf{V} \mathbf{V}^{-1/2} \\
-    &= \sigma^2\ \mathbf{V}^{-1/2} \mathbf{V}^{1/2} \mathbf{V}^{1/2} \mathbf{V}^{-1/2} \\
-    &= \sigma^2\mathbf{I}.
+\begin{equation}
+    \begin{aligned}
+        \operatorname{Var}\left(\boldsymbol{\varepsilon}^{\ast}\right) &= \operatorname{Var}\left( \mathbf{V}^{-1/2}\boldsymbol{\varepsilon} \right) \\
+        &= \mathbf{V}^{-1/2} \operatorname{Var}(\boldsymbol{\varepsilon}) \left( \mathbf{V}^{-1/2} \right)^T \\
+        &= \mathbf{V}^{-1/2} \sigma^2\mathbf{V} \left(\mathbf{V}^{-1/2}\right)^T \\
+        &= \sigma^2\ \mathbf{V}^{-1/2} \mathbf{V} \mathbf{V}^{-1/2} \\
+        &= \sigma^2\ \mathbf{V}^{-1/2} \mathbf{V}^{1/2} \mathbf{V}^{1/2} \mathbf{V}^{-1/2} \\
+        &= \sigma^2\mathbf{I}.
+    \end{aligned}
     \label{eq:whitened-error-covariance}
-\end{align}
+\end{equation}
 
 Thus, the transformed errors are uncorrelated and have equal variance. OLS can therefore be applied to the transformed model. This gives
 
-\begin{align}
-    \widehat{\boldsymbol{\beta}}_{\mathrm{GLS}} &= \left[ \left( \mathbf{X}^{\ast} \right)^T \mathbf{X}^{\ast} \right]^{-1} \left( \mathbf{X}^{\ast} \right)^T \mathbf{y}^{\ast} \\
-    &= \left[ \left( \mathbf{V}^{-1/2} \mathbf{X} \right)^T \mathbf{V}^{-1/2} \mathbf{X} \right]^{-1} \left( \mathbf{V}^{-1/2} \mathbf{X} \right)^T \mathbf{V}^{-1/2} \mathbf{y} \\
-    &= \left[  \mathbf{X}^T \mathbf{V}^{-1/2} \mathbf{V}^{-1/2} \mathbf{X} \right]^{-1} \mathbf{X}^T \mathbf{V}^{-1/2} \mathbf{V}^{-1/2} \mathbf{y} \\
-    &= \left( \mathbf{X}^T \mathbf{V}^{-1} \mathbf{X} \right)^{-1} \mathbf{X}^T \mathbf{V}^{-1} \mathbf{y}.
+\begin{equation}
+    \begin{aligned}
+        \widehat{\boldsymbol{\beta}}_{\mathrm{GLS}} &= \left[ \left( \mathbf{X}^{\ast} \right)^T \mathbf{X}^{\ast} \right]^{-1} \left( \mathbf{X}^{\ast} \right)^T \mathbf{y}^{\ast} \\
+        &= \left[ \left( \mathbf{V}^{-1/2} \mathbf{X} \right)^T \mathbf{V}^{-1/2} \mathbf{X} \right]^{-1} \left( \mathbf{V}^{-1/2} \mathbf{X} \right)^T \mathbf{V}^{-1/2} \mathbf{y} \\
+        &= \left[  \mathbf{X}^T \mathbf{V}^{-1/2} \mathbf{V}^{-1/2} \mathbf{X} \right]^{-1} \mathbf{X}^T \mathbf{V}^{-1/2} \mathbf{V}^{-1/2} \mathbf{y} \\
+        &= \left( \mathbf{X}^T \mathbf{V}^{-1} \mathbf{X} \right)^{-1} \mathbf{X}^T \mathbf{V}^{-1} \mathbf{y}.
+    \end{aligned}
     \label{eq:gls-estimator}
-\end{align}
+\end{equation}
 
 This is the Generalized Least Squares (GLS) estimator of $\boldsymbol{\beta}$ \cite[Equation 2.12]{agresti}.
 
@@ -550,10 +554,10 @@ The transformation of the data and design matrix by $\mathbf{V}^{-1/2}$ is refer
 % znalezc cytowanie do FGLS
 In practice, $\mathbf{V}$ is unknown and must be estimated from the data. From this, the resulting procedure is described as Feasible Generalized Least Squares (FGLS). Estimation of the temporal covariance structure, including its possible autoregressive representation, will be discussed in a later section.
 
-\subsubsection{Covariance of the prewhitened residuals}
+\subsection{Covariance of the prewhitened residuals}
 % NOTE: dodac cytowania z agrestiego
 
-Let the hat matrix derived from Equation \ref{eq:hat-matrix} for the transformed model be
+Let the hat matrix derived from Equation~\eqref{eq:hat-matrix} for the transformed model be
 
 \begin{equation}
     \mathbf{H}^{\ast} = \mathbf{X}^{\ast} \left[\left(\mathbf{X}^{\ast}\right)^T\mathbf{X}^{\ast}\right]^{-1} \left(\mathbf{X}^{\ast}\right)^T.
@@ -561,13 +565,15 @@ Let the hat matrix derived from Equation \ref{eq:hat-matrix} for the transformed
 
 The residual vector for the transformed model is
 
-\begin{align}
-    \mathbf{e}^{\ast} &= \left(\mathbf{I}-\mathbf{H}^{\ast} \right)\mathbf{y}^{\ast} \\
-    &= \left(\mathbf{I}-\mathbf{H}^{\ast}\right) \left(\mathbf{X}^{\ast}\boldsymbol{\beta} + \boldsymbol{\varepsilon}^{\ast}\right) \\
-    &= \left(\mathbf{I}-\mathbf{H}^{\ast}\right) \mathbf{X}^{\ast}\boldsymbol{\beta} + \left(\mathbf{I}-\mathbf{H}^{\ast}\right) \boldsymbol{\varepsilon}^{\ast}.
-\end{align}
+\begin{equation}
+    \begin{aligned}
+        \mathbf{e}^{\ast} &= \left(\mathbf{I}-\mathbf{H}^{\ast} \right)\mathbf{y}^{\ast} \\
+        &= \left(\mathbf{I}-\mathbf{H}^{\ast}\right) \left(\mathbf{X}^{\ast}\boldsymbol{\beta} + \boldsymbol{\varepsilon}^{\ast}\right) \\
+        &= \left(\mathbf{I}-\mathbf{H}^{\ast}\right) \mathbf{X}^{\ast}\boldsymbol{\beta} + \left(\mathbf{I}-\mathbf{H}^{\ast}\right) \boldsymbol{\varepsilon}^{\ast}.
+    \end{aligned}
+\end{equation}
 
-The first term is equal to zero from Equation \ref{eq:hat-zeroing}. Therefore,
+The first term is equal to zero from Equation~\eqref{eq:hat-zeroing}. Therefore,
 
 \begin{equation}
     \mathbf{e}^{\ast} = \left(\mathbf{I}-\mathbf{H}^{\ast}\right) \boldsymbol{\varepsilon}^{\ast}.
@@ -575,10 +581,13 @@ The first term is equal to zero from Equation \ref{eq:hat-zeroing}. Therefore,
 
 The covariance matrix of the transformed residuals is then
 
-\begin{align}
-    \operatorname{Var}\left(\mathbf{e}^{\ast}\right) &= \left(\mathbf{I}-\mathbf{H}^{\ast}\right)\operatorname{Var} \left(\boldsymbol{\varepsilon}^{\ast} \right) \left(\mathbf{I}-\mathbf{H}^{\ast}\right)^T \\
-    &= \sigma^2 \left(\mathbf{I}-\mathbf{H}^{\ast}\right) \left(\mathbf{I}-\mathbf{H}^{\ast}\right)^T.
-\end{align}
+\begin{equation}
+    \begin{aligned}
+        \operatorname{Var}\left(\mathbf{e}^{\ast}\right) 
+        &= \left(\mathbf{I}-\mathbf{H}^{\ast}\right)\operatorname{Var} \left(\boldsymbol{\varepsilon}^{\ast} \right) \left(\mathbf{I}-\mathbf{H}^{\ast}\right)^T \\
+        &= \sigma^2 \left(\mathbf{I}-\mathbf{H}^{\ast}\right) \left(\mathbf{I}-\mathbf{H}^{\ast}\right)^T.
+    \end{aligned}
+\end{equation}
 
 The hat matrix $\mathbf{H}^{\ast}$ is symmetric and idempotent \cite{hat-matrix}:
 
@@ -612,7 +621,7 @@ Other articles propose additionally high-pass filter to address low-frequency si
 % something to think about
 % for now: one phi per CV (with one left-out run) calculated from all values
 
-As mentioned in Section~\ref{section:gls-prewhitening}, the assumption of uncorrelated errors is generally not appropriate for fMRI time series. This creates the need to for the covariance matrix $\mathbf{V}$ introduced in Equation~\ref{eq:general-error-covariance}. Since $\mathbf{V}$ is unknown, it must be estimated from the observed data \cite[Chapter 2.7.3]{agresti}.
+As mentioned in Section~\ref{section:gls-prewhitening}, the assumption of uncorrelated errors is generally not appropriate for fMRI time series. This creates the need to for the covariance matrix $\mathbf{V}$ introduced in Equation~\eqref{eq:general-error-covariance}. Since $\mathbf{V}$ is unknown, it must be estimated from the observed data \cite[Chapter 2.7.3]{agresti}.
 
 
 % NOTE: dodac wyjasnienie, co oznacza stacjonarnosc
@@ -678,7 +687,7 @@ The temporal correlation matrix therefore has the form
     \label{eq:ar-covariance-elements}
 \end{equation}
 
-Since the true regression errors $\boldsymbol{\varepsilon}$ are not observed, the autoregressive coefficient must be estimated from residuals obtained from an initial OLS model fit, introduced in Equation~\ref{eq:ols-residuals}:
+Since the true regression errors $\boldsymbol{\varepsilon}$ are not observed, the autoregressive coefficient must be estimated from residuals obtained from an initial OLS model fit, introduced in Equation~\eqref{eq:ols-residuals}:
 
 \begin{equation}
     \mathbf{e} = \mathbf{y}-\widehat{\mathbf{y}} = \mathbf{y} - \mathbf{X}\widehat{\boldsymbol{\beta}}_{\mathrm{OLS}}
@@ -703,7 +712,7 @@ The estimated temporal correlation matrix is then constructed from the estimated
     \label{eq:estimated-ar1-covariance}
 \end{equation}
 
-This estimated covariance matrix $\widehat{\mathbf{V}}$ can now be used in the prewhitening transformation from Equation~\ref{eq:prewhitening-transform}:
+This estimated covariance matrix $\widehat{\mathbf{V}}$ can now be used in the prewhitening transformation from Equation~\eqref{eq:prewhitening-transform}:
 
 \begin{equation}
     \mathbf{y}^{\ast} = \widehat{\mathbf{V}}^{-1/2}\mathbf{y}, \qquad \mathbf{X}^{\ast} = \widehat{\mathbf{V}}^{-1/2}\mathbf{X}.
@@ -792,7 +801,7 @@ In the analyzed dataset, each category is presented 12 times within its block, a
 
 The set of categories is the same for every run, but the order of the category blocks differs. As a result, the eight columns have the same interpretation across runs but unique values.
 
-\subsubsection{Hemodynamic response function}
+\subsubsection{Haemodynamic response function}
 
 The stimulus functions describe when the stimuli were presented, but they do not directly represent the expected BOLD response. The actual haemodynamic response is delayed and temporally dispersed relative to the neural event currently taking place. Therefore, each stimulus function is convolved with a haemodynamic response function (HRF) \cite{hrf-theory}.
 
@@ -928,7 +937,7 @@ An initial model is fitted without PCA-derived nuisance regressors. For each cro
 The task-related coefficients are shared across runs, while drift and other run-specific nuisance coefficients are estimated separately for each run. When the training runs are combined, the task-related parts of the design matrices are stacked vertically, while run-specific nuisance regressors are placed in separate columns.
 
 
-For a single run, the covariance structure was derived in Equation~\ref{eq:estimated-ar1-covariance}. Therefore, for the combined training data, the covariance matrix has the block-diagonal form:
+For a single run, the covariance structure was derived in Equation~\eqref{eq:estimated-ar1-covariance}. Therefore, for the combined training data, the covariance matrix has the block-diagonal form:
 % NOTE: dac przyklad macierzy
 
 \begin{equation}
@@ -994,7 +1003,7 @@ For each run $r$, the time series of the selected voxels are collected in a matr
 
 where $M$ is the number of voxels in the noise pool. Each column contains the time series of one voxel.
 
-Before PCA is performed, the drift contribution is projected out, according to Equation~\ref{eq:ols-residuals}. This is done, so that the PCA don't include the parts, that the DCT drift regressors explain. Let $\mathbf{P}_r$ denote the matrix containing the DCT drift regressors (including intercept) for run $r$. Its projection matrix and the projected-out noise-pool matrix is
+Before PCA is performed, the drift contribution is projected out, according to Equation~\eqref{eq:ols-residuals}. This is done, so that the PCA don't include the parts, that the DCT drift regressors explain. Let $\mathbf{P}_r$ denote the matrix containing the DCT drift regressors (including intercept) for run $r$. Its projection matrix and the projected-out noise-pool matrix is
 
 \begin{equation}
     \mathbf{H}_{P_r} = \mathbf{P}_r \left(\mathbf{P}_r^T\mathbf{P}_r\right)^{-1}\mathbf{P}_r^T, 
@@ -1030,7 +1039,7 @@ Leave-one-run-out cross-validation is then performed for each value of $k$. In e
     \item run $q$ is left out;
     \item the model is fitted to all runs $r\neq q$ using FGLS;
     \item the task-related coefficients are estimated from the training runs;
-    \item the task-related signal in run $q$ is predicted using Equation~\ref{eq:pca-cv-task-prediction}.
+    \item the task-related signal in run $q$ is predicted using Equation~\eqref{eq:pca-cv-task-prediction}.
 \end{enumerate}
 
 After all folds have been completed, the voxel-wise cross-validated coefficient of determination is calculated for each candidate number of components. Only voxels, for which the $R^2 > 0$ are chosen for candidates evaluation.
@@ -1099,13 +1108,15 @@ The columns of $\mathbf{U}$ and $\mathbf{A}$ are orthonormal, while $\mathbf{L}$
 
 From Equation~\eqref{eq:svd},
 
-\begin{align}
-    \mathbf{X}^T\mathbf{X} 
-    &= \mathbf{A} \mathbf{L}^T \mathbf{U}^T  \, \mathbf{U} \mathbf{L} \mathbf{A}^T  \\
-    &= \mathbf{A} \mathbf{L}^T \mathbf{I} \mathbf{L} \mathbf{A}^T \\
-    &= \mathbf{A} \mathbf{L} \mathbf{L} \mathbf{A}^T \\
-    &= \mathbf{A} \mathbf{L}^2 \mathbf{A}^T. 
-\end{align}
+\begin{equation}
+    \begin{aligned}
+        \mathbf{X}^T\mathbf{X} 
+        &= \mathbf{A} \mathbf{L}^T \mathbf{U}^T  \, \mathbf{U} \mathbf{L} \mathbf{A}^T  \\
+        &= \mathbf{A} \mathbf{L}^T \mathbf{I} \mathbf{L} \mathbf{A}^T \\
+        &= \mathbf{A} \mathbf{L} \mathbf{L} \mathbf{A}^T \\
+        &= \mathbf{A} \mathbf{L}^2 \mathbf{A}^T. 
+    \end{aligned}
+\end{equation}
 
 Thus, the columns of $\mathbf{A}$ are eigenvectors of $\mathbf{X}^T\mathbf{X}$ and of the sample covariance matrix $\boldsymbol{\Sigma}$. The corresponding covariance eigenvalues are
 
@@ -1124,13 +1135,309 @@ Therefore, the columns of $\mathbf{U}\mathbf{L}$ contain the principal-component
 In the present application, the observations are time points and the variables are noise-pool voxels. The leading temporal principal components are used as candidate nuisance regressors. PCA itself does not determine whether a component represents noise.
 
 
-\section{Independent Component Analysis}
+\chapter{Independent Component Analysis}
+\label{chapter:ica}
 
+Independent Component Analysis (ICA) is closely related to the problem of blind source separation. A commonly used example is the \textit{cocktail-party problem} \cite[Chapter 7.1]{ica}. Suppose that three people are speaking simultaneously in a room and the sound they are emitting is recorded using three microphones in three different locations. Each microphone records a different mixture of the three speech signals.
 
-\section{LASSO method}
+The observed signals can be represented as weighted sums of the signals emitted by the speakers:
 
+\begin{equation}
+    \begin{aligned}
+        x_1(t) &= a_{11}s_1(t) + a_{12}s_2(t) + a_{13}s_3(t), \\
+        x_2(t) &= a_{21}s_1(t) + a_{22}s_2(t) + a_{23}s_3(t), \\
+        x_3(t) &= a_{31}s_1(t) + a_{32}s_2(t) + a_{33}s_3(t),
+    \end{aligned}
+\end{equation}
 
+where
 
+\begin{itemize}
+    \item $x_i(t)$ is the signal recorded by the $i$-th microphone,
+    \item $s_j(t)$ is the signal emitted by the $j$-th speaker,
+    \item $a_{ij}$ is the distance of $i$-th microphone from $j$-th speaker.
+\end{itemize}
+
+The description of $a_{ij}$ is of course simplification, produced for simple visualization of the problem. 
+
+If the coefficients $a_{ij}$ were known, the original signals could be recovered by solving the corresponding linear system. The problem is that neither the coefficients $a_{ij}$ nor the original source signals $s_j(t)$ are known. The separation is therefore referred to as \textit{blind source}.
+
+In ICA terminology, a source is an unknown hidden signal represented by an independent component. The goal is to recover these sources using only their observed mixtures.
+
+The classical square ICA mixing model can be written as
+
+\begin{equation}
+    \mathbf{X} = \mathbf{A}\mathbf{S},
+    \label{eq:basic-ica}
+\end{equation}
+
+where
+
+\begin{equation}
+    \mathbf{X} \in \mathbb{R}^{n\times m},
+    \qquad
+    \mathbf{A} \in \mathbb{R}^{n\times n}, 
+    \qquad
+    \mathbf{S} \in \mathbb{R}^{n\times m}.
+\end{equation}
+
+Here, $n$ is the number of observed mixtures and $m$ is the number of observations. The rows of $\mathbf{S}$ contain the unknown source signals, while $\mathbf{A}$ is the unknown mixing matrix.
+
+\section{Assumptions of the ICA model}
+
+The principal assumption of ICA is statistical independence of the source components. Let
+
+\begin{equation}
+    \mathbf{s} = \left(s_1, \ldots, s_n\right)^T
+\end{equation}
+
+denote a random vector of source variables. Statistical independence implies that their joint probability density factorizes as
+
+\begin{equation}
+    p(s_1, \ldots, s_n) = \prod_{i=1}^{n}p_i(s_i).
+\end{equation}
+
+The second important assumption is that the independent components are non-Gaussian. More precisely, no independent components, or at most one independent component may have a Gaussian distribution \cite[Page 163]{ica}.
+
+The reason for this restriction can be illustrated using two independent standard Gaussian variables, meaning with zero mean and unit variance. Let
+
+\begin{equation}
+    \mathbf{s} = \begin{bmatrix}
+        s_1 \\
+        s_2
+    \end{bmatrix}
+    \sim \mathcal{N} \left(\mathbf{0}, \mathbf{I}\right).
+\end{equation}
+
+Their joint density is
+
+\begin{equation}
+    p_{\mathbf{s}}(\mathbf{s}) = \frac{1}{2\pi} \exp \left(-\frac{\|\mathbf{s}\|_2^2}{2}\right).
+\end{equation}
+
+Suppose that the mixing matrix $\mathbf{A}$ is orthogonal, so that $\mathbf{A}^{-1} = \mathbf{A}^T$. For $\mathbf{x} = \mathbf{A}\mathbf{s}$,
+
+the density of $\mathbf{x}$ is
+
+\begin{equation}
+    p_{\mathbf{x}}(\mathbf{x}) = p_{\mathbf{s}} \left(\mathbf{A}^{-1}\mathbf{x}\right) \left|\det\left(\mathbf{A}^{-1}\right)\right|.
+\end{equation}
+
+Since an orthogonal transformation preserves the Euclidean norm,
+
+\begin{equation}
+    \left\|\mathbf{A}^{-1}\mathbf{x} \right\|_2^2
+    = \left\|\mathbf{A}^T\mathbf{x}\right\|_2^2
+    = (\mathbf{A}^T\mathbf{x})^T(\mathbf{A}^T\mathbf{x})
+    = \mathbf{x}^T\mathbf{A}\mathbf{A}^T\mathbf{x}
+    = \|\mathbf{x}\|_2^2,
+\end{equation}
+
+and
+
+\begin{equation}
+    |\det(\mathbf{A})|=1.
+\end{equation}
+
+Therefore,
+
+\begin{equation}
+    p_{\mathbf{x}}(\mathbf{x}) = \frac{1}{2\pi} \exp \left(-\frac{\|\mathbf{x}\|_2^2}{2}\right).
+\end{equation}
+
+Thus, an orthogonal transformation of a standardized Gaussian vector produces the same probability distribution. This means, that he original directions cannot be identified from Gaussianity alone and Non-Gaussianity is necessary for identifying the independent components.
+
+For the classical square ICA model in Equation~\eqref{eq:basic-ica}, the number of independent components is equal to the number of observed mixtures. If $\mathbf{A}$ is estimated and nonsingular, the source matrix can be recovered using an unmixing matrix
+
+\begin{equation}
+    \mathbf{W} = \mathbf{A}^{-1},
+\end{equation}
+
+so that
+
+\begin{equation}
+    \mathbf{S} = \mathbf{W}\mathbf{X}.
+\end{equation}
+
+For ICA however the scale of an independent component cannot be determined uniquely because a scaling factor can be transferred between a source and the corresponding column of the mixing matrix. Moreover if the source variance is fixed, a sign ambiguity still remains. 
+
+Additionally, the order of the components cannot be determined, since permutations of the components and the corresponding columns of the mixing matrix does not change the observed data.
+
+\section{Whitening}
+
+Whitening is commonly used as a preprocessing step for ICA. It should be distinguished from the temporal prewhitening introduced earlier for the GLM. In the GLM, prewhitening is applied to remove temporal correlation from the regression errors. In ICA, whitening is applied to the observed mixture variables before estimating the independent components.
+
+Let the centered data vector be $\mathbf{x}$ and let a whitening matrix $\mathbf{K}$ transform it into
+
+\begin{equation}
+    \mathbf{z} = \mathbf{K}\mathbf{x},
+\end{equation}
+
+such that
+
+\begin{equation}
+    \operatorname{Cov}(\mathbf{z}) = \mathbb{E} \left[ \mathbf{z}\mathbf{z}^T \right] = \mathbf{I}.
+\end{equation}
+
+Suppose that $\mathbf{U}$ is an arbitrary orthogonal matrix and
+
+\begin{equation}
+    \mathbf{z}^{\ast} = \mathbf{U}\mathbf{z}.
+\end{equation}
+
+Then
+
+\begin{equation}
+    \begin{aligned}
+        \operatorname{Cov}\left(\mathbf{z}^{\ast}\right) &= \mathbf{U} \operatorname{Cov}(\mathbf{z}) \mathbf{U}^T \\
+        &= \mathbf{U} \mathbf{I} \mathbf{U}^T \\
+        &= \mathbf{I}.
+    \end{aligned}
+\end{equation}
+
+Therefore, infinitely many possible rotations $\mathbf{U}$ preserve the whitened covariance structure. However, whitening alone cannot determine which of these rotations produces statistically independent components.
+
+It is nevertheless useful, because it reduces the number of parameters that must be estimated. Assume that the source variables have zero mean and unit variance:
+
+\begin{equation}
+    \mathbb{E}\left[ \mathbf{s}\mathbf{s}^T \right] = \mathbf{I}.
+\end{equation}
+
+The whitened data are
+
+\begin{equation}
+    \mathbf{z} = \mathbf{K}\mathbf{x} = \mathbf{K}\mathbf{A}\mathbf{s} = \widetilde{\mathbf{A}}\mathbf{s},
+\end{equation}
+
+For the square whitened model,
+
+\begin{equation}
+    \begin{aligned}
+        \mathbb{E} \left[ \mathbf{z}\mathbf{z}^T \right]
+        &= \widetilde{\mathbf{A}} \mathbb{E} \left[ \mathbf{s}\mathbf{s}^T \right] \widetilde{\mathbf{A}}^T \\
+        &= \widetilde{\mathbf{A}} \widetilde{\mathbf{A}}^T \\
+        &= \mathbf{I}.
+    \end{aligned}
+\end{equation}
+
+Thus, $\widetilde{\mathbf{A}}$ is orthogonal. Instead of estimating an arbitrary mixing matrix, ICA can therefore search over orthogonal transformations of the whitened data.
+
+\section{Estimation of independent components}
+
+Assume that the observed data follow the ICA model
+
+\begin{equation}
+    \mathbf{x} = \mathbf{A}\mathbf{s}.
+\end{equation}
+
+After whitening,
+
+\begin{equation}
+    \mathbf{z} = \widetilde{\mathbf{A}}\mathbf{s}.
+\end{equation}
+
+Since $\widetilde{\mathbf{A}}$ is orthogonal,
+
+\begin{equation}
+    \mathbf{s} = \widetilde{\mathbf{A}}^{-1} \mathbf{z} = \widetilde{\mathbf{A}}^T \mathbf{z}.
+\end{equation}
+
+An individual component can therefore be represented as
+
+\begin{equation}
+    y = \mathbf{w}^T\mathbf{z},
+\end{equation}
+
+where $\mathbf{w}$ is a unit vector whose direction must be estimated.
+
+The main idea is to search for directions for which the projected data are as non-Gaussian as possible. One measure of non-Gaussianity is negentropy \cite[Equation 8.22]{ica}:
+
+\begin{equation}
+    J(y) = H(y_{\mathrm{gauss}}) - H(y),
+\end{equation}
+
+where $y_{\mathrm{gauss}}$ is a Gaussian random variable with the same variance as $y$, and
+
+\begin{equation}
+    H(y) = -\int p_y(\eta) \log p_y(\eta)\,\mathrm{d}\eta
+\end{equation}
+
+is the differential entropy of $y$.
+
+A Gaussian random variable has the largest entropy among random variables with the same variance \cite[Chapter 5.3.2]{ica}. Therefore,
+
+\begin{equation}
+    J(y)\geq 0,
+\end{equation}
+
+with equality if $y$ is Gaussian.
+
+For whitened data, the search for one independent component can therefore be written as
+
+\begin{equation}
+    \mathbf{w}^{\ast} = \arg\max_{\|\mathbf{w}\|_2^2=1} J \left(\mathbf{w}^T\mathbf{z}\right).
+\end{equation}
+
+The unit-norm constraint follows from
+
+\begin{equation}
+    \begin{aligned}
+        \operatorname{Var}
+        \left( \mathbf{w}^T\mathbf{z} \right)
+        &= \mathbf{w}^T \operatorname{Cov}(\mathbf{z}) \mathbf{w} \\
+        &= \mathbf{w}^T\mathbf{w} \\
+        &= \|\mathbf{w}\|_2^2.
+    \end{aligned}
+\end{equation}
+
+Thus, setting $\|\mathbf{w}\|_2^2=1$ fixes the variance of the extracted component and prevents arbitrary changes in scale.
+
+The problem of negentropy however is that it requires knowledge or estimation of the probability density function. This is computationally complex, so an algorithm called \textit{FastICA} was developed, which uses an approximation based on a suitable non-quadratic function $G$ \cite[Equation 8.25]{ica}:
+
+\begin{equation}
+    J(y) \propto \left( \mathbb{E}[G(y)] - \mathbb{E}[G(\nu)]\right)^2.
+\end{equation}
+
+The expected values are present, following their definition:
+
+\begin{equation}
+    H(y) = -\int p_y(\eta) \log p_y(\eta)\,\mathrm{d}\eta = - \mathbb{E} \left[ \log p_y(\mathbf{y}) \right],
+\end{equation}
+
+while the $\nu$ variable is a standardized gaussian variable, replacing the vector $y_{\mathrm{gauss}}$. Squaring introduces magnitude of the difference and preserves non-negative values in the negentropy. 
+
+Let
+
+\begin{equation}
+    g(y) = G'(y).
+\end{equation}
+
+Rather than using ordinary gradient ascent, FastICA uses an approximate Newton fixed-point iteration. For one component, the update is \cite[Equation 8.43]{ica}
+
+\begin{equation}
+    \mathbf{w}^{+} = \mathbb{E} \left[ \mathbf{z} g \left( \mathbf{w}^T\mathbf{z} \right) \right]
+    - \mathbb{E} \left[g' \left( \mathbf{w}^T\mathbf{z} \right)\right] \mathbf{w},
+\end{equation}
+
+followed by normalization:
+
+\begin{equation}
+    \mathbf{w}_{\mathrm{new}} = \frac{\mathbf{w}^{+}}{\|\mathbf{w}^{+}\|_2}.
+\end{equation}
+
+The procedure is repeated until the direction of $\mathbf{w}$ converges. The convergence criterion is 
+
+\begin{equation}
+    \mathbf{w}_{\mathrm{new}} = \pm \mathbf{w}
+\end{equation}
+
+Since $\mathbf{w}$ and $-\mathbf{w}$ represent the same component up to its sign ($(-\mathbf{w})^T\mathbf{z} = -\mathbf{w}^T\mathbf{z}$), the convergence criterion is insensitive to this sign ambiguity, as is ICA.
+
+When several components are estimated simultaneously, the corresponding vectors are collected in an unmixing matrix $\mathbf{W}$. The vectors must additionally be decorrelated so that multiple iterations do not converge to the same component. In the symmetric FastICA algorithm, this is performed using symmetric orthogonalization:
+
+\begin{equation}
+    \mathbf{W} \leftarrow \left( \mathbf{W}\mathbf{W}^T \right)^{-1/2}\mathbf{W}.
+\end{equation}
 
 
 
