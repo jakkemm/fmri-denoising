@@ -1155,9 +1155,9 @@ where
     \item $a_{ij}$ is the distance of $i$-th microphone from $j$-th speaker.
 \end{itemize}
 
-The description of $a_{ij}$ is of course simplification, produced for simple visualization of the problem. 
+The description of $a_{ij}$ is of course a simplification, produced for simple visualization of the problem. 
 
-If the coefficients $a_{ij}$ were known, the original signals could be recovered by solving the corresponding linear system. The problem is that neither the coefficients $a_{ij}$ nor the original source signals $s_j(t)$ are known. The separation is therefore referred to as \textit{blind source}.
+If the coefficients $a_{ij}$ were known, the original signals could be recovered by solving the corresponding linear system. The problem is that neither the coefficients $a_{ij}$ nor the original source signals $s_j(t)$ are known. The separation is therefore referred to as \textit{blind}.
 
 In ICA terminology, a source is an unknown hidden signal represented by an independent component. The goal is to recover these sources using only their observed mixtures.
 
@@ -1179,7 +1179,7 @@ where
     \label{eq:basic-ica-dimensions}
 \end{equation}
 
-Here, $n$ is the number of observed mixtures and $m$ is the number of observations. The rows of $\mathbf{S}$ contain the unknown source signals, while $\mathbf{A}$ is the unknown mixing matrix.
+Here, $n$ is the number of observed mixtures and $m$ is the number of observations. The rows of $\mathbf{S}$ contain the unknown source signals, while $\mathbf{A}$ is the unknown mixing matrix. The application of this model to fMRI data will be discussed in Section~\ref{section:pica}.
 
 \section{Assumptions of the ICA model}
 
@@ -1195,7 +1195,7 @@ denote a random vector of source variables. Statistical independence implies tha
     p(s_1, \ldots, s_n) = \prod_{i=1}^{n}p_i(s_i).
 \end{equation}
 
-The second important assumption is that the independent components are non-Gaussian. More precisely, no independent components, or at most one independent component may have a Gaussian distribution \cite[Page 163]{ica}.
+The second important assumption is that the independent components are non-Gaussian. More precisely, no independent components, or at most one independent component, may have a Gaussian distribution \cite[Page 163]{ica}.
 
 The reason for this restriction can be illustrated using two independent standard Gaussian variables, meaning with zero mean and unit variance. Let
 
@@ -1243,7 +1243,7 @@ Therefore,
     p_{\mathbf{x}}(\mathbf{x}) = \frac{1}{2\pi} \exp \left(-\frac{\|\mathbf{x}\|_2^2}{2}\right).
 \end{equation}
 
-Thus, an orthogonal transformation of a standardized Gaussian vector produces the same probability distribution. This means, that he original directions cannot be identified from Gaussianity alone and Non-Gaussianity is necessary for identifying the independent components.
+Thus, an orthogonal transformation of a standardized Gaussian vector produces the same probability distribution. This means, that the original directions cannot be identified from Gaussianity alone and Non-Gaussianity is necessary for identifying the independent components.
 
 For the classical square ICA model in Equation~\eqref{eq:basic-ica}, the number of independent components is equal to the number of observed mixtures. If $\mathbf{A}$ is estimated and nonsingular, the source matrix can be recovered using an unmixing matrix
 
@@ -1259,11 +1259,12 @@ so that
 
 For ICA however the scale of an independent component cannot be determined uniquely because a scaling factor can be transferred between a source and the corresponding column of the mixing matrix. Moreover if the source variance is fixed, a sign ambiguity still remains. 
 
-Additionally, the order of the components cannot be determined, since permutations of the components and the corresponding columns of the mixing matrix does not change the observed data.
+Additionally, the order of the components cannot be determined, since permutations of the components and the corresponding columns of the mixing matrix do not change the observed data.
 
 These ambiguities concern the representation of a fixed number of independent components. For fMRI data, however, another problem must first be addressed: the number of components that should be estimated.
 
 \section{Dimensionality reduction and model-order selection}
+\label{section:pica}
 
 The classical ICA model described in Equation~\eqref{eq:basic-ica} assumes a square mixing matrix. For spatial ICA applied to fMRI data, the observed data matrix can be written as
 
@@ -1281,11 +1282,11 @@ Under the classical square ICA formulation, the model would take the form
     \qquad \mathbf{S} \in \mathbb{R}^{t\times v}.
 \end{equation}
 
-The number of independent components would therefore be equal to the number of time points. This assumption does not allow the structured part of the data to be restricted to a lower-dimensional subspace \cite{pica}.
+The number of independent components would therefore be equal to the number of time points. This assumption does not allow the signal to be restricted to a lower-dimensional subspace \cite{pica}.
 
 A second problem is that the classical model does not contain an explicit noise term. The data are assumed to be completely represented by the estimated sources and the mixing matrix. In noisy fMRI data, this may lead to overfitting, since variability caused by observational noise may be represented as additional components rather than as residual noise \cite{pica}. Dimensionality reduction is also commonly used before ICA to reduce noise and decrease the risk of overlearning \cite[Chapter 13.2]{ica}.
 
-To address these problems, \cite{pica} introduced a probabilistic independent component analysis (PICA) model for fMRI. The classical model is extended to
+To address these problems, authors of \cite{pica} introduced a probabilistic independent component analysis (PICA) model for fMRI. The classical model is extended to
 
 \begin{equation}
     \mathbf{X} = \mathbf{A}\mathbf{S} + \mathbf{E},
@@ -1317,10 +1318,12 @@ where
     \mathbf{x}_i \in \mathbb{R}^{t}, \qquad \mathbf{s}_i \in \mathbb{R}^{q},
 \end{equation}
 
-and $\boldsymbol{\eta}_i$ denotes additive Gaussian observational noise. Following \cite{pica}, its temporal covariance can be represented as
+and $\boldsymbol{\eta}_i$ denotes additive Gaussian observational noise. Following \cite{pica}, its distribution can be represented as
 
 \begin{equation}
-    \boldsymbol{\eta}_i \sim \mathcal{N}\left(\mathbf{0}, \sigma_i^2\boldsymbol{\Sigma}_i\right).
+    \boldsymbol{\eta}_i \sim \mathcal{N}\left(\mathbf{0}, \sigma_i^2\boldsymbol{\Sigma}_i\right), 
+    \qquad \mathbb{E} \left[\boldsymbol{\eta}_i\right] = 0,
+    \qquad \operatorname{Cov} (\boldsymbol{\eta}_i) = \sigma_i^2\boldsymbol{\Sigma}_i
     \label{eq:pica-noise-model}
 \end{equation}
 
@@ -1353,7 +1356,7 @@ The transformed noise $\overline{\boldsymbol{\eta}}_i$ has covariance
 
 This is temporal prewhitening with respect to the noise covariance. It is closely related to the prewhitening introduced earlier for the GLM, but should not be confused with the PCA-based whitening used later during ICA estimation.
 
-After temporal prewhitening, the problem of determining the number of source signals can be considered under a isotropic noise model, meaning model with identical distribution. Assume that the sources have zero mean and unit covariance,
+After temporal prewhitening, the problem of determining the number of source signals can be considered under an isotropic noise model, meaning a model with identical distribution. Assume that the sources have zero mean and unit covariance,
 
 \begin{equation}
     \mathbb{E}[\mathbf{s}_i] = \mathbf{0}, \qquad \operatorname{Cov}(\mathbf{s}_i) = \mathbf{I}_q,
@@ -1395,11 +1398,13 @@ with
 
 Using Equation~\eqref{eq:pica-observation-covariance},
 
-\begin{align}
+\begin{equation}
+\begin{aligned}
     \mathbf{C}
     &= \mathbf{U} \boldsymbol{\Gamma} \mathbf{U}^T + \sigma^2\mathbf{I} \\
     &= \mathbf{U} \left(\boldsymbol{\Gamma} + \sigma^2\mathbf{I} \right) \mathbf{U}^T.
-\end{align}
+\end{aligned}
+\end{equation}
 
 The eigenvalues of $\mathbf{C}$ therefore have the idealized form
 
@@ -1436,9 +1441,9 @@ Unfortunately, the population covariance matrix $\mathbf{C}$ is unknown. For cen
     \label{eq:pica-sample-covariance}
 \end{equation}
 
-Even if the true noise is isotropic and Gaussian, the eigenvalues $\lambda_q+1, \vdots, \lambda_t$, later called \textit{minor} eigenvalues of the covariance matrix will not all be exactly equal to $\sigma^2$. The observed noise eigenspectrum instead fluctuates around the population value. Consequently, simply searching for an exactly equal part of the observed eigenspectrum is not sufficient for correct model-order selection \cite{pica}.
+Even if the true noise is isotropic and Gaussian, the eigenvalues $\lambda_q+1, \cdots, \lambda_t$, later called \textit{minor} eigenvalues of the covariance matrix will not all be exactly equal to $\sigma^2$. The observed noise eigenspectrum instead fluctuates around the population value. Consequently, simply searching for an exact equality in the observed minor eigenspectrum is not sufficient for correct model-order selection \cite{pica}.
 
-In \cite{pica} the authors formulate this step using probabilistic Principal Component Analysis (PPCA). For the purpose of model-order estimation, the source variables are temporarily assumed to be Gaussian. This assumption is used only to estimate the dimensionality of the source subspace. This assumption disappears, once the identification of the independent components. The final ICA decomposition still searches for non-Gaussian independent spatial sources.
+In \cite{pica} the authors formulate this step using probabilistic Principal Component Analysis (PPCA). For the purpose of model-order estimation, the source variables are temporarily assumed to be Gaussian. This assumption is used only to estimate the dimensionality of the source subspace and disappears, once the identification of the independent components. The final ICA decomposition still searches for non-Gaussian independent spatial sources.
 
 For every candidate model order $q$, the eigenspectrum of the sample covariance matrix can be used to approximate the Bayesian model evidence described in \cite[Equation 10]{pica}. The selected model order is
 
