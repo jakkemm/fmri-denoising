@@ -291,12 +291,9 @@ Several statistical methods are considered in this thesis:
 \begin{enumerate}
     \item General Linear Model (GLM),
     \item Independent Component Analysis (ICA),
-    \item Principal Component Analysis (PCA),
-    \item lasso,    % NOTE: rozwinac skroc i dodac cytowania kto wprowadzil te metody 
-    \item basis pursuit.
+    \item Principal Component Analysis (PCA).
+    % NOTE: dodac cytowania kto wprowadzil te metody
 \end{enumerate}
-
-The final comparison may include only a subset of these methods. In particular, the inclusion of the lasso, basis pursuit, or PCA will depend on their suitability for the denoising framework developed in the later chapters.
 
 An important motivation for selecting these methods is that fMRI noise may have temporal and spatial structure. Noise patterns may be correlated across time points, voxels, or both. Therefore, the data should not always be treated as a collection of completely independent measurements. The selected approaches use relationships between observations, regressors, or latent components to estimate task-related signal and unwanted variability.
 
@@ -319,7 +316,7 @@ A more general matrix factorization can be written as
     Y \approx DA,
 \end{equation}
 
-where $D$ and $A$ represent two matrices whose interpretation depends on the method. Different approaches impose different assumptions or restrictions on these matrices, their coefficients, latent components, or error terms. These may include assumptions related to orthogonality, statistical independence, sparsity, or the structure of residual noise.
+where $D$ and $A$ represent two matrices whose interpretation depends on the method. Different approaches impose different assumptions or restrictions on these matrices, their coefficients, hidden or \textit{latent} components, or error terms. These may include assumptions related to orthogonality, statistical independence, sparsity, or the structure of residual noise.
 
 The possibility of describing the selected methods within a related mathematical framework is one of the main reasons for their selection. Their comparison allows the following aspects to be studied:
 
@@ -1179,6 +1176,7 @@ where
     \mathbf{A} \in \mathbb{R}^{n\times n}, 
     \qquad
     \mathbf{S} \in \mathbb{R}^{n\times m}.
+    \label{eq:basic-ica-dimensions}
 \end{equation}
 
 Here, $n$ is the number of observed mixtures and $m$ is the number of observations. The rows of $\mathbf{S}$ contain the unknown source signals, while $\mathbf{A}$ is the unknown mixing matrix.
@@ -1263,11 +1261,224 @@ For ICA however the scale of an independent component cannot be determined uniqu
 
 Additionally, the order of the components cannot be determined, since permutations of the components and the corresponding columns of the mixing matrix does not change the observed data.
 
+These ambiguities concern the representation of a fixed number of independent components. For fMRI data, however, another problem must first be addressed: the number of components that should be estimated.
+
+\section{Dimensionality reduction and model-order selection}
+
+The classical ICA model described in Equation~\eqref{eq:basic-ica} assumes a square mixing matrix. For spatial ICA applied to fMRI data, the observed data matrix can be written as
+
+\begin{equation}
+    \mathbf{X} \in \mathbb{R}^{t \times v},
+\end{equation}
+
+where $t$ denotes the number of time points and $v$ denotes the number of voxels. The rows therefore correspond to observed brain data for all voxels at a given time point, while the columns contain the time series measured at individual voxels.
+
+Under the classical square ICA formulation, the model would take the form
+
+\begin{equation}
+    \mathbf{X} = \mathbf{A}\mathbf{S},
+    \qquad \mathbf{A} \in \mathbb{R}^{t\times t},
+    \qquad \mathbf{S} \in \mathbb{R}^{t\times v}.
+\end{equation}
+
+The number of independent components would therefore be equal to the number of time points. This assumption does not allow the structured part of the data to be restricted to a lower-dimensional subspace \cite{pica}.
+
+A second problem is that the classical model does not contain an explicit noise term. The data are assumed to be completely represented by the estimated sources and the mixing matrix. In noisy fMRI data, this may lead to overfitting, since variability caused by observational noise may be represented as additional components rather than as residual noise \cite{pica}. Dimensionality reduction is also commonly used before ICA to reduce noise and decrease the risk of overlearning \cite[Chapter 13.2]{ica}.
+
+To address these problems, \cite{pica} introduced a probabilistic independent component analysis (PICA) model for fMRI. The classical model is extended to
+
+\begin{equation}
+    \mathbf{X} = \mathbf{A}\mathbf{S} + \mathbf{E},
+    \label{eq:pica-model}
+\end{equation}
+
+where
+
+\begin{equation}
+    \mathbf{X} \in \mathbb{R}^{t\times v},
+    \qquad \mathbf{A} \in \mathbb{R}^{t\times q},
+    \qquad \mathbf{S} \in \mathbb{R}^{q\times v},
+    \qquad \mathbf{E} \in \mathbb{R}^{t\times v},
+    \label{eq:pica-dimensions}
+\end{equation}
+
+and $q<t$ denotes the unknown number of latent source processes. The columns of $\mathbf{A}$ contain the temporal courses associated with the components, while the rows of $\mathbf{S}$ contain their spatial maps. In spatial ICA, statistical independence is imposed on these spatial source maps.
+
+For an individual voxel $i$, the model can equivalently be written as
+
+\begin{equation}
+    \mathbf{x}_i = \mathbf{A}\mathbf{s}_i + \boldsymbol{\eta}_i,
+    \label{eq:pica-not-whitened}
+\end{equation}
+
+where
+
+\begin{equation}
+    \mathbf{x}_i \in \mathbb{R}^{t}, \qquad \mathbf{s}_i \in \mathbb{R}^{q},
+\end{equation}
+
+and $\boldsymbol{\eta}_i$ denotes additive Gaussian observational noise. Following \cite{pica}, its temporal covariance can be represented as
+
+\begin{equation}
+    \boldsymbol{\eta}_i \sim \mathcal{N}\left(\mathbf{0}, \sigma_i^2\boldsymbol{\Sigma}_i\right).
+    \label{eq:pica-noise-model}
+\end{equation}
+
+Before dimensionality reduction, the data can be temporally prewhitened with respect to this covariance structure. Let
+
+\begin{equation}
+    \boldsymbol{\Sigma}_i = \mathbf{L}_i\mathbf{L}_i^T
+\end{equation}
+
+be a Cholesky decomposition. Multiplication by $\mathbf{L}_i^{-1}$ gives
+
+\begin{equation}
+    \begin{aligned}
+        \overline{\mathbf{x}}_i
+        &= \mathbf{L}_i^{-1}\mathbf{x}_i \\
+        &= \mathbf{L}_i^{-1}\mathbf{A}\mathbf{s}_i + \mathbf{L}_i^{-1}\boldsymbol{\eta}_i.
+    \end{aligned}
+\end{equation}
+
+The transformed noise $\overline{\boldsymbol{\eta}}_i$ has covariance
+
+\begin{equation}
+    \begin{aligned}
+        \operatorname{Cov} \left(\overline{\boldsymbol{\eta}}_i\right)
+        &= \mathbf{L}_i^{-1} \sigma_i^2\boldsymbol{\Sigma}_i \left(\mathbf{L}_i^{-1}\right)^T \\
+        &= \sigma_i^2 \mathbf{L}_i^{-1} \mathbf{L}_i \mathbf{L}_i^T \left(\mathbf{L}_i^{-1}\right)^T \\
+        &= \sigma_i^2\mathbf{I}.
+    \end{aligned}
+\end{equation}
+
+This is temporal prewhitening with respect to the noise covariance. It is closely related to the prewhitening introduced earlier for the GLM, but should not be confused with the PCA-based whitening used later during ICA estimation.
+
+After temporal prewhitening, the problem of determining the number of source signals can be considered under a isotropic noise model, meaning model with identical distribution. Assume that the sources have zero mean and unit covariance,
+
+\begin{equation}
+    \mathbb{E}[\mathbf{s}_i] = \mathbf{0}, \qquad \operatorname{Cov}(\mathbf{s}_i) = \mathbf{I}_q,
+\end{equation}
+
+and that the isotropic noise has covariance $\sigma^2\mathbf{I}$. The covariance matrix of the observations is then
+
+\begin{align}
+    \mathbf{C}
+    &= \operatorname{Cov}(\mathbf{x}_i) \\
+    &= \mathbf{A} \operatorname{Cov}(\mathbf{s}_i) \mathbf{A}^T + \sigma^2\mathbf{I} \\
+    &= \mathbf{A}\mathbf{A}^T + \sigma^2\mathbf{I}.
+    \label{eq:pica-observation-covariance}
+\end{align}
+
+Since $\mathbf{A}\in\mathbb{R}^{t\times q}$ is assumed to have full column rank,
+
+\begin{equation}
+    \operatorname{rank}(\mathbf{A}) = \operatorname{rank} \left( \mathbf{A}\mathbf{A}^T \right) = q.
+\end{equation}
+
+The eigendecomposition of the signal contribution can therefore be written as
+
+\begin{equation}
+    \mathbf{A}\mathbf{A}^T = \mathbf{U} \boldsymbol{\Gamma} \mathbf{U}^T,
+\end{equation}
+
+where
+
+\begin{equation}
+    \boldsymbol{\Gamma} = \operatorname{diag} \left(\gamma_1,\ldots,\gamma_q, 0,\ldots,0\right),
+\end{equation}
+
+with
+
+\begin{equation}
+    \gamma_1 \geq \gamma_2 \geq \cdots \geq \gamma_q > 0.
+\end{equation}
+
+Using Equation~\eqref{eq:pica-observation-covariance},
+
+\begin{align}
+    \mathbf{C}
+    &= \mathbf{U} \boldsymbol{\Gamma} \mathbf{U}^T + \sigma^2\mathbf{I} \\
+    &= \mathbf{U} \left(\boldsymbol{\Gamma} + \sigma^2\mathbf{I} \right) \mathbf{U}^T.
+\end{align}
+
+The eigenvalues of $\mathbf{C}$ therefore have the idealized form
+
+\begin{equation}
+    \lambda_j =
+    \begin{cases}
+        \gamma_j+\sigma^2, & j=1,\ldots,q, \\
+        \sigma^2, & j=q+1,\ldots,t.
+    \end{cases}
+    \label{eq:pica-eigenvalues}
+\end{equation}
+
+Hence,
+
+\begin{equation}
+    \lambda_1 \geq \cdots \geq \lambda_q > \lambda_{q+1} = \cdots = \lambda_t = \sigma^2.
+\end{equation}
+
+The first $q$ eigenvectors span the latent source subspace, while the remaining $t-q$ eigenvectors span the Gaussian noise subspace. In this setting, model-order selection becomes the problem of estimating the value of $q$ that separates these two subspaces.
+
+This distinction is important because an inappropriate value of $q$ can affect the ICA decomposition:
+
+\begin{itemize}
+    \item if $q$ is too small, some structured source processes may be removed during dimensionality reduction,
+    \item if $q$ is too large, directions dominated by Gaussian observational noise may be included in the ICA decomposition, increasing the risk of overfitting.
+\end{itemize}
+
+The term \textit{source subspace} does not refer only to task-related neural activity. Structured physiological or instrumental variability may also be non-Gaussian and may therefore appear as one of the source processes. The Gaussian noise term in the PICA model represents the remaining unstructured observational noise \cite{pica}.
+
+Unfortunately, the population covariance matrix $\mathbf{C}$ is unknown. For centered data, it is estimated from the observed fMRI matrix as
+
+\begin{equation}
+    \widehat{\mathbf{C}} = \frac{1}{v} \mathbf{X}\mathbf{X}^T.
+    \label{eq:pica-sample-covariance}
+\end{equation}
+
+Even if the true noise is isotropic and Gaussian, the eigenvalues $\lambda_q+1, \vdots, \lambda_t$, later called \textit{minor} eigenvalues of the covariance matrix will not all be exactly equal to $\sigma^2$. The observed noise eigenspectrum instead fluctuates around the population value. Consequently, simply searching for an exactly equal part of the observed eigenspectrum is not sufficient for correct model-order selection \cite{pica}.
+
+In \cite{pica} the authors formulate this step using probabilistic Principal Component Analysis (PPCA). For the purpose of model-order estimation, the source variables are temporarily assumed to be Gaussian. This assumption is used only to estimate the dimensionality of the source subspace. This assumption disappears, once the identification of the independent components. The final ICA decomposition still searches for non-Gaussian independent spatial sources.
+
+For every candidate model order $q$, the eigenspectrum of the sample covariance matrix can be used to approximate the Bayesian model evidence described in \cite[Equation 10]{pica}. The selected model order is
+
+\begin{equation}
+    \widehat{q} = \arg\max_q p(\mathbf{X}\mid q).
+    \label{eq:pica-model-order}
+\end{equation}
+
+The procedure described in \cite{pica} additionally accounts for the finite number of observations by comparing the observed minor eigenspectrum with the eigenspectrum expected from finite Gaussian noise, which has Wishart distribution.
+
+For a fixed candidate value $q$, the maximum-likelihood estimate of the isotropic noise variance is obtained from the eigenvalues belonging to the minor subspace spanned by $t - q$ eigenvectors \cite{pica}:
+
+\begin{equation}
+    \widehat{\sigma}^2(q) = \frac{1}{t-q} \sum_{j=q+1}^{t} \lambda_j.
+    \label{eq:pica-noise-variance}
+\end{equation}
+
+Once the model order $\widehat{q}$ has been selected, the first $\widehat{q}$ eigenvectors of $\widehat{\mathbf{C}}$ define the estimated PPCA source subspace. Let
+
+\begin{equation}
+    \mathbf{U}_{\widehat{q}} \in \mathbb{R}^{t\times\widehat{q}}
+\end{equation}
+
+contain these eigenvectors. The observed data can then be projected onto this subspace:
+
+\begin{equation}
+    \mathbf{X}_{\widehat{q}} = \mathbf{U}_{\widehat{q}}^T \mathbf{X},
+    \qquad \mathbf{X}_{\widehat{q}} \in \mathbb{R}^{\widehat{q}\times v}.
+    \label{eq:pica-dimensionality-reduction}
+\end{equation}
+
+The dimensionality has been reduced from the original $t$ temporal mixtures to $\widehat{q}$ mixtures. The reduced representation contains the estimated structured source subspace, while the remaining directions are treated as Gaussian observational noise.
+
 \section{Whitening}
 
-Whitening is commonly used as a preprocessing step for ICA. It should be distinguished from the temporal prewhitening introduced earlier for the GLM. In the GLM, prewhitening is applied to remove temporal correlation from the regression errors. In ICA, whitening is applied to the observed mixture variables before estimating the independent components.
+After dimensionality reduction, ICA is performed within the estimated $\widehat{q}$-dimensional source subspace. Before estimating the independent components, the reduced data are whitened. This is a second and conceptually different transformation from the temporal prewhitening introduced in the previous section, since temporal prewhitening acts along the time dimension and is used to account for autocorrelation in the observational noise. 
 
-Let the centered data vector be $\mathbf{x}$ and let a whitening matrix $\mathbf{K}$ transform it into
+The whitening presented in this section acts upon the reduced ICA space and removes correlations between the mixture variables.
+
+Let the centered data vector in the reduced space be $\mathbf{x}$ and let a whitening matrix $\mathbf{K}$ transform it into
 
 \begin{equation}
     \mathbf{z} = \mathbf{K}\mathbf{x},
@@ -1276,7 +1487,7 @@ Let the centered data vector be $\mathbf{x}$ and let a whitening matrix $\mathbf
 such that
 
 \begin{equation}
-    \operatorname{Cov}(\mathbf{z}) = \mathbb{E} \left[ \mathbf{z}\mathbf{z}^T \right] = \mathbf{I}.
+    \operatorname{Cov}(\mathbf{z}) = \mathbb{E}\left[\mathbf{z}\mathbf{z}^T\right] = \mathbf{I}.
 \end{equation}
 
 Suppose that $\mathbf{U}$ is an arbitrary orthogonal matrix and
@@ -1322,7 +1533,7 @@ For the square whitened model,
 
 Thus, $\widetilde{\mathbf{A}}$ is orthogonal. Instead of estimating an arbitrary mixing matrix, ICA can therefore search over orthogonal transformations of the whitened data.
 
-\section{Estimation of independent components}
+\section{Estimation of independent components with FastICA}
 
 Assume that the observed data follow the ICA model
 
@@ -1436,10 +1647,44 @@ Since $\mathbf{w}$ and $-\mathbf{w}$ represent the same component up to its sign
 When several components are estimated simultaneously, the corresponding vectors are collected in an unmixing matrix $\mathbf{W}$. The vectors must additionally be decorrelated so that multiple iterations do not converge to the same component. In the symmetric FastICA algorithm, this is performed using symmetric orthogonalization:
 
 \begin{equation}
-    \mathbf{W} \leftarrow \left( \mathbf{W}\mathbf{W}^T \right)^{-1/2}\mathbf{W}.
+    \mathbf{W} \gets \left( \mathbf{W}\mathbf{W}^T \right)^{-1/2}\mathbf{W}.
 \end{equation}
 
+The full algorithm in matrix notation, follows the FastICA algorithm presented in \cite[Table 8.4]{ica} can be seen in Table~\ref{alg:fastica}:
 
+\begin{algorithm}[H]
+\caption{Symmetric FastICA}
+\label{alg:fastica}
+\begin{algorithmic}[1]
+    \Require Whitened observations $\mathbf{Z} \in \mathbb{R}^{q\times v}$
+    \Require Nonlinear function $g$ and its derivative $g'$
+    \Require Convergence tolerance $\varepsilon$
+
+    \State Initialize $\mathbf{W} \in \mathbb{R}^{q \times q}$ each 
+    \State Orthogonalize $\mathbf{W}$
+
+    \Repeat
+        \State Store previous matrix:
+        $$ \mathbf{W}_{\mathrm{old}} \gets \mathbf{W} $$
+
+        \State Update all rows simultaneously:
+        $$ 
+        \mathbf{W} \gets 
+        \mathbb{E} \left[ g(\mathbf{W}\mathbf{Z})\mathbf{Z}^T \right] 
+        - \operatorname{diag} \left( \mathbb{E} \left[ g'(\mathbf{W}\mathbf{Z}) \right] \right) \mathbf{W}
+        $$
+
+        \State Apply symmetric orthogonalization:
+        $$ \mathbf{W} \gets (\mathbf{W}\mathbf{W}^T)^{-1/2}\mathbf{W} $$
+
+    \Until{
+        $$ \max_i \left| |\mathbf{w}_i^T\mathbf{w}_{i,\mathrm{old}}|-1 \right| < \varepsilon $$
+    }
+
+    \State \Return
+    $$ \mathbf{S} = \mathbf{W} \mathbf{Z} $$
+\end{algorithmic}
+\end{algorithm}
 
 
 
