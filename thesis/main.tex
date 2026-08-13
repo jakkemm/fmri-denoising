@@ -166,20 +166,8 @@ The dataset contains measurements from six participants, including five females 
 
 \subsection{Experimental task and design}
 
-During fMRI data acquisition, the participants performed a one-back repetition-detection task while viewing grayscale images belonging to the following visual categories:
-
-% NOTE: wymienic po przecinku, zamiast numerowac
-
-\begin{enumerate}
-    \item faces,
-    \item houses,
-    \item cats,
-    \item bottles,
-    \item scissors,
-    \item shoes,
-    \item chairs,
-    \item nonsense images.
-\end{enumerate}
+% [FIXED] NOTE: wymienic po przecinku, zamiast numerowac
+During fMRI data acquisition, the participants performed a one-back repetition-detection task while viewing grayscale images belonging to the following visual categories: faces, houses, cats, bottles, scissors, shoes, chairs and nonsense images.
 
 Examples of the presented stimuli are shown in Figure~\ref{fig:objects-shown}, which is taken from the original paper \cite{dataset-cit1}.
 
@@ -198,6 +186,7 @@ The stimulus blocks were separated by 12-second rest periods. Each run also bega
 A total of 96 images were presented during each run. The same eight categories were included in all 12 runs, although the order of the category blocks differed between runs. The block structure itself remained unchanged.
 
 \subsection{Functional MRI acquisition}
+\label{section:fmri-acquisition}
 
 The functional data were acquired using gradient-echo echo-planar imaging on a GE 3T scanner. The main acquisition parameters are presented in Table~\ref{tab:acquisition-params}~\cite{MAIN_DATASET}.
 
@@ -222,16 +211,16 @@ The functional data were acquired using gradient-echo echo-planar imaging on a G
 \end{table}
 
 
-% NOTE: wymienic slowo functional volume, albo wyjasnic, zeby bylo wiadomo, ze to kroki czasowe
-The functional images have spatial dimensions of $40 \times 64 \times 64$. Each run contains 121 functional volumes and covers approximately five minutes of acquisition.
+% [FIXED] NOTE: wymienic slowo functional volume, albo wyjasnic, zeby bylo wiadomo, ze to kroki czasowe
+The functional images have spatial dimensions of $40 \times 64 \times 64$. Each run contains 121 time points, also called \textit{functional volumes} and covers approximately five minutes of acquisition.
 
 The repetition time of 2500 ms means that the BOLD signal is not sampled separately for every individual image presentation, since the images were presented every 2 seconds. The stimulus timing will be represented by task regressors used in design matrix for General Linear Model (further explained in later section LATER ADD REFERENCE), convolved with a haemodynamic response function (HRF) to model the expected BOLD response \cite{HRF}.
 
 \subsection{Anatomical MRI acquisition}
 
 
-% NOTE: wyjasnic czym jest T1-weighted
-The dataset also contains one high-resolution T1-weighted anatomical image for each participant. These images consist of 124 slices with a slice thickness of 1.2 mm and a field of view of 24 cm. Their spatial dimensions are $124 \times 256 \times 256$.
+% [FIXED] NOTE: wyjasnic czym jest T1-weighted
+The dataset also contains one high-resolution T1-weighted anatomical image for each participant. T1-weighted image is a high-resolution spatial signal matrix, providing structural information and are comonly used as an anatomical reference for registration of functional MRI data. In analyzed dataset the images consist of 124 slices with a slice thickness of 1.2 mm and a field of view of 24 cm. Their spatial dimensions are $124 \times 256 \times 256$.
 
 The anatomical images provide greater spatial detail than the functional images. In this thesis, they are used as an anatomical reference, for brain extraction, for registration of the functional scans, and for visualization of statistical maps. They are not subjected to the denoising methods considered in the thesis.
 
@@ -253,10 +242,10 @@ The event files contain the columns \verb|onset|, \verb|duration|, and \verb|tri
 \section{Caveats related to the dataset}
 
 
-% NOTE: leave-one-out kontra leave-one-run-out, czy to jest to samo?
+% [FIXED] NOTE: leave-one-out kontra leave-one-run-out, czy to jest to samo?
 % opisac, ze sa podzialy na training-test, opisac jakie sa te podzialy i ile ich jest
 % po prostu jasniej to opisac
-The experimental conditions were repeated across 12 runs. This makes leave-one-run-out cross-validation possible. A model can be fitted using 11 runs and evaluated on the remaining run, with the procedure repeated for each run. This allows for the training-test split and clearer evaluation of the of the fitted model and can support the selection of model parameters. The multiple-run structure may also help identify run-specific noise effects.
+The experimental conditions were repeated across 12 runs. This makes leave-one-run-out cross-validation possible. A model can be fitted using 11 runs (training data) and evaluated on the left-out run (test data) , with the procedure repeated for each run. This allows for the training-test split, and clearer evaluation of the of the fitted model and can support the selection of model parameters. The multiple-run structure may also help identify run-specific noise effects. The detailed description and implementation of this framework will be explained in the later chapters.
 
 The dataset does not provide a noise-free reference image or a known ground-truth BOLD signal. The quality of denoising must therefore be evaluated indirectly using criteria such as:
 
@@ -268,8 +257,8 @@ The dataset does not provide a noise-free reference image or a known ground-trut
     \item reduction of anatomically impossible spatial patterns.
 \end{itemize}
 
-% NOTE: dodac zrodlo o tym, ze czasem sa wlaczane dane respiratory albo cardiac
-The dataset has also a few limitations. It contains only six participants and was acquired using an older method with relatively coarse spatial and temporal resolution. It represents one specific visual experiment with a block design. Therefore conclusions obtained using this dataset may not generalize directly to other conditions (like event-related designs, resting-state data, or experiments involving different processes). Furthermore, the dataset does not include separate respiratory or cardiac recordings that could be used to construct physiological nuisance regressors.
+% [FIXED] NOTE: dodac zrodlo o tym, ze czasem sa wlaczane dane respiratory albo cardiac
+The dataset has also a few limitations. It contains only six participants and was acquired using an older method with relatively coarse spatial and temporal resolution. It represents one specific visual experiment with a block design. Therefore conclusions obtained using this dataset may not generalize directly to other conditions (like event-related designs, resting-state data, or experiments involving different processes). Furthermore, the dataset does not include separate respiratory or cardiac recordings commonly provided in the BIDS structure \cite{BIDS}, that could be used to construct physiological nuisance regressors.
 
 Nevertheless, the repeated and clearly defined experimental structure makes the dataset useful for comparing denoising methods. In particular, the presence of 12 runs per participant supports within-subject cross-validation and the evaluation of the stability of task-related estimates.
 
@@ -288,33 +277,23 @@ Several statistical methods are considered in this thesis:
     \item General Linear Model (GLM),
     \item Independent Component Analysis (ICA),
     \item Principal Component Analysis (PCA).
-    % NOTE: dodac cytowania kto wprowadzil te metody
 \end{enumerate}
+
+% [FIXED] NOTE: dodac cytowania kto wprowadzil te metody
+PCA originated from Karl Pearson in 1901 \cite{pca-first} and was subsequently independently developed by Harold Hotelling in 1936 \cite{pca-second}. The technique of ICA was developed through works on blind source separation notably by Bernard Ans, Jeanny H\'{e}rault, and Christian Jutten in \cite{ica-first} and was firstly named independent component analysis by Pierre Comon in 1991 \cite{ica-second}. The General Linear Model has a longer history, originating from the developments on the least squares method. The subsequent discoveries related to linear regression, bridging it with error analysis with the developement of the analysis of variance (ANOVA) and formalization of all these methods into the unified matrix notation provide the modern General Linear Model.
 
 An important motivation for selecting these methods is that fMRI noise may have temporal and spatial structure. Noise patterns may be correlated across time points, voxels, or both. Therefore, the data should not always be treated as a collection of completely independent measurements. The selected approaches use relationships between observations, regressors, or latent components to estimate task-related signal and unwanted variability.
 
 This thesis focuses on methods that can be described using statistical models and matrix operations. The main interest is the estimation or separation of signal and noise components. Although the methods differ in their assumptions and objectives, they can be discussed using a related mathematical language.
 
-A common starting point is the linear model
-
-% NOTE: opisac wymiary macierzy i czym sa 
-% oraz zalozenia wektora $E$
-% Dodac ktorych metod dotyczy
-\begin{equation}
-    Y = XB + E,
-\end{equation}
-
-where $Y$ denotes the observed data, $X$ is the design matrix, $B$ contains the unknown coefficients, and $E$ represents the part of the data not explained by the model.
-
-A more general matrix factorization can be written as
+The selected methods describe the data in the two-dimensional matrix form. Since the analyzed fMRI data is four-dimensional, this requirement necessitates reshaping the data into an appropriate matrix. Given the four-dimensional shape described in \eqref{eq:init-data-shape}, reshaping produces
 
 \begin{equation}
-    Y \approx DA,
+    \mathbf{Y} \in \mathbb{R}^{t \times v}, \qquad t = n_T, \qquad v = n_X \cdot n_Y \cdot n_Z,
 \end{equation}
 
-% NOTE: wyjasnic ciut szerzej "latent"
-% NOTE: wyjasnic zbitke "statistical independence"
-where $D$ and $A$ represent two matrices whose interpretation depends on the method. Different approaches impose different assumptions or restrictions on these matrices, their coefficients, hidden or \textit{latent} components, or error terms. These may include assumptions related to orthogonality, statistical independence, sparsity, or the structure of residual noise.
+% [FIXED] NOTE: zdefiniowac voxel zdecydowanie
+where $t$ denotes the number of time points and $v$ denotes the number of volumetric image elements. These elements stem from functional MRI acquisition, further described in Section~\ref{section:fmri-acquisition} and in the following thesis will be reffered to as \textit{voxels}.
 
 The possibility of describing the selected methods within a related mathematical framework is one of the main reasons for their selection. Their comparison allows the following aspects to be studied:
 
@@ -328,7 +307,7 @@ The possibility of describing the selected methods within a related mathematical
     \item selection and optimization of hyperparameters.
 \end{itemize}
 
-The following sections introduce the mathematical foundations of each method, the assumptions on which it is based, and its possible role in fMRI denoising.
+Chapters \ref{chapter:glm} and \ref{chapter:ica} introduce the mathematical foundations of each method, the assumptions on which it is based, and its possible role in fMRI denoising.
 
 
 \chapter{General Linear Model}
@@ -339,8 +318,6 @@ The first model is the General Linear Model (GLM). It is viewed as a special cas
 \section{Model definition}
 
 In general for a single voxel in fMRI, the GLM can be written as
-
-% NOTE: zdefiniowac voxel zdecydowanie
 
 \begin{equation}
     \mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\varepsilon},
@@ -359,19 +336,78 @@ where
 Each column of $\mathbf{X}$ represents a task-related effect or another modeled source of variability. The corresponding element of $\boldsymbol{\beta}$ describes the estimated contribution of that regressor to the BOLD time series at the considered voxel. In a voxel-wise fMRI analysis, the same design matrix is usually applied separately to each voxel, while a different coefficient vector is estimated for each voxel.
 
 
-% NOTE: Przyklad laczenia tego modelu wyzej z tym nizej, jakis prosty (np macierz 2x2)
-Equivalently, the models for all voxels can be written simultaneously as $\mathbf{Y} = \mathbf{X} \mathbf{B} + \mathbf{E}$, where each column of $\mathbf{Y}$ contains the time series of one voxel.
+% [FIXED] NOTE: Przyklad laczenia tego modelu wyzej z tym nizej, jakis prosty (np macierz 2x2)
+Equivalently, the models for all voxels can be written simultaneously as $\mathbf{Y} = \mathbf{X} \mathbf{B} + \mathbf{E}$, where each column of $\mathbf{Y}$ contains the time series of one voxel. 
 
-In the Linear Model described in \cite[Chapter 2]{agresti}, the error term is commonly assumed to satisfy
+As an example a simple data matrix
 
-% opisac slowami: scentrowany wektor (E(epsilon) = 0) i ze wspolrzedne sa niezalezne i maja wariancje
+\begin{equation}
+    \mathbf{Y} = 
+    \begin{bmatrix}
+        y_{11} & y_{12} \\
+        y_{21} & y_{22} \\
+        y_{31} & y_{32} \\
+    \end{bmatrix}
+    = 
+    \begin{bmatrix}
+    \mathbf{y}_1 & \mathbf{y}_2  & \mathbf{y}_3 
+    \end{bmatrix}
+\end{equation}
+
+is considered. Let 
+
+\begin{equation}
+    \mathbf{X} = 
+    \begin{bmatrix}
+        x_{11} & x_{12} \\
+        x_{21} & x_{22} \\
+        x_{31} & x_{32} \\
+    \end{bmatrix}
+\end{equation}
+
+be a design matrix, and let 
+
+\begin{equation}
+    \mathbf{B} = 
+    \begin{bmatrix}
+        \beta_{11} & \beta_{12} \\
+        \beta_{21} & \beta_{22} \\
+    \end{bmatrix}
+    = 
+    \begin{bmatrix}
+        \boldsymbol{\beta}_1 & \boldsymbol{\beta}_2
+    \end{bmatrix}
+    , \qquad
+    \mathbf{E} = 
+    \begin{bmatrix}
+        \varepsilon_{11} & \varepsilon_{12} \\
+        \varepsilon_{21} & \varepsilon_{22} \\
+        \varepsilon_{31} & \varepsilon_{32} \\
+    \end{bmatrix}
+    = 
+    \begin{bmatrix}
+        \boldsymbol{\varepsilon}_1 & \boldsymbol{\varepsilon}_2
+    \end{bmatrix}
+\end{equation}
+
+be matrix of regression coefficients and matrix of error terms respectively. It is not hard to see, that such a matrix system $\mathbf{Y} = \mathbf{X}\mathbf{B} + \mathbf{E}$ can be written as two separate systems:
+
+\begin{equation}
+    \begin{aligned}
+        \mathbf{y}_1 &= \mathbf{X}\boldsymbol{\beta}_1 + \boldsymbol{\varepsilon}_1, \\
+        \mathbf{y}_2 &= \mathbf{X}\boldsymbol{\beta}_2 + \boldsymbol{\varepsilon}_2. \\
+    \end{aligned}
+\end{equation}
+
+Furthermore, this example illustrates how the same design matrix $\mathbf{X}$ is used for every voxel, while each voxel has its own regression coefficient vector and an error vector.
+
+In the Linear Model described in \cite[Chapter 2]{agresti}, the error vector is assumed to have zero mean, constant variance, and uncorrelated components:
+
+% [FIXED] opisac slowami: scentrowany wektor (E(epsilon) = 0) i ze wspolrzedne sa niezalezne i maja wariancje
 \begin{equation}
     \mathbb{E}(\boldsymbol{\varepsilon}) = \mathbf{0}, \qquad \operatorname{Var}(\boldsymbol{\varepsilon}) = \sigma^2 \mathbf{I}.
     \label{eq:ols-error-assumptions}
 \end{equation}
-
-The normality of the error term is not required under the Gauss-Markov assumptions \cite[Gauss-Markov theorem]{agresti}.
-% Maybe not necessary to include this
 
 \section{Ordinary Least Squares estimation}
 
@@ -409,14 +445,16 @@ The fitted values are then given by
     &= \mathbf{X} \left(\mathbf{X}^T\mathbf{X}\right)^{-1}\mathbf{X}^T\mathbf{y}.
 \end{align}
 
-% NOTE: pozamieniac "Hat" na "hat"
-% dodac tez to, ze jest to macierz projekcji
-We can construct the Hat matrix \cite{hat-matrix}, that describes the transformation $\widehat{\mathbf{y}} = \mathbf{H}\mathbf{y}$:
+% [FIXED] NOTE: pozamieniac "Hat" na "hat"
+% [FIXED] dodac tez to, ze jest to macierz projekcji
+We can construct the hat matrix, that describes the transformation $\widehat{\mathbf{y}} = \mathbf{H}\mathbf{y}$:
 
 \begin{equation}
     \mathbf{H} = \mathbf{X} \left(\mathbf{X}^T\mathbf{X}\right)^{-1}\mathbf{X}^T.
     \label{eq:hat-matrix}
 \end{equation}
+
+Geometrically the hat matrix also projects the vector $\mathbf{y}$ perpendicularly onto the column space spanned by $\mathbf{X}$, thus $\mathbf{H}$ is called a projection matrix \cite{hat-matrix}.
 
 The residual vector is therefore:
 
@@ -452,12 +490,12 @@ The fitted values and residuals do not by themselves define the denoised fMRI si
 
 The standard OLS model assumes that the observations have equal error variances and that their errors are uncorrelated:
 
-% zamiast operatora "and" dac therefore w nowym zdaniu
+% [FIXED] zamiast operatora "and" dac therefore w nowym zdaniu
 \begin{equation}
-    \operatorname{Var}(\boldsymbol{\varepsilon}) = \sigma^2\mathbf{I} \quad \wedge \quad \forall_{i \neq j} \ \ \operatorname{Cov}\left(\varepsilon_i, \varepsilon_j\right) = 0.
+    \operatorname{Var}(\boldsymbol{\varepsilon}) = \sigma^2\mathbf{I},
 \end{equation}
 
-This assumption is generally not possible for fMRI time series. Measurements from the same voxel at consecutive time points are commonly autocorrelated. Therefore, the covariance matrix of the errors may have a more general form \cite[Chapter 2.7.2]{agresti}:
+therefore $\operatorname{Cov}\left(\varepsilon_i, \varepsilon_j\right) = 0$. This assumption is generally not possible for fMRI time series. Measurements from the same voxel at consecutive time points are commonly autocorrelated. Therefore, the covariance matrix of the errors may have a more general form \cite[Chapter 2.7.2]{agresti}:
 
 \begin{equation}
     \operatorname{Var}(\boldsymbol{\varepsilon}) = \sigma^2\mathbf{V},
@@ -481,7 +519,7 @@ The spectral decomposition of $\mathbf{V}$ is
     \mathbf{V} = \mathbf{Q}\boldsymbol{\Lambda}\mathbf{Q}^T,
 \end{equation}
 
-where $\boldsymbol{\Lambda}$ is a diagonal matrix containing the positive eigenvalues of $\mathbf{V}$ and $\mathbf{Q}$ is an orthogonal matrix whose columns are the corresponding eigenvectors:
+where $\boldsymbol{\Lambda}$ is a diagonal matrix containing the positive eigenvalues of $\mathbf{V}$ and $\mathbf{Q}$ is an orthogonal matrix whose columns are the corresponding eigenvectors \cite[Chapter 2.7.2]{agresti}:
 
 \begin{equation}
     \mathbf{Q}^T\mathbf{Q} = \mathbf{Q}\mathbf{Q}^T = \mathbf{I}.
@@ -541,6 +579,7 @@ Thus, the transformed errors are uncorrelated and have equal variance. OLS can t
     \label{eq:gls-estimator}
 \end{equation}
 
+% [FIXED] NOTE: FIND CITATIONS WHY ITS CALLED PREWHITENING
 This is the Generalized Least Squares (GLS) estimator of $\boldsymbol{\beta}$ \cite[Equation 2.12]{agresti}. The transformation of the data and design matrix by $\mathbf{V}^{-1/2}$ is referred to as \textit{prewhitening}. The term was coined in \cite[p. 215]{prewhitening} and it refers to the data transformation, resembling white noise, hence the term prewhitening. Below are the definitions of both \textit{white} random vector and \textit{prewhitening}. 
 
 \begin{definition}[White random vector]
@@ -554,6 +593,7 @@ $$ \operatorname{Cov}(\mathbf{z}) = \mathbb{E}\left[\mathbf{z}\mathbf{z}^T\right
 \end{definition}
 
 \begin{definition}[Prewhitening]
+\label{def:prewhitening}
 Let $\mathbf{x}$ be a centered random vector with covariance matrix
 
 $$ \boldsymbol{\Sigma} = \mathbf{E}\mathbf{D}\mathbf{E}^T, $$
@@ -571,13 +611,13 @@ $$ \operatorname{Cov}(\mathbf{z}) = \mathbf{I}. $$
 
 If the covariance structure $\mathbf{V}$ is correctly specified and known, GLS provides the Best Linear Unbiased Estimator (BLUE) of the regression coefficients \cite{agresti}\cite{woolrich-temporal-autocorrelation}\cite{bullmore-fmri-estimation}.
 
-% znalezc cytowanie do FGLS
-In practice, $\mathbf{V}$ is unknown and must be estimated from the data. From this, the resulting procedure is described as Feasible Generalized Least Squares (FGLS). Estimation of the temporal covariance structure, including its possible autoregressive representation, will be discussed in a later section.
+% [FIXED] znalezc cytowanie do FGLS
+In practice, $\mathbf{V}$ is unknown and must be estimated from the data. From this, the resulting procedure is described as Feasible Generalized Least Squares (FGLS) \cite{fgls}. Estimation of the temporal covariance structure, including its possible autoregressive representation, will be discussed in a later section.
 
 \subsection{Covariance of the prewhitened residuals}
-% NOTE: dodac cytowania z agrestiego
+% [FIXED] NOTE: dodac cytowania z agrestiego
 
-Let the hat matrix derived from Equation~\eqref{eq:hat-matrix} for the transformed model be
+The subsequent calculations follow \cite[Chapter 2.7]{agresti}. Let the hat matrix derived from Equation~\eqref{eq:hat-matrix} for the transformed model be
 
 \begin{equation}
     \mathbf{H}^{\ast} = \mathbf{X}^{\ast} \left[\left(\mathbf{X}^{\ast}\right)^T\mathbf{X}^{\ast}\right]^{-1} \left(\mathbf{X}^{\ast}\right)^T.
@@ -631,20 +671,10 @@ Other articles propose additionally high-pass filter to address low-frequency si
 \section{Autoregressive temporal-noise model}
 \label{section:ar-noise-model}
 
-% IMPORTANT NOTE:
-% the selection of how to use the \phi parameter is not specified
-% i will need to decide between: 
-%     - one phi per experiment
-%     - one phi per run
-%     - one phi per voxel
-% if one on the first two is chosen, do i calculate the estimated phi from all voxels? or median? 
-% something to think about
-% for now: one phi per CV (with one left-out run) calculated from all values
-
 As mentioned in Section~\ref{section:gls-prewhitening}, the assumption of uncorrelated errors is generally not appropriate for fMRI time series. This creates the need for the covariance matrix $\mathbf{V}$ introduced in Equation~\eqref{eq:general-error-covariance}. Since $\mathbf{V}$ is unknown, it must be estimated from the observed data \cite[Chapter 2.7.3]{agresti}.
 
-% NOTE: dodac wyjasnienie, co oznacza stacjonarnosc
-In time-series data, the regression errors are unlikely to be independent, especially in fMRI data. In this thesis they are assumed to be a stationary process, which satisfies: 
+% [FIXED] NOTE: dodac wyjasnienie, co oznacza stacjonarnosc
+In time-series data, the regression errors are unlikely to be independent, especially in fMRI data. In this thesis they are assumed to be a stationary process. Stationarity means, that the mean and variance of the error process are constant, while the covariance between two errors depend on their temporal lag. Additionally let's assume mean centered errors
 
 \begin{equation}
     \mathbb{E}\left[\varepsilon_t\right] = 0, \qquad \operatorname{Var}\left[\varepsilon_t\right] = \gamma(0) = \sigma_\varepsilon^2,
@@ -691,15 +721,20 @@ Under this condition, the variance and autocorrelation function are
     \label{eq:ar1-autocorrelation}
 \end{equation}
 
-In particular,
+In particular the correlation between two one-lagged errors is
 
-% NOTE: opisac to o monotonicznosci, pomiedzy pierwszym a drugim zdaniem
+% [FIXED] NOTE: opisac to o monotonicznosci, pomiedzy pierwszym a drugim zdaniem
 \begin{equation}
-    \rho(1)=\phi, \qquad \rho(s) \longrightarrow 0 \quad \text{as } |s|\longrightarrow\infty.
+    \rho(1)=\phi
+\end{equation}
+
+and crucially the magnitude of the autocorrelation decreases geometrically with the lag
+
+\begin{equation}
+    \rho(s) \longrightarrow 0 \quad \text{as } |s|\longrightarrow\infty.
 \end{equation}
 
 The temporal correlation matrix therefore has the form
-% NOTE: mention toeplitz matrix?
 
 \begin{equation}
     V_{ij} = \phi^{|i-j|}.
@@ -781,17 +816,8 @@ The denoised time series can then be defined by subtracting this contribution fr
 
 This procedure removes only the contribution assigned to nuisance regressors, while the fitted modeled task-related component is not subtracted from the data.
 
-A typical fMRI design matrix contains:
-
-% NOTE: zamienic liste na zdanie
-
-\begin{itemize}
-    \item task-related regressors;
-    \item motion regressors;
-    \item physiological regressors;
-    \item drift regressors;
-    \item data-derived nuisance regressors.
-\end{itemize}
+% [FIXED] NOTE: zamienic liste na zdanie
+A typical fMRI design matrix contains:: task-related regressors, motion regressors, physiological regressors, drift regressors and sometimes data-derived nuisance regressors.
 
 For a given run, the untransformed design matrix is the same for all analyzed voxels. Each voxel has its own estimated coefficient vector. Separate design matrices are constructed for different runs because stimulus timing and run-specific nuisance effects may differ between them.
 
@@ -815,8 +841,8 @@ For category $k$, let $J_k$ denote the number of stimulus presentations, and let
 \end{equation}
 
 
-% NOTE: zdefiniowac boxcar
-In the analyzed dataset, each category is presented 12 times within its block, and each individual image is displayed for 0.5 seconds. Thus, each category function is a sum of twelve 0.5-second boxcar functions separated by the corresponding interstimulus intervals.
+% [FIXED] NOTE: zdefiniowac boxcar
+In the analyzed dataset, each category is presented 12 times within its block, and each individual image is displayed for 0.5 seconds. Thus, each category function is a sum of twelve 0.5-second boxcar functions separated by the corresponding interstimulus intervals. A boxcar function is a binary function that takes the value one during the presentation of a stimulus and zero otherwise.
 
 The set of categories is the same for every run, but the order of the category blocks differs. As a result, the eight columns have the same interpretation across runs but unique values.
 
@@ -863,8 +889,8 @@ where
     g(t;\alpha,\theta) = \frac{t^{\alpha-1}e^{-t/\theta}}{\Gamma(\alpha)\theta^\alpha}.
 \end{equation}
 
-% NOTE: dodac cytowanie skad double gamma albo usunac double-gamma
-For the conventional double-gamma specification considered here,
+% [FIXED] NOTE: dodac cytowanie skad double gamma albo usunac double-gamma
+For the conventional double-gamma specification considered here \cite{hrf-problems},
 
 \begin{equation}
     \alpha_1 = 6, \qquad \alpha_2 = 16, \qquad \theta_1 = \theta_2 = 1, \qquad c = \frac{1}{6}.
@@ -957,7 +983,6 @@ The task-related coefficients are shared across runs, while drift and other run-
 
 
 For a single run, the covariance structure was derived in Equation~\eqref{eq:estimated-ar1-covariance}. Therefore, for the combined training data, the covariance matrix has the block-diagonal form:
-% NOTE: dac przyklad macierzy
 
 \begin{equation}
     \widehat{\mathbf{V}}_{-q} =
@@ -966,6 +991,25 @@ For a single run, the covariance structure was derived in Equation~\eqref{eq:est
 \end{equation}
 
 where $q$ denotes the left-out run and $R$ is the total number of runs.
+
+% [FIXED] NOTE: dac przyklad macierzy
+For example, if $R = 3$ and the second run is left out, then
+
+\begin{equation}
+    \widehat{\mathbf{V}}_{-2}
+    =
+    \operatorname{blockdiag}
+    \left(
+        \widehat{\mathbf{V}}_1,
+        \widehat{\mathbf{V}}_3
+    \right)
+    =
+    \begin{bmatrix}
+        \widehat{\mathbf{V}}_1 & \mathbf{0} \\
+        \mathbf{0} & \widehat{\mathbf{V}}_3
+    \end{bmatrix}.
+\end{equation}
+
 
 After fitting the model, the estimated task-related coefficients are used to predict the task-related signal in the left-out run:
 
@@ -977,14 +1021,14 @@ After fitting the model, the estimated task-related coefficients are used to pre
 The procedure is repeated until every run has been left out once. The predictions and measured signals are then concatenated across runs. Before calculating the coefficient of determination, the drift regressors are projected out from both the measured and predicted time series.
 
 For voxel $v$, the cross-validated coefficient of determination is
-% NOTE: dodac, ze to jest metryka ta konkretna i ze moze osiagac wartosci < 0
 
 \begin{equation}
     R^2_{\mathrm{CV},v} = 1 - \frac{SS_{\text{resid}}}{SS_{\text{tot}}} = 1 - \frac{\sum_i\left(y_{iv} - \widehat{y}_{iv}\right)^2}{\sum_i\left(y_{iv} - \overline{y}_v \right)^2},
     \label{eq:pca-noise-pool-r2}
 \end{equation}
 
-where the index $i$ denotes given time point in the concatenated time points from all held-out predictions. A negative value of the $R^2$ coefficient results from sum of squared residuals being greater, than total sum of squares, which indicates that the task-related model predicts the unseen data less accurately than a model that predicts only the mean signal.
+% [FIXED] NOTE: dodac, ze to jest metryka ta konkretna i ze moze osiagac wartosci < 0
+where the index $i$ denotes given time point in the concatenated time points from all held-out predictions. This is not to be mistaken with the Pearson correlation coefficient squared $r^2$, which cannot have negative values. For the coefficient of determination $R^2$ a negative value coefficient results from sum of squared residuals being greater, than total sum of squares, which indicates that the task-related model predicts the unseen data less accurately than a model that predicts only the mean signal.
 
 Voxels are included in the noise pool if they satisfy two conditions. First,
 
@@ -1001,9 +1045,8 @@ Second, the mean signal intensity must exceed an intensity threshold. The mean s
     \overline{y}_v = \frac{1}{\sum_{r=1}^{R}T_r} \sum_{r=1}^{R} \sum_{t=1}^{T_r} y_{rtv},
 \end{equation}
 
-where $T_r$ is the number of time points in run $r$. Let $P_{99}$ denote the 99th percentile of the mean signal intensities across all voxels. The intensity condition is
-
-% NOTE: odniesc sie do artykulu zdecydowanie
+% [FIXED] NOTE: odniesc sie do artykulu zdecydowanie
+where $T_r$ is the number of time points in run $r$. Let $P_{99}$ denote the 99th percentile of the mean signal intensities across all voxels. The intensity condition is \cite{glm-denoise}
 
 \begin{equation}
     \overline{y}_v > \frac{1}{2}P_{99}.
@@ -1092,8 +1135,6 @@ Let $\mathbf{X}$ be a data matrix and $\boldsymbol{\Sigma}$ its sample covarianc
     \mathbf{X} \in \mathbb{R}^{n\times p}, \qquad \boldsymbol{\Sigma} = \frac{1}{n-1}\mathbf{X}^T\mathbf{X}
 \end{equation}
 
-
-% NOTE: zacytowac ksiazke
 The first solving vector $\boldsymbol{\alpha}_1$ maximizes:
 
 \begin{equation}
@@ -1176,10 +1217,10 @@ where
     \item $a_{ij}$ is some parameter, that depend on the distance between the $i$-th microphone and the  $j$-th speaker.
 \end{itemize}
 
-% NOTE: opisac, ze jednoczesnie source jest blind, jak i separation
-If the coefficients $a_{ij}$ were known, the original signals could be recovered by solving the corresponding linear system. The problem is that neither the coefficients $a_{ij}$ nor the original source signals $s_j(t)$ are known. The separation is therefore referred to as \textit{blind}.
+% [FIXED] NOTE: opisac, ze jednoczesnie source jest blind, jak i separation
+If the coefficients $a_{ij}$ were known, the original signals could be recovered by solving the corresponding linear system. The problem is that neither the coefficients $a_{ij}$ nor the original source signals $s_j(t)$ are known. Both the separation and the source is therefore referred to as \textit{blind}.
 
-In ICA terminology, a source is an unknown hidden signal represented by an independent component \cite{ica}. The goal is to recover these sources using only their observed mixtures.
+In ICA terminology, a source is an unknown hidden signal represented by an independent component \cite{ica}. The goal is to recover these sources using only their observed \textit{mixtures}, meaning the linear or non-linear combination of unknown latent variables, using an unknown mixing system.
 
 The classical square ICA mixing model can be written as
 
@@ -1199,9 +1240,9 @@ where
     \label{eq:basic-ica-dimensions}
 \end{equation}
 
-For matrix notation a \textit{mixture} is the linear or non-linear combination of unknown latent variables, using an unknown mixing system.
-
 % NOTE: dodac jakis przyklad, gdzie m > 1, czyli macierzowy przypadek
+% Tutaj jednak wydaje mi sie, ze podawanie macierzowego przypadku nie jest konieczne, bo juz samo coctail-party problem jest macierzowym przypadkiem
+% X = [x_1(t) x_2(t) x_3(t)] etc.
 In \eqref{eq:basic-ica-dimensions}, $n$ is the number of observed mixtures, while $m$ is the number of observations. The rows of $\mathbf{S}$ contain the unknown source signals, while $\mathbf{A}$ is the unknown mixing matrix. The application of this model to fMRI data will be discussed in Section~\ref{section:pica}.
 
 \section{Assumptions of the ICA model}
@@ -1289,7 +1330,11 @@ These ambiguities concern the representation of a fixed number of independent co
 \section{Dimensionality reduction and model order selection}
 \label{section:pica}
 
-% NOTE: add description spatial ICA and temporal ICA and their distinction
+% [FIXED] NOTE: add description spatial ICA and temporal ICA and their distinction
+ICA can be analyzed both in the context of spatial or temporal independent components. The spatial ICA focuses on finding spatially independent maps, i.e. maps, that connect the data from multiple voxels into independent response. An example of such map can be a joint response of left and right hemishpere to a flashing light stimuli. The temporal ICA focuses on finding temporally independent time courses. As an example of such a time course could be a cyclical response seen after each block of flashing lights.
+
+Generally, the neuroimaging literature focuses on spatial ICA, because $V >> T$, meaning the number of voxel samples is generally greater than the number of time points. The temporal ICA under small number of time points is statistically and computationally more complex, while the sparse nature of the typical spatial activation response is said to be working well with spatial ICA \cite{spatial-temporal-ica}. Hence for this thesis the spatial ICA was chosen.
+
 The classical ICA model described in Equation~\eqref{eq:basic-ica} assumes a square mixing matrix. For spatial ICA applied to fMRI data, the observed data matrix can be written as
 
 \begin{equation}
@@ -1306,11 +1351,11 @@ Under the classical square ICA formulation~\eqref{eq:basic-ica}, the model would
     \qquad \mathbf{S} \in \mathbb{R}^{t\times v}.
 \end{equation}
 
-% NOTE: przerobic to zdanie drugie tak, zeby bylo wiadomo czym jest "this assumption"
-The number of independent components would therefore be equal to the number of time points. This assumption does not allow the signal to be restricted to a lower-dimensional subspace \cite{pica}.
+% [FIXED] NOTE: przerobic to zdanie drugie tak, zeby bylo wiadomo czym jest "this assumption"
+The number of independent components would therefore be equal to the number of time points. This classical ICA assumption about the shape of the matrices does not allow the signal to be restricted to a lower-dimensional subspace \cite{pica}.
 
-% NOTE: overfitting i overlearning? czy roznia sie od siebie? jesli tak, to ciut wyjasnic
-A second problem is that the classical model does not contain an explicit noise term. The data are assumed to be completely represented by the estimated sources and the mixing matrix. In noisy fMRI data, this may lead to overfitting, since variability caused by observational noise may be represented as additional components rather than as residual noise \cite{pica}. Dimensionality reduction is also commonly used before ICA to reduce noise and decrease the risk of overlearning \cite[Chapter 13.2]{ica}.
+% [FIXED] NOTE: overfitting i overlearning? czy roznia sie od siebie? jesli tak, to ciut wyjasnic
+A second problem is that the classical model does not contain an explicit noise term. The data are assumed to be completely represented by the estimated sources and the mixing matrix. In noisy fMRI data, this may lead to overfitting, since variability caused by observational noise may be represented as additional components rather than as residual noise \cite{pica}. Dimensionality reduction is also commonly used before ICA to reduce noise and decrease this overfitting risk \cite[Chapter 13.2]{ica}.
 
 To address these problems, authors of \cite{pica} introduced a probabilistic independent component analysis (PICA) model for fMRI. The classical model is extended to
 
@@ -1353,14 +1398,14 @@ and $\boldsymbol{\eta}_i$ denotes additive Gaussian observational noise. Followi
     \label{eq:pica-noise-model}
 \end{equation}
 
-Before dimensionality reduction, the data can be temporally prewhitened with respect to this covariance structure. The following derivations are mirroring the derivations from~\cite{pica}. Let
+Before dimensionality reduction, the data can be temporally prewhitened with respect to this covariance structure. The following derivations are mirroring the derivations from~\cite{pica}. Since $\boldsymbol{\Sigma}_i$ is a covariance matrix and therefore symmetric and positive semidefinite matrix, let
 
 \begin{equation}
     \boldsymbol{\Sigma}_i = \mathbf{L}_i\mathbf{L}_i^T
 \end{equation}
 
-% NOTE: przyomniec definicje CHolesky decomposition
-be the Cholesky decomposition of $\boldsymbol{\Sigma}_i$. Left multiplication of \eqref{eq:pica-not-whitened} by $\mathbf{L}_i^{-1}$ gives
+% [FIXED] NOTE: przyomniec definicje CHolesky decomposition
+be a decomposition of $\boldsymbol{\Sigma}_i$ into an $\mathbf{L}$ lower triangular matrix and its transpose $\mathbf{L}^T$, i.e. Cholesky decomposition.  Left multiplication of \eqref{eq:pica-not-whitened} by $\mathbf{L}_i^{-1}$ gives
 
 \begin{equation}
     \begin{aligned}
@@ -1381,17 +1426,16 @@ The transformed noise $\overline{\boldsymbol{\eta}}_i$ has covariance
     \end{aligned}
 \end{equation}
 
-% NOTE: WYjasnic prewhitening czym jest i co robi
-This is temporal prewhitening with respect to the noise covariance. It is closely related to the prewhitening introduced earlier for the GLM, but should not be confused with the PCA-based whitening used later during ICA estimation.
+% [FIXED] NOTE: WYjasnic prewhitening czym jest i co robi
+This is temporal prewhitening with respect to the noise covariance. It is closely related to the prewhitening introduced earlier for the GLM in Definition~\ref{def:prewhitening}, but should not be confused with the PCA-based whitening used later during ICA estimation.
 
-% NOTE; Wyjasnic szerzej czym jest isotropic
-After temporal prewhitening, the problem of determining the number of source signals can be considered under an isotropic noise model, meaning a noise model with identical distribution. Assume that the sources have zero mean and unit covariance,
+After temporal prewhitening, the problem of determining the number of source signals can be considered under an isotropic noise model, meaning a model with a covariance proportional to the identity matrix $\operatorname{Cov}(\overline{\boldsymbol{\eta}}) = \sigma^2 \mathbf{I}$. Assume that the sources have zero mean and unit covariance,
 
 \begin{equation}
     \mathbb{E}[\mathbf{s}_i] = \mathbf{0}, \qquad \operatorname{Cov}(\mathbf{s}_i) = \mathbf{I}_q,
 \end{equation}
 
-and that the isotropic noise has covariance $\sigma^2\mathbf{I}$. The covariance matrix of the observations is then
+The covariance matrix of the observations is then
 
 \begin{align}
     \mathbf{C}
@@ -1413,8 +1457,8 @@ The eigendecomposition of the signal contribution can therefore be written as
     \mathbf{A}\mathbf{A}^T = \mathbf{U} \boldsymbol{\Gamma} \mathbf{U}^T,
 \end{equation}
 
-% NOTE: positively defined?
-where since $\mathbf{U}$ is positively defined, therefore $\mathbf{U}\mathbf{U}^T = \mathbf{I}$, and
+% [FIXED] NOTE: positively defined?
+where $\mathbf{U}$ is an orthogonal matrix,
 
 \begin{equation}
     \boldsymbol{\Gamma} = \operatorname{diag} \left(\gamma_1,\ldots,\gamma_q, 0,\ldots,0\right),
@@ -1426,20 +1470,44 @@ with
     \gamma_1 \geq \gamma_2 \geq \cdots \geq \gamma_q > 0.
 \end{equation}
 
-Using Equation~\eqref{eq:pica-observation-covariance}, and eigendecomposition of matrix $\mathbf{C}$
+Using the eigendecomposition of matrix $\mathbf{C}$
+
+\begin{equation}
+    \mathbf{C} = \mathbf{U} \boldsymbol{\Lambda} \mathbf{U}^T,
+\end{equation}
+
+and Equation~\eqref{eq:pica-observation-covariance}, the $\mathbf{C}$ can be described as
 
 \begin{equation}
 \begin{aligned}
     \mathbf{C}
-    &= \mathbf{U} \boldsymbol{\Lambda} \mathbf{U}^T \\
     &= \mathbf{U} \boldsymbol{\Gamma} \mathbf{U}^T + \sigma^2\mathbf{I} \\
     &= \mathbf{U} \left(\boldsymbol{\Gamma} + \sigma^2\mathbf{I} \right) \mathbf{U}^T.
 \end{aligned}
 \end{equation}
 
-% NOTE: wymienic "idealized" na to, ze kowariancja jest rowna \Sigma, i ze to idealized przypadek
-% NOTE: objasnic moze krotko skad sie biora sumy macierzy diagonalnych
-The eigenvalues of $\mathbf{C}$ therefore have the idealized form
+% [FIXED] NOTE: objasnic moze krotko skad sie biora sumy macierzy diagonalnych
+Because 
+
+\begin{equation}
+    \boldsymbol{\Gamma} = 
+    \begin{bmatrix}
+        \gamma_1 & & & & &  \\
+        & \ddots & & &      \\
+        & & \gamma_q & &    \\
+        & & & 0 &           \\
+        & & & & \ddots      \\
+    \end{bmatrix}
+    ,\qquad \sigma^2 \mathbf{I} = 
+    \begin{bmatrix}
+        \sigma^2 & & \\
+        & \ddots &   \\
+        & & \sigma^2
+    \end{bmatrix},
+\end{equation}
+
+% [FIXED] NOTE: wymienic "idealized" na to, ze kowariancja jest rowna \Sigma, i ze to idealized przypadek
+the eigenvalues of $\mathbf{C}$ therefore have the form
 
 \begin{equation}
     \lambda_j =
@@ -1465,9 +1533,6 @@ This distinction is important because an inappropriate value of $q$ can affect t
     \item if $q$ is too large, directions dominated by Gaussian observational noise may be included in the ICA decomposition, increasing the risk of overfitting.
 \end{itemize}
 
-% NOTE: zastanowic sie gdzie to wstawic
-% The term \textit{source subspace} does not refer only to task-related neural activity. Structured physiological or instrumental variability may also be non-Gaussian and may therefore appear as one of the source processes. The Gaussian noise term in the PICA model represents the remaining unstructured observational noise \cite{pica}.
-
 Unfortunately, the covariance matrix $\mathbf{C}$ is unknown. For centered data, it is estimated from the observed fMRI matrix as
 
 \begin{equation}
@@ -1486,8 +1551,10 @@ For every candidate model order $q$, the eigenspectrum of the sample covariance 
     \label{eq:pica-model-order}
 \end{equation}
 
-% NOTE: opisac krotko rozklad Wisharta i jak to sie ma do tej sytuacji
-The procedure described in \cite{pica} additionally accounts for the finite number of observations by comparing the observed minor eigenspectrum with the eigenspectrum expected from finite Gaussian noise, which has Wishart distribution.
+% [FIXED] NOTE: opisac krotko rozklad Wisharta i jak to sie ma do tej sytuacji
+The procedure described in \cite{pica} additionally accounts for the finite number of observations by comparing the observed minor eigenspectrum with the eigenspectrum expected from finite Gaussian noise. 
+
+If $\mathbf{G}$ is a $p \times n$ matrix $\mathbf{G} = \begin{bmatrix}\mathbf{g}_1 & \ldots & \mathbf{g}_n\end{bmatrix}$, where each column is a realisation of $p$-variate normal distribution with zero mean $\mathbf{g}_i \sim \mathcal{N}(\mathbf{0}, \mathbf{V})$. The probability distribution of the matrix $\mathbf{G}\mathbf{G}^T$ has a Wishart distribution $W_p(\mathbf{V}, n)$ with scale matrix $\mathbf{V}$ and $n$ degrees of freedom. For the sample covariance matrix derived in Equation~\eqref{eq:pica-sample-covariance} the Wishart distribution is $v\widehat{\mathbf{C}}_\mathrm{noise} \sim W_t(\sigma^2 \mathbf{I}, v)$.
 
 For a fixed candidate value $q$, the maximum-likelihood estimate of the isotropic noise variance is obtained from the eigenvalues belonging to the minor subspace spanned by $t - q$ eigenvectors \cite{pica}:
 
@@ -1512,7 +1579,8 @@ contain these eigenvectors. The observed data can then be projected onto this su
 
 The dimensionality has been reduced from the original $t$ temporal mixtures to $\widehat{q}$ mixtures. The reduced representation contains the estimated structured source subspace, while the remaining directions are treated as Gaussian observational noise.
 
-% NOTE: napisac cos o tym, ze to rozszerzenie o szum jest tylko do redukcji wymiarow, a potem z powrotem na classical ICA
+% [FIXED] NOTE: napisac cos o tym, ze to rozszerzenie o szum jest tylko do redukcji wymiarow, a potem z powrotem na classical ICA
+The extension of classical ICA to probabilistic ICA with the implementation of the noise term is used for establishing the need for dimensionality reduction, separating signal subspace from noise subspace and the subsequent model-order selection. The derivation of the independent components thus follows the classical ICA model after the reduction, which is described in the next sections.
 
 \section{Whitening}
 
@@ -1645,7 +1713,7 @@ The unit-norm constraint follows from
 
 Thus, setting $\|\mathbf{w}\|_2^2=1$ fixes the variance of the extracted component and prevents arbitrary changes in scale.
 
-The problem of negentropy however is that it requires knowledge or estimation of the probability density function. This is computationally complex, so an algorithm called \textit{FastICA} was developed, which uses an approximation based on a suitable non-quadratic function $G$ \cite[Equation 8.25]{ica}:
+The problem of negentropy however is that it requires knowledge or estimation of the probability density function. This is computationally complex, so an algorithm called \textit{FastICA} was developed, which uses an approximation based on a suitable function $G(y)$ \cite[Equation 8.25]{ica}:
 
 \begin{equation}
     J(y) \propto \left( \mathbb{E}[G(y)] - \mathbb{E}[G(\nu)]\right)^2.
@@ -1659,15 +1727,15 @@ The expected values are present, following their definition:
 
 while the $\nu$ variable is a standardized gaussian variable, replacing the vector $y_{\mathrm{gauss}}$. Squaring introduces magnitude of the difference and preserves non-negative values in the negentropy. 
 
-Let
-% NOTE: dodac informacje o funkcji G
+% [FIXED] NOTE: dodac informacje o funkcji G
+The authors of \cite{ica} state that the approximation function $G(y)$ should be nonquadratic and have its values grow not so fast, when $|y|$ grows. There were several possible representations of the $G(y)$ function provided. This thesis uses a good general-purpose function \cite{ica}:
 
 \begin{equation}
-    g(y) = G'(y).
+    G(y) = \ln (\cosh y), \qquad g(y) = G'(y) = \tanh y, \qquad g'(y) = G''(y) = 1 - \tanh^2 y
 \end{equation}
 
-% NOTE: albo usunac gradient ascent albo wprowadzic po krotce / zacytowac
-Rather than using ordinary gradient ascent, FastICA uses an approximate Newton fixed-point iteration. For one component, the update is \cite[Equation 8.43]{ica}
+% [FIXED] NOTE: albo usunac gradient ascent albo wprowadzic po krotce / zacytowac
+FastICA uses an approximate Newton fixed-point iteration. For one component, the update is \cite[Equation 8.43]{ica}
 
 \begin{equation}
     \mathbf{w}^{+} = \mathbb{E} \left[ \mathbf{z} g \left( \mathbf{w}^T\mathbf{z} \right) \right]
