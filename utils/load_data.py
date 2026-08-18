@@ -6,7 +6,7 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from general_linear_model.constants import RawData
+from utils.constants import RawData
 
 
 def load_data(base_path, subject):
