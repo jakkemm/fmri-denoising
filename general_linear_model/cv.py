@@ -3,10 +3,10 @@ from time import perf_counter
 
 import numpy as np
 
-from general_linear_model.constants import BoolArray, FloatArray, RunData
 from general_linear_model.fgls import FGLSRegressor
 from general_linear_model.glm_matrix import GLMMatrixBuilder
 from general_linear_model.pca import PCADriftRegressorExtractor
+from utils.constants import BoolArray, FloatArray, RunData
 from utils.misc import iter_chunks, log
 
 
