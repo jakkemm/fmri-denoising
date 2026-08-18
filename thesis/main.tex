@@ -1397,6 +1397,7 @@ and $\boldsymbol{\eta}_i$ denotes additive Gaussian observational noise. Followi
     \qquad \operatorname{Cov} (\boldsymbol{\eta}_i) = \sigma^2\boldsymbol{\Sigma}_i
     \label{eq:pica-noise-model}
 \end{equation}
+% NOTE: faktycznie nie znamy szumu i nie znamy macierzy kowariancji tego szumu, trzeba ja bedzie wyestymoac
 
 Before dimensionality reduction, the data can be temporally prewhitened with respect to this covariance structure. The following derivations are mirroring the derivations from~\cite{pica}. Since $\boldsymbol{\Sigma}_i$ is a covariance matrix and therefore symmetric and positive definite matrix, let
 
@@ -1565,6 +1566,13 @@ This maximum-likelihood estimator is then calculated for each candidate value $q
 Even for purely isotropic Gaussian noise, the eigenvalues of the sample covariance matrix are spread around the true noise variance because only a finite number of observations is available. Under the Gaussian noise model, the sample covariance matrix follows a Wishart distribution. This allows the expected finite-sample distribution of its eigenvalues to be characterized and compared with the observed minor eigenspectrum \cite{pica}.
 
 Let $\mathbf{G}$ be a $p \times n$ matrix whose columns are independent realizations of $p$-variate normal distribution with zero mean $\mathbf{g}_i \sim \mathcal{N}(\mathbf{0}, \mathbf{V})$. The probability distribution of the matrix $\mathbf{G}\mathbf{G}^T$ has a Wishart distribution $W_p(\mathbf{V}, n)$ with scale matrix $\mathbf{V}$ and $n$ degrees of freedom. For the sample covariance matrix derived in Equation~\eqref{eq:pica-sample-covariance} the Wishart distribution is $v\widehat{\mathbf{C}}_\mathrm{noise} \sim W_t(\sigma^2 \mathbf{I}, v)$.
+
+% NOTE: rozkład Wisharta to nie koniec:
+% eigenvalues w macierzy Wisharta maja swoj rozklad
+% limiting eigenvalue density is the Marchenko-Pastur density
+% to jest ten wzor 9. w artykule o PICA 
+% potrzebuje CDF i potem szacuje percentyle
+
 
 The predicted Gaussian-noise eigenspectrum is then used to adjust the observed eigenspectrum before evaluating the approximate Bayesian model evidence described in \cite[Equation 10]{pica}. This model evidence is calculated for every candidate model order $q$. The selected model order is 
 
