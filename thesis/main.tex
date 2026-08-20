@@ -1356,6 +1356,7 @@ so that
 
 \begin{equation}
     \mathbf{S} = \mathbf{W}\mathbf{X}.
+    \label{eq:unmixing-matrix}
 \end{equation}
 
 For ICA, the scale of an independent component cannot be determined uniquely because a scaling factor can be transferred between a source and the corresponding column of the mixing matrix. Moreover, if the source variance is fixed, a sign ambiguity still remains. 
@@ -1628,56 +1629,100 @@ After dimensionality reduction, ICA is performed within the estimated $\widehat{
 
 The whitening presented in this section acts upon the reduced ICA space and removes correlations between the mixture variables.
 
-Let the centered data vector in the reduced space be $\mathbf{x}$ and let a whitening matrix $\mathbf{K}$ transform it into
+Let the centered data in the reduced space be $\mathbf{X}_{\widehat{q}}$ and let a whitening matrix $\mathbf{K}$ transform it into
 
 \begin{equation}
-    \mathbf{z} = \mathbf{K}\mathbf{x},
+    \mathbf{Z} = \mathbf{K}\mathbf{X}_{\widehat{q}},
 \end{equation}
 
-such that
+where 
 
 \begin{equation}
-    \operatorname{Cov}(\mathbf{z}) = \mathbb{E}\left[\mathbf{z}\mathbf{z}^T\right] = \mathbf{I}.
+    \qquad \mathbf{Z} \in \mathbb{R}^{\widehat{q} \times v}
+    , \qquad \mathbf{K} \in \mathbb{R}^{\widehat{q} \times \widehat{q}}
+    , \qquad \mathbf{X}_{\widehat{q}} \in \mathbb{R}^{\widehat{q} \times v},
 \end{equation}
 
-Suppose that $\mathbf{U}$ is an arbitrary orthogonal matrix and
+such that the sample covariance matrix of the whitened observations is
 
 \begin{equation}
-    \mathbf{z}^{\ast} = \mathbf{U}\mathbf{z}.
+    \operatorname{Cov}(\mathbf{Z}) = \frac{1}{v}\mathbf{Z}\mathbf{Z}^T = \mathbf{I}_{\widehat{q}}.
+\end{equation}
+
+Suppose that $\mathbf{D}$ is an arbitrary orthogonal matrix and
+
+\begin{equation}
+    \mathbf{Z}^{\ast} = \mathbf{D}\mathbf{Z}.
 \end{equation}
 
 Then
 
 \begin{equation}
     \begin{aligned}
-        \operatorname{Cov}\left(\mathbf{z}^{\ast}\right) &= \mathbf{U} \operatorname{Cov}(\mathbf{z}) \mathbf{U}^T \\
-        &= \mathbf{U} \mathbf{I} \mathbf{U}^T \\
-        &= \mathbf{I}.
+        \operatorname{Cov}\left(\mathbf{Z}^{\ast}\right) &= \mathbf{D} \operatorname{Cov}(\mathbf{Z}) \mathbf{D}^T \\
+        &= \mathbf{D} \mathbf{I}_{\widehat{q}} \mathbf{D}^T \\
+        &= \mathbf{I}_{\widehat{q}}.
     \end{aligned}
 \end{equation}
 
-Therefore, infinitely many possible rotations $\mathbf{U}$ preserve the whitened covariance structure. However, whitening alone cannot determine which of these rotations produces statistically independent components.
+Therefore, infinitely many possible rotations $\mathbf{D}$ preserve the whitened covariance structure. However, whitening alone cannot determine which of these rotations produces statistically independent components.
 
-It is nevertheless useful, because it reduces the number of parameters that must be estimated. Assume that the source variables have zero mean and unit variance:
+It is nevertheless useful, because it reduces the number of parameters that must be estimated. Recall that before dimensionality reduction, the signal part of the ICA model is represented as 
 
 \begin{equation}
-    \mathbb{E}\left[ \mathbf{s}\mathbf{s}^T \right] = \mathbf{I}.
+    \mathbf{X} = \mathbf{A}\mathbf{S},
+\end{equation}
+
+where 
+
+\begin{equation}
+    \mathbf{X} \in \mathbb{R}^{t \times v}, \qquad 
+    \mathbf{A} \in \mathbb{R}^{t \times \widehat{q}}, \qquad
+    \mathbf{S} \in \mathbb{R}^{\widehat{q} \times v},
+\end{equation}
+
+as was shown in equations \eqref{eq:pica-model}, \eqref{eq:pica-dimensions}. Projecting the observations onto the estimated $\widehat{q}$-dimensional source subspace gives
+
+\begin{equation}
+    \mathbf{X}_{\widehat{q}}
+    = \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{X}
+    = \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{A}\mathbf{S}.
+\end{equation}
+
+Define the mixing matrix in the reduced space as
+
+\begin{equation}
+    \mathbf{A}_{\widehat{q}} := \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{A},
+\end{equation}
+
+where $\mathbf{A}_{\widehat{q}} \in \mathbb{R}^{\widehat{q} \times \widehat{q}}$. The reduced model can therefore be written as
+
+\begin{equation}
+    \mathbf{X}_{\widehat{q}} = \mathbf{A}_{\widehat{q}}\mathbf{S}.
+\end{equation}
+
+Assume that the source components are centered and scaled to unit variance, so that
+
+\begin{equation}
+    \operatorname{Cov}(\mathbf{S}) = \frac{1}{v}\mathbf{S}\mathbf{S}^T = \mathbf{I}_{\widehat{q}}.
 \end{equation}
 
 The whitened data are
 
 \begin{equation}
-    \mathbf{z} = \mathbf{K}\mathbf{x} = \mathbf{K}\mathbf{A}\mathbf{s} =: \widetilde{\mathbf{A}}\mathbf{s},
+    \mathbf{Z} = \mathbf{K}\mathbf{X}_{\widehat{q}} = \mathbf{K}\mathbf{A}_{\widehat{q}}\mathbf{S} =: \widetilde{\mathbf{A}}\mathbf{S}
+    \label{eq:whitened-data}
 \end{equation}
 
-For the square whitened model,
+where $\widetilde{\mathbf{A}} \in \mathbb{R}^{\widehat{q} \times t}$. For the square whitened model,
 
 \begin{equation}
     \begin{aligned}
-        \mathbb{E} \left[ \mathbf{z}\mathbf{z}^T \right]
-        &= \widetilde{\mathbf{A}} \mathbb{E} \left[ \mathbf{s}\mathbf{s}^T \right] \widetilde{\mathbf{A}}^T \\
-        &= \widetilde{\mathbf{A}} \widetilde{\mathbf{A}}^T \\
-        &= \mathbf{I}.
+        \operatorname{Cov}\left(\mathbf{Z}\right) = \mathbf{I}_{\widehat{q}}
+        &= \frac{1}{v} \mathbf{Z}\mathbf{Z}^T \\
+        &= \widetilde{\mathbf{A}} \left(\frac{1}{v} \mathbf{S}\mathbf{S}^T \right) \widetilde{\mathbf{A}}^T \\
+        &= \widetilde{\mathbf{A}} \mathbf{I}_{\widehat{q}} \widetilde{\mathbf{A}}^T \\
+        &= \widetilde{\mathbf{A}} \widetilde{\mathbf{A}}^T. 
     \end{aligned}
 \end{equation}
 
@@ -1685,33 +1730,37 @@ Thus, $\widetilde{\mathbf{A}}$ is orthogonal. Instead of estimating an arbitrary
 
 \section{Estimation of independent components with FastICA}
 
-Assume that the observed data follow the ICA model
+As shown in the previous sections, after dimensionality reduction and whitening, the ICA model can be written as
 
 \begin{equation}
-    \mathbf{x} = \mathbf{A}\mathbf{s}.
+    \mathbf{Z} = \widetilde{\mathbf{A}}\mathbf{S},
 \end{equation}
 
-After whitening,
+where $\widetilde{\mathbf{A}} \in \mathbb{R}^{\widehat{q}\times \widehat{q}}$ is orthogonal. Therefore,
 
 \begin{equation}
-    \mathbf{z} = \widetilde{\mathbf{A}}\mathbf{s}.
+    \mathbf{S} = \widetilde{\mathbf{A}}^{-1} \mathbf{Z} = \widetilde{\mathbf{A}}^T \mathbf{Z}.
 \end{equation}
 
-Since $\widetilde{\mathbf{A}}$ is orthogonal,
+The remaining ICA problem therefore consists of estimating the appropriate orthogonal transformation of the whitened observations. Following the notation of \cite{pica}, let
 
 \begin{equation}
-    \mathbf{s} = \widetilde{\mathbf{A}}^{-1} \mathbf{z} = \widetilde{\mathbf{A}}^T \mathbf{z}.
+    \mathbf{Q} := \widetilde{\mathbf{A}}^T.
 \end{equation}
 
-An individual component can therefore be represented as
+The estimated independent components can then be written as
 
 \begin{equation}
-    y = \mathbf{w}^T\mathbf{z},
+    \widehat{\mathbf{S}} = \mathbf{Q}\mathbf{Z}.
 \end{equation}
 
-where $\mathbf{w}$ is a unit vector whose direction must be estimated.
+To obtain the estimation of independent components presented in \cite[Chapter 8.4]{ica}, consider a single whitened observation $\mathbf{z} \in \mathbb{R}^{\widehat{q}}$ for a fixed component direction $\mathbf{q} \in \mathbb{R}^{\widehat{q}}$, corresponding to one row of $\mathbf{Q}$. The corresponding scalar projection is 
 
-The main idea is to search for directions for which the projected data are as non-Gaussian as possible. One measure of non-Gaussianity is negentropy \cite[Equation 8.22]{ica}:
+\begin{equation}
+    y = \mathbf{q}^T \mathbf{z}.
+\end{equation}
+
+The main idea of the ICA component estimation is to search for directions for which the projected data are as non-Gaussian as possible. One measure of non-Gaussianity is negentropy \cite[Equation 8.22]{ica}:
 
 \begin{equation}
     J(y) = H(y_{\mathrm{gauss}}) - H(y),
@@ -1736,7 +1785,7 @@ with equality if $y$ is Gaussian.
 For whitened data, the search for one independent component can therefore be written as
 
 \begin{equation}
-    \mathbf{w}^{\ast} = \arg\max_{\|\mathbf{w}\|_2^2=1} J \left(\mathbf{w}^T\mathbf{z}\right).
+    \mathbf{q}^{\ast} = \arg\max_{\|\mathbf{q}\|_2^2=1} J \left(\mathbf{q}^T\mathbf{z}\right).
 \end{equation}
 
 The unit-norm constraint follows from
@@ -1744,14 +1793,14 @@ The unit-norm constraint follows from
 \begin{equation}
     \begin{aligned}
         \operatorname{Var}
-        \left( \mathbf{w}^T\mathbf{z} \right)
-        &= \mathbf{w}^T \operatorname{Cov}(\mathbf{z}) \mathbf{w} \\
-        &= \mathbf{w}^T\mathbf{w} \\
-        &= \|\mathbf{w}\|_2^2.
+        \left( \mathbf{q}^T\mathbf{z} \right)
+        &= \mathbf{q}^T \operatorname{Cov}(\mathbf{z}) \mathbf{q} \\
+        &= \mathbf{q}^T\mathbf{q} \\
+        &= \|\mathbf{q}\|_2^2.
     \end{aligned}
 \end{equation}
 
-Thus, setting $\|\mathbf{w}\|_2^2=1$ fixes the variance of the extracted component and prevents arbitrary changes in scale.
+Thus, setting $\|\mathbf{q}\|_2^2=1$ fixes the variance of the extracted component and prevents arbitrary changes in scale.
 
 The problem of negentropy however is that it requires knowledge or estimation of the probability density function. This is computationally complex, so an algorithm called \textit{FastICA} was developed, which uses an approximation based on a suitable function $G(y)$ \cite[Equation 8.25]{ica}:
 
@@ -1762,10 +1811,10 @@ The problem of negentropy however is that it requires knowledge or estimation of
 The expected values are present, following their definition:
 
 \begin{equation}
-    H(y) = -\int p_y(\eta) \log p_y(\eta)\,\mathrm{d}\eta = - \mathbb{E} \left[ \log p_y(\mathbf{y}) \right],
+    H(y) = -\int p_y(\eta) \log p_y(\eta)\,\mathrm{d}\eta = - \mathbb{E} \left[ \log p_y(y) \right],
 \end{equation}
 
-while the $\nu$ variable is a standardized gaussian variable, replacing the vector $y_{\mathrm{gauss}}$. Squaring introduces magnitude of the difference and preserves non-negative values in the negentropy. 
+while the $\nu$ denotes a standardized Gaussian random variable. Squaring introduces magnitude of the difference and preserves non-negative values in the negentropy. 
 
 The authors of \cite{ica} state that the approximation function $G(y)$ should be nonquadratic and have its values grow not so fast, when $|y|$ grows. There were several possible representations of the $G(y)$ function provided. This thesis uses a good general-purpose function \cite{ica}:
 
@@ -1776,48 +1825,48 @@ The authors of \cite{ica} state that the approximation function $G(y)$ should be
 FastICA uses an approximate Newton fixed-point iteration. For one component, the update is \cite[Equation 8.43]{ica}
 
 \begin{equation}
-    \mathbf{w}^{+} = \mathbb{E} \left[ \mathbf{z} g \left( \mathbf{w}^T\mathbf{z} \right) \right]
-    - \mathbb{E} \left[g' \left( \mathbf{w}^T\mathbf{z} \right)\right] \mathbf{w},
+    \mathbf{q}^{+} = \mathbb{E} \left[ \mathbf{z} g \left( \mathbf{q}^T\mathbf{z} \right) \right]
+    - \mathbb{E} \left[g' \left( \mathbf{q}^T\mathbf{z} \right)\right] \mathbf{q},
 \end{equation}
 
 followed by normalization:
 
 \begin{equation}
-    \mathbf{w}_{\mathrm{new}} = \frac{\mathbf{w}^{+}}{\|\mathbf{w}^{+}\|_2}.
+    \mathbf{q}_{\mathrm{new}} = \frac{\mathbf{q}^{+}}{\|\mathbf{q}^{+}\|_2}.
 \end{equation}
 
-The procedure is repeated until the direction of $\mathbf{w}$ converges. The convergence criterion is 
+The procedure is repeated until the direction of $\mathbf{q}$ converges. The convergence criterion is 
 
 \begin{equation}
-    \mathbf{w}_{\mathrm{new}} = \pm \mathbf{w}
+    \mathbf{q}_{\mathrm{new}} = \pm \mathbf{q}
 \end{equation}
 
-Since $\mathbf{w}$ and $-\mathbf{w}$ represent the same component up to its sign ($(-\mathbf{w})^T\mathbf{z} = -\mathbf{w}^T\mathbf{z}$), the convergence criterion is insensitive to this sign ambiguity, as is ICA.
+Since $\mathbf{q}$ and $-\mathbf{q}$ represent the same component up to its sign ($(-\mathbf{q})^T\mathbf{z} = -\mathbf{q}^T\mathbf{z}$), the convergence criterion is insensitive to this sign ambiguity, as is ICA.
 
-When several components are estimated simultaneously, the corresponding vectors are collected in an unmixing matrix $\mathbf{W}$. The vectors must additionally be decorrelated so that multiple iterations do not converge to the same component. In the symmetric FastICA algorithm, this is performed using symmetric orthogonalization:
+When several components are estimated simultaneously, the corresponding vectors are collected in the unmixing matrix in the whitened space, denoted by $\mathbf{Q}$. The vectors must additionally be decorrelated so that multiple iterations do not converge to the same component. In the symmetric FastICA algorithm, this is performed using symmetric orthogonalization:
 
 \begin{equation}
-    \mathbf{W} \gets \left( \mathbf{W}\mathbf{W}^T \right)^{-1/2}\mathbf{W}.
+    \mathbf{Q} \gets \left( \mathbf{Q}\mathbf{Q}^T \right)^{-1/2}\mathbf{Q}.
 \end{equation}
 
 Although the authors of the book \cite{ica} do not explicitly state the convergence criterion, a natural stopping point would be when 
 
 \begin{equation}
-    \mathbf{w}_{\mathrm{new}} \approx \pm \mathbf{w}_{\mathrm{old}}.
+    \mathbf{q}_{\mathrm{new}} \approx \pm \mathbf{q}_{\mathrm{old}}.
 \end{equation}
 
-In pratice this means, that both the old and the new vector, representing the individual component of $\mathbf{W}$, have almost the same direction in relation to each other. Since these vectors are normalized, we can utilize the dot product, to measure the cosine of the angle between them
+In pratice this means, that both the old and the new vector, representing the direction of, associated with a particular component of $\widehat{\mathbf{S}}$, have almost the same direction in relation to each other. Since these vectors are normalized, we can utilize the dot product, to measure the cosine of the angle between them
 
 \begin{equation}
-    \mathbf{w}_{\mathrm{new}} \cdot \mathbf{w}_{\mathrm{old}} = \mathbf{w}_{\mathrm{new}}^T \mathbf{w}_{\mathrm{old}} = \cos \theta
+    \mathbf{q}_{\mathrm{new}} \cdot \mathbf{q}_{\mathrm{old}} = \mathbf{q}_{\mathrm{new}}^T \mathbf{q}_{\mathrm{old}} = \cos \theta
 \end{equation}
 
-where $\theta$ is the angle between $\mathbf{w}_{\mathrm{new}}$ and $\mathbf{w}_{\mathrm{old}}$.
+where $\theta$ is the angle between $\mathbf{q}_{\mathrm{new}}$ and $\mathbf{q}_{\mathrm{old}}$.
 
 If the dot product is equal to 1 (-1), these vectors point in the same direction (opposite direction respectively). The full convergence criterion can therefore be stated as
 
 \begin{equation}
-    \max_i \left(1 - |\mathbf{w}_i^T\mathbf{w}_{i,\mathrm{old}}| \right) < \varepsilon.
+    \max_i \left(1 - |\mathbf{q}_i^T\mathbf{q}_{i,\mathrm{old}}| \right) < \varepsilon.
 \end{equation}
 
 If this convergence criterion is true, for small enough $\varepsilon$ it means, that the two vectors are nearly identical up to a sign.
@@ -1828,33 +1877,51 @@ The full algorithm in matrix notation, follows the FastICA algorithm presented i
 \caption{Symmetric FastICA}
 \label{alg:fastica}
 \begin{algorithmic}[1]
-    \Require Whitened observations $\mathbf{Z} \in \mathbb{R}^{q\times v}$
+    \Require Whitened observations $\mathbf{Z} \in \mathbb{R}^{\widehat{q}\times v}$
     \Require Nonlinear function $g$ and its derivative $g'$
     \Require Convergence tolerance $\varepsilon > 0$
-    \Require $\mathbf{W} = \mathbf{I}_q$
+    \Require $\mathbf{Q} = \mathbf{I}_{\widehat{q}}$
 
-    \State Orthogonalize $\mathbf{W}$
+    \State Orthogonalize $\mathbf{Q}$
 
     \Repeat
         \State Store previous matrix:
-        $$ \mathbf{W}_{\mathrm{old}} \gets \mathbf{W} $$
+        $$ \mathbf{Q}_{\mathrm{old}} \gets \mathbf{Q} $$
 
         \State Update all rows simultaneously:
         $$ 
-        \mathbf{W} \gets 
-        \mathbb{E} \left[ g(\mathbf{W}\mathbf{Z})\mathbf{Z}^T \right] 
-        - \operatorname{diag} \left( \mathbb{E} \left[ g'(\mathbf{W}\mathbf{Z}) \right] \right) \mathbf{W}
+        \mathbf{Q} \gets 
+        \mathbb{E} \left[ g(\mathbf{Q}\mathbf{Z})\mathbf{Z}^T \right] 
+        - \operatorname{diag} \left( \mathbb{E} \left[ g'(\mathbf{Q}\mathbf{Z}) \right] \right) \mathbf{Q}
         $$
 
         \State Apply symmetric orthogonalization:
-        $$ \mathbf{W} \gets (\mathbf{W}\mathbf{W}^T)^{-1/2}\mathbf{W} $$
+        $$ \mathbf{Q} \gets (\mathbf{Q}\mathbf{Q}^T)^{-1/2}\mathbf{Q} $$
 
-    \Until{$$ \max_i \left(1 - |\mathbf{w}_i^T\mathbf{w}_{i,\mathrm{old}}| \right) < \varepsilon $$}
+    \Until{$$ \max_i \left(1 - |\mathbf{q}_i^T\mathbf{q}_{i,\mathrm{old}}| \right) < \varepsilon $$}
 
     \State \Return
-    $$ \mathbf{S} = \mathbf{W} \mathbf{Z} $$
+    $$ \widehat{\mathbf{S}} = \mathbf{Q} \mathbf{Z} $$
 \end{algorithmic}
 \end{algorithm}
+
+Finally, after estimating the independent components in the whitened reduced space, the full unmixing matrix with respect to the original observation space can be obtained by combining the dimensionality-reduction, whitening, and ICA transformations. Using Equation~\eqref{eq:whitened-data} together with the projection defined in Equation~\eqref{eq:pica-dimensionality-reduction},
+
+\begin{equation}
+    \widehat{\mathbf{S}} = \mathbf{Q}\mathbf{Z} = \mathbf{Q}\mathbf{K}\mathbf{X}_{\widehat{q}} = \mathbf{Q}\mathbf{K}\widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{X}.
+\end{equation}
+
+Therefore the full unmixing matrix mapping the original observations to the estimated independent components is
+
+\begin{equation}
+    \mathbf{W} = \mathbf{Q}\mathbf{K}\widehat{\mathbf{U}}_{\widehat{q}}^T,
+\end{equation}
+
+so that 
+
+\begin{equation}
+    \widehat{\mathbf{S}} = \mathbf{W}\mathbf{X}.
+\end{equation}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
