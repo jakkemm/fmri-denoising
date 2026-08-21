@@ -184,8 +184,7 @@ The dataset contains measurements from six participants, including five females 
 \subsection{Experimental task and design}
 \label{section:experiment}
 
-% NAPRAWIONE: doprecyzowac o jakie kategorie chodzi
-During fMRI data acquisition, the participants' task was to watch a sequence of greyscale images and respond whenever the current stimulus of the same visual category as the stimulus immediatly preceding one. This type of task is called a one-back repetition-detection task. The images belonged to the following visual categories: faces, houses, cats, bottles, scissors, shoes, chairs and nonsense images.
+During fMRI data acquisition, the participants' task was to watch a sequence of greyscale images and respond whenever the current stimulus is of the same visual category as the stimulus immediately preceding one. This type of task is called a one-back repetition-detection task. The images belonged to the following visual categories: faces, houses, cats, bottles, scissors, shoes, chairs and nonsense images.
 
 Examples of the presented stimuli are shown in Figure~\ref{fig:objects-shown}, which is taken from the original paper \cite{dataset-cit1}.
 
@@ -230,14 +229,12 @@ The functional data were acquired using gradient-echo echo-planar imaging on a G
 
 The functional images have spatial dimensions of $40 \times 64 \times 64$. Each run contains 121 time points, also called \textit{functional volumes} and covers approximately five minutes of acquisition.
 
-The repetition time of 2500 ms means that the BOLD signal is not sampled separately for every individual image presentation, since the images were presented every 2 seconds. The stimulus timing will be represented by task regressors used in design matrix for General Linear Model (further explained in later section LATER ADD REFERENCE), convolved with a haemodynamic response function (HRF) to model the expected BOLD response \cite{HRF}.
+The repetition time of 2500 ms means that the BOLD signal is not sampled separately for every individual image presentation, since the images were presented every 2 seconds. The stimulus timing will be represented by task regressors used in design matrix for General Linear Model (further explained in later section LATER ADD REFERENCE), convolved with a haemodynamic response function (HRF) to model the expected BOLD response \cite{hrf-problems}.
 
 \subsection{Anatomical MRI acquisition}
 
 
-% NAPRAWIONE: "high-resolution spatial signal matrix" - nie jest to macierz, jesli uzywam sygnalu, to warto by bylo go zdefiniowac
-% NAPRAWIONE: zastanowic sie czy nie jest troche mylace "high-resolution", skoro to sa wymiary tylko 256x256
-The dataset also contains one T1-weighted anatomical image for each participant. A T1-weighted image is an anatomical MRI image with higher spatial resolution than the functional MRI images, meaning that it represents brain anatomy using smaller voxels and therefore provides more detailed structural information. This is commonly used as an anatomical reference for registration of functional MRI data. In analyzed dataset the images consist of 124 slices with a slice thickness of 1.2 mm and a field of view of 24 cm. Their spatial dimensions are $124 \times 256 \times 256$.
+The dataset also contains one T1-weighted anatomical image for each participant. A T1-weighted image is an anatomical MRI image with higher spatial resolution than the functional MRI images, meaning that it represents brain anatomy using smaller voxels, i.e., 3-dimensional analogues of pixels, and therefore provides more detailed structural information. This is commonly used as an anatomical reference for registration of functional MRI data. In analyzed dataset the images consist of 124 slices with a slice thickness of 1.2 mm and a field of view of 24 cm. Their spatial dimensions are $124 \times 256 \times 256$.
 
 The anatomical images provide greater spatial detail than the functional images. In this thesis, they are used as an anatomical reference, for brain extraction, for registration of the functional scans, and for visualization of statistical maps. They are not subjected to the denoising methods considered in the thesis.
 
@@ -259,18 +256,18 @@ The event files contain the columns \verb|onset|, \verb|duration|, and \verb|tri
 \section{Caveats related to the dataset}
 
 
-% NAPRAWIONE: doprezycowac, jak faktycznie wyglada ten podzial jednak
+% NOTE: dodac zrodlo o CV i tego na co pozwala
 The experimental conditions were repeated across 12 runs. This makes leave-one-run-out cross-validation possible. For a single cross-validation fold, the 12 runs are split into two datasets:
 \begin{enumerate}
     \item training dataset, consisting of 11 runs,
     \item test dataset, consisting of the left-out run.
 \end{enumerate}
-For each fold data from one run is used as a test dataset, until data from all 12 runs are used as a test dataset, i.e. left-out run. 12 runs means 12 cross-validation folds. This allows for clearer evaluation of the of the fitted model and can support the selection of model parameters. The multiple-run structure may also help identify run-specific noise effects. The detailed description and implementation of this framework will be explained in the later chapters.
+For each fold data from one run is used as a test dataset, until data from all 12 runs are used as a test dataset, i.e. left-out run. 12 runs means 12 cross-validation folds. This allows for clearer evaluation of the fitted model and can support the selection of model parameters. \ts{(potrzebne źródło)} The multiple-run structure may also help identify run-specific noise effects. The detailed description and implementation of this framework will be explained in the later chapters.
 
-The dataset does not provide a noise-free reference image or a known true BOLD signal. The quality of denoising must therefore be evaluated indirectly using criteria such as:
+The dataset does not provide a noise-free reference image or a known true BOLD signal. The quality of denoising must therefore be evaluated indirectly using criteria such as: \ts{(dodac zrodla po ewaluacji)}
 
 \begin{itemize}
-    \item prediction accuracy on left-out runs,
+    \item prediction accuracy on the test set,
     \item changes in residual variance, preferably evaluated on left-out data,
     \item changes in temporal signal-to-noise ratio (tSNR) measures,
     \item preservation and stability of expected task-related responses,
@@ -306,24 +303,21 @@ This thesis focuses on methods that can be described using statistical models an
 
 The selected methods describe the data in the two-dimensional matrix form. Since the analyzed fMRI data is four-dimensional, this requirement necessitates reshaping the data into an appropriate matrix. Given the four-dimensional shape described in \eqref{eq:init-data-shape}, reshaping produces
 
-% NAPRAWIONE: dopisac czym sa n_t, n_x itd. i odniesc sie do opisu z wczesniej X x Y x Z x T
-
 \begin{equation}
     \mathbf{Y} \in \mathbb{R}^{t \times v}, \qquad t = n_T, \qquad v = n_X \cdot n_Y \cdot n_Z,
 \end{equation}
 
-where $t=n_T$ denotes the number of time points and $v$ denotes the number of units of brain tissue and $n_X, n_Y, n_Z$ are the numbers of voxels along the $X$, $Y$, and $Z$ spatial axes respectively, as introduced in \eqref{eq:init-data-shape}. These elements stem from functional MRI acquisition, further described in Section~\ref{section:fmri-acquisition} and in the following thesis will be referred to as \textit{voxels}.
+where $t=n_T$ denotes the number of time points, $v$ denotes the number of units of brain tissue and $n_X, n_Y, n_Z$ are the numbers of voxels along the $X$, $Y$, and $Z$ spatial axes respectively, as introduced in \eqref{eq:init-data-shape}. These elements stem from functional MRI acquisition, further described in Section~\ref{section:fmri-acquisition} and in the following thesis will be referred to as \textit{voxels}.
 
 The possibility of describing the selected methods within a related mathematical framework is one of the main reasons for their selection. Their comparison allows the following aspects to be studied:
 
+% sprawdzic, czy faktyzcnie mam napisane, ze to co wybieram to hiperparametry
 \begin{itemize}
     \item the role of the design matrix;
     \item the role of nuisance regressors;
     \item dimensionality reduction;
     \item separation of signal and noise;
-    \item regularization;
-    \item stability of parameter estimates;
-    \item selection and optimization of hyperparameters.
+    \item selection of hyperparameters.
 \end{itemize}
 
 Chapters \ref{chapter:glm} and \ref{chapter:ica} introduce the mathematical foundations of each method, the assumptions on which it is based, and its possible role in fMRI denoising.
@@ -522,7 +516,6 @@ Suppose that
     \item $\mathbf{V}$ is a known, positive definite matrix.
 \end{itemize}
 
-% NAPRAWIONE: dodac: the following derivations come from agresti
 The notation and subsequent derivations follow the approach presented in \cite{agresti}.
 
 The spectral decomposition of $\mathbf{V}$ is
@@ -705,14 +698,13 @@ Thus, $\mathbf{V}$ is the temporal correlation matrix, while $\boldsymbol{\Sigma
 
 A simple model for temporally autocorrelated regression errors is the first-order autoregressive process, denoted by AR(1) \cite{ols-ar-connection}:
 
-% NAPRAWIONE: zalozenia o $t$, poszedlem w strone teorytycznego zdefiniowania modelu AR(1), co sprawia, ze wymagania o epsilon_0 nie sa konieczne
 \begin{equation}
     \varepsilon_t = \phi\varepsilon_{t-1} + \nu_t, \qquad \nu_t \overset{\mathrm{i.i.d.}}{\sim} \mathcal{N} \left(0, \sigma_\nu^2 \right), \qquad t \in \mathbb{Z}
 \end{equation}
 
 where $\phi$ is the autoregressive coefficient and $\nu_t$ is the noise term.
 
-For the AR(1) process to be stationary, the autoregressive coefficient must satisfy \ts{(do jakiego zbioru należy $t$?)}
+For the AR(1) process to be stationary, the autoregressive coefficient must satisfy 
 
 \begin{equation}
     |\phi| < 1.
@@ -823,7 +815,6 @@ For a given run, the untransformed design matrix is the same for all analyzed vo
 
 As described in Chapter \ref{chapter:dataset}, the participants were presented with visual stimuli at specified times during each experimental run. The purpose of the task-related regressors is to model the expected BOLD response associated with these stimulus presentations.
 
-% NAPRAWIONE: kiedy mowie o kategoriach, odniesc sie do tamej czesci, w ktorej to opisywalem
 The event files provided with the dataset contain the onset, duration, and category of each stimulus. The stimuli belong to eight visual categories, further described in Chapter~\ref{section:experiment}. Therefore, the task-related part of the design matrix contains eight columns, with one column corresponding to each category:
 
 \begin{equation}
@@ -896,10 +887,10 @@ The authors of \cite{hrf-problems} use the following parameters:
 
 \begin{equation}
     \alpha_1 = 6, \qquad \alpha_2 = 16, \qquad \theta_1 = \theta_2 = 1, \qquad c = \frac{1}{6}.
+    \label{eq:fixed-paramters}
 \end{equation}
 
-% NAPRAWIONE: poprawic, zeby to caly ten akapit naturalniej brzmial
-The component $g(t; \alpha_1, \theta_1)$ represents the main positive haemodynamic response, visible on the second plot of Figure~\ref{fig:hrf-boxcar-convolution} during approximately the first 12 seconds. The component $cg(t; \alpha_2, \theta_2)$ represents the post-stimulus undershoot, which can be seen on the same plot on a period from approximately 12 to 25 seconds. These parameters are fixed rather than estimated separately from the analyzed data. This provides a robust and simple implementation, without the increased risk of inappropriate estimation.
+The component $g(t; \alpha_1, \theta_1)$ represents the main positive haemodynamic response, visible on the second plot of Figure~\ref{fig:hrf-boxcar-convolution} during approximately the first 12 seconds. The component $cg(t; \alpha_2, \theta_2)$ represents the post-stimulus undershoot, which can be seen on the same plot on a period from approximately 12 to 25 seconds. In this thesis the choice was made to use fixed parameters presented in Equation~\eqref{eq:fixed-paramters}, rather than estimate them separately from the analyzed data. 
 
 For a fixed scaling convention, the HRF is normalized to have a maximum value of one:
 
@@ -935,7 +926,7 @@ Not all of these matrices must be present in every analysis. Their inclusion dep
 
 \subsubsection{Motion and physiological regressors}
 
-% NAPRAWIONE: do tego co zawiera standard set potrzebne zrodlo (chyba BIDS cytowanie wystarczy, ale sprawdzic)
+% NOTE: wyjasnic first-level, zastapic, albo dodac odnosik do literatury, jesli za trudne do wyjasnienia
 Motion regressors are commonly included in first-level fMRI models to account for signal changes associated with participant movement. A standard set contains three translation parameters and three rotation parameters estimated during motion correction \cite{motion-correction}.
 
 The raw dataset does not include precomputed motion parameters, hence explicit motion regressors were not included in the design matrix.
@@ -985,18 +976,17 @@ The task-related coefficients are shared across runs, while drift and other run-
 For a single run, the covariance structure was derived in Equation~\eqref{eq:estimated-ar1-covariance}. Therefore, for the combined training data, the covariance matrix has the block-diagonal form:
 
 \begin{equation}
-    \widehat{\mathbf{V}}_{-q} =
+    \widehat{\mathbf{V}}^{(-q)} =
     \operatorname{blockdiag}
     \left(\widehat{\mathbf{V}}_1, \ldots, \widehat{\mathbf{V}}_{q-1}, \widehat{\mathbf{V}}_{q+1}, \ldots, \widehat{\mathbf{V}}_R\right),
 \end{equation}
 
-% NAPRAWIONE: wprowadzic notacje -q
-where $q$ denotes the left-out run, the subscript $-q$ denotes quantities constructed using all runs except run $q$ and $R$ is the total number of runs.
+where $q$ denotes the left-out run, the index $-q$ denotes quantities constructed using all runs except run $q$. $R$ is the total number of runs.
 
 For example, if $R = 3$ and the second run is left out, then
 
 \begin{equation}
-    \widehat{\mathbf{V}}_{-2}
+    \widehat{\mathbf{V}}^{(-2)}
     =
     \operatorname{blockdiag}
     \left(
@@ -1026,19 +1016,15 @@ For voxel $v$, the cross-validated coefficient of determination is
     R^2_{\mathrm{CV},v} = 1 - \frac{SS_{\text{resid}}}{SS_{\text{tot}}} = 1 - \frac{\sum_i\left(y_{iv} - \widehat{y}_{iv}\right)^2}{\sum_i\left(y_{iv} - \overline{y}_v \right)^2},
 \end{equation}
 
-% NAPRAWIONE: poszukac przykladu kiedy R^2 jest ujemne
-% np kiedy mamy wartosci y = (1,2,3), srednia to 2
-% model przewidujacy srednia wartosc bedzie mial SS_tot = (1-2)^2 + (2-2)^2 + (3-2)^2 = 2
-% model przewidujacy straszne liczby, np (3,3,3) bedzie mial SS_resid = (1-3)^2 + (2-3)^2 + (3-3)^2 = 5
-% R^2 bedzie wtedy rowne 1 - 5/2 < 0
+% NOTE: poszukac cytowania do R^2 < 0
 where the index $i$ denotes given time point in the concatenated time points from all held-out predictions. This is not to be mistaken with the Pearson correlation coefficient squared $r^2$, which cannot have negative values. For the coefficient of determination $R^2$ a negative value coefficient results from sum of squared residuals being greater, than total sum of squares, which indicates that the task-related model predicts the unseen data less accurately than a model that predicts only the mean signal.
 
-Voxels are included in the noise pool if they satisfy two conditions. First,
+Voxels are included in the noise pool if they satisfy two conditions, as per \cite{glm-denoise}. 
+First,
 
 \begin{equation}
     R^2_{\mathrm{CV},v} < 0.
 \end{equation}
-
 This reduces the risk of including task-related voxels.
 
 Second, the mean signal intensity must exceed an intensity threshold. The mean signal intensity of voxel $v$ across all runs is
@@ -1125,8 +1111,7 @@ Principal Component Analysis is used here to derive a low-dimensional set of nui
 
 PCA represents the data using principal components. The first principal component is the linear combination of the original variables with the largest variance. The second component has the largest possible variance, while being orthogonal to the first component, repeating the procedure for the next components.
 
-% NAPRAWIONE: dodac zrodla skad sie to wszystko bierze (w calym rozdziale)
-The derivations and examples presented in this chapter follow the approach in \cite{pca}.
+The derivations and examples presented in this subsection follow the approach in \cite{pca}.
 
 Let $\mathbf{X}$ be a data matrix and $\boldsymbol{\Sigma}$ its sample covariance matrix:
 
@@ -1340,8 +1325,7 @@ These ambiguities concern the representation of a fixed number of independent co
 \section{Dimensionality reduction and model order selection}
 \label{section:pica}
 
-% NAPRAWIONE: danie zrodla do spatial-independence
-ICA can be analyzed both in the context of spatial or temporal independent components \cite{spatial-temporal-ica}. The spatial ICA focuses on finding spatially independent maps, i.e. maps, that connect the data from multiple voxels into independent response. An example of such map can be a joint response of left and right hemishpere to a flashing light stimuli. The temporal ICA focuses on finding temporally independent time courses. As an example of such a time course could be a cyclical response seen after each block of flashing lights.
+ICA can be analyzed both in the context of spatial or temporal independent components~\cite{spatial-temporal-ica}. The spatial ICA focuses on finding spatially independent maps, i.e. maps, that connect the data from multiple voxels into independent response. An example of such map can be a joint response of left and right hemisphere to a flashing light stimuli. The temporal ICA focuses on finding temporally independent time courses. As an example of such a time course could be a cyclical response seen after each block of flashing lights.
 
 Generally, the neuroimaging literature focuses on spatial ICA, because $V >> T$, meaning the number of voxel samples is generally greater than the number of time points. The temporal ICA under small number of time points is statistically and computationally more complex, while the sparse nature of the typical spatial activation response is said to be working well with spatial ICA \cite{spatial-temporal-ica}. Hence for this thesis the spatial ICA was chosen.
 
@@ -1413,9 +1397,7 @@ Before dimensionality reduction, the data can be temporally prewhitened with res
     \boldsymbol{\Sigma}_i = \mathbf{L}_i\mathbf{L}_i^T
 \end{equation}
 
-% NAPRAWIONE: upewnic sie czy na pewno sa zalozenia w cytowaniu
-% zmienilem cytowanie, bo w oryginalnym artykule jest tylko o metodzie rozwiązywania równań normalnych pochodzących z least squares
-be a decomposition of $\boldsymbol{\Sigma}_i$ into an $\mathbf{L}$ lower triangular matrix and its transpose $\mathbf{L}^T$, i.e. Cholesky decomposition \cite{cholesky}. Left multiplication of \eqref{eq:pica-not-whitened} by $\mathbf{L}_i^{-1}$ gives \ts{(potrzebne źródło wzoru i własności rozkładu Cholesky'ego)}
+be a decomposition of $\boldsymbol{\Sigma}_i$ into an $\mathbf{L}$ lower triangular matrix and its transpose $\mathbf{L}^T$, i.e. Cholesky decomposition \cite{cholesky}. Left multiplication of \eqref{eq:pica-not-whitened} by $\mathbf{L}_i^{-1}$ gives
 
 \begin{equation}
     \begin{aligned}
@@ -1436,8 +1418,6 @@ The transformed noise $\overline{\boldsymbol{\eta}}_i$ has covariance
     \end{aligned}
 \end{equation}
 
-% NAPRAWIONE: wyjasnic czym jest TEMPORAL prewhitening
-% wyjasnilem temporal prewhitening na podstawie temporal covariance, przy okazji wczesniej w pracy dodajac wyjasnienie czym jest temporal covariance
 This is prewhitening with respect to the temporal covariance structure of the regression errors, which is called \textit{temporal prewhitening}. It is closely related to the prewhitening introduced earlier for the GLM in Definition~\ref{def:prewhitening}, but should not be confused with the PCA-based whitening used later during ICA estimation.
 
 After temporal prewhitening, the problem of determining the number of source signals can be considered under an isotropic noise model, meaning a model with a covariance proportional to the identity matrix $\operatorname{Cov}(\overline{\boldsymbol{\eta}}) = \sigma^2 \mathbf{I}$. From this point onward, the bars are omitted for notational simplicity, and $\mathbf{X}$ denotes the temporally prewhitened data. Assume that the sources have zero mean and unit covariance,
@@ -1599,7 +1579,6 @@ Let the centered data in the reduced space be $\mathbf{X}_{\widehat{q}}$ and let
 
 \begin{equation}
     \mathbf{Z} = \mathbf{K}\mathbf{X}_{\widehat{q}},
-    \label{eq:ica-whitening}
 \end{equation}
 
 where 
@@ -1713,14 +1692,12 @@ The remaining ICA problem therefore consists of estimating the appropriate ortho
 
 \begin{equation}
     \mathbf{Q} := \widetilde{\mathbf{A}}^T.
-    \label{eq:q-orthogonal}
 \end{equation}
 
 The estimated independent components can then be written as
 
 \begin{equation}
     \widehat{\mathbf{S}} = \mathbf{Q}\mathbf{Z}.
-    \label{eq:estimated-ics}
 \end{equation}
 
 To obtain the estimation of independent components presented in \cite[Chapter 8.4]{ica}, consider a single whitened observation $\mathbf{z} \in \mathbb{R}^{\widehat{q}}$ for a fixed component direction $\mathbf{q} \in \mathbb{R}^{\widehat{q}}$, corresponding to one row of $\mathbf{Q}$. The corresponding scalar projection is 
@@ -1892,60 +1869,11 @@ so that
     \widehat{\mathbf{S}} = \mathbf{W}\mathbf{X}.
 \end{equation}
 
-The mixing matrix can be recovered by reversing the transformations applied before the estimation of the independent components. From the whitening transformation in Equation~\eqref{eq:ica-whitening},
-
-\begin{equation}
-    \mathbf{Z} = \mathbf{K}\mathbf{X}_{\widehat{q}},
-\end{equation}
-
-and therefore
-
-\begin{equation}
-    \mathbf{X}_{\widehat{q}} = \mathbf{K}^{-1}\mathbf{Z}.
-\end{equation}
-
-Furthermore, from the estimated ICs in Equation~\eqref{eq:estimated-ics}
-
-\begin{equation}
-    \widehat{\mathbf{S}} = \mathbf{Q}\mathbf{Z},
-\end{equation}
-
-and since $\mathbf{Q}$ was defined in Equation~\eqref{eq:q-orthogonal} as $\mathbf{Q} = \widehat{\mathbf{A}}^T$, where $\widehat{\mathbf{A}}$ is orthogonal, meaning $\mathbf{Q}$ is also orthogonal, its inverse is equal to its transpose. Hence,
-
-\begin{equation}
-    \mathbf{Z} = \mathbf{Q}^{-1}\widehat{\mathbf{S}} = \mathbf{Q}^T\widehat{\mathbf{S}}.
-\end{equation}
-
-Combining the two transformations gives 
-
-\begin{equation}
-    \mathbf{X}_{\widehat{q}} = \mathbf{K}^{-1}\mathbf{Q}^T\widehat{\mathbf{S}}.
-\end{equation}
-
-The representation in the original temporal space is obtained by mapping the reduced data back through the eigenvectors in Equation~\eqref{eq:pica-dimensionality-reduction}:
-
-\begin{equation}
-    \widehat{\mathbf{X}}_{\mathrm{signal}} = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{X}_{\widehat{q}}
-    = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{K}^{-1}\mathbf{Q}^T\widehat{\mathbf{S}}.
-\end{equation}
-
-Comparing this expression with the estimated ICA signal model
-
-\begin{equation}
-    \widehat{\mathbf{X}}_{\mathrm{signal}} = \widehat{\mathbf{A}}\widehat{\mathbf{S}},
-\end{equation}
-
-gives the estimated mixing matrix
-
-\begin{equation}
-    \widehat{\mathbf{A}} = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{K}^{-1}\mathbf{Q}^T.
-\end{equation}
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% \newpage
+\newpage
 
-% \chapter{Application of selected statistical models to the fMRI data}
+\chapter{Application of selected statistical models to the fMRI data}
 
 
 
@@ -1956,9 +1884,9 @@ gives the estimated mixing matrix
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% \newpage
+\newpage
 
-% \chapter{Summary}
+\chapter{Summary}
 
 
 
