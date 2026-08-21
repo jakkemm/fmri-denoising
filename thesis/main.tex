@@ -340,7 +340,6 @@ In general for a single voxel in fMRI, the GLM can be written as
 
 \begin{equation}
     \mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\varepsilon},
-    \label{eq:glm-model}
 \end{equation}
 
 where
@@ -423,7 +422,6 @@ In the Linear Model described in \cite[Chapter 2]{agresti}, the error vector is 
 
 \begin{equation}
     \mathbb{E}(\boldsymbol{\varepsilon}) = \mathbf{0}, \qquad \operatorname{Var}(\boldsymbol{\varepsilon}) = \sigma^2 \mathbf{I}.
-    \label{eq:ols-error-assumptions}
 \end{equation}
 
 \section{Ordinary Least Squares estimation}
@@ -452,7 +450,6 @@ If $\mathbf{X}$ has full column rank $p$, then $\mathbf{X}^T\mathbf{X}$ is inver
 
 \begin{equation}
     \widehat{\boldsymbol{\beta}}_{\mathrm{OLS}} = \left(\mathbf{X}^T\mathbf{X}\right)^{-1} \mathbf{X}^T\mathbf{y}.
-    \label{eq:ols-estimator}
 \end{equation}
 
 The fitted values are then given by
@@ -581,7 +578,6 @@ The covariance matrix of the transformed errors is
         &= \sigma^2\ \mathbf{V}^{-1/2} \mathbf{V}^{1/2} \mathbf{V}^{1/2} \mathbf{V}^{-1/2} \\
         &= \sigma^2\mathbf{I}.
     \end{aligned}
-    \label{eq:whitened-error-covariance}
 \end{equation}
 
 Thus, the transformed errors are uncorrelated and have equal variance. OLS can therefore be applied to the transformed model. This gives
@@ -593,7 +589,6 @@ Thus, the transformed errors are uncorrelated and have equal variance. OLS can t
         &= \left[  \mathbf{X}^T \mathbf{V}^{-1/2} \mathbf{V}^{-1/2} \mathbf{X} \right]^{-1} \mathbf{X}^T \mathbf{V}^{-1/2} \mathbf{V}^{-1/2} \mathbf{y} \\
         &= \left( \mathbf{X}^T \mathbf{V}^{-1} \mathbf{X} \right)^{-1} \mathbf{X}^T \mathbf{V}^{-1} \mathbf{y}.
     \end{aligned}
-    \label{eq:gls-estimator}
 \end{equation}
 
 This is the Generalized Least Squares (GLS) estimator of $\boldsymbol{\beta}$ \cite[Equation 2.12]{agresti}. The transformation of the data and design matrix by $\mathbf{V}^{-1/2}$ is referred to as \textit{prewhitening}. The term was coined in \cite[p. 215]{prewhitening} and it refers to the data transformation, resembling white noise, hence the term prewhitening. Below are the definitions of both \textit{white} random vector and \textit{prewhitening}, which follow the terminology used in \cite{ica}. 
@@ -673,7 +668,6 @@ Therefore, $\mathbf{I}-\mathbf{H}^{\ast}$ is also symmetric and idempotent, and
 
 \begin{equation}
     \operatorname{Var} \left(\mathbf{e}^{\ast}\right) = \sigma^2 \left(\mathbf{I}-\mathbf{H}^{\ast}\right).
-    \label{eq:whitened-residual-covariance}
 \end{equation}
 
 This is the theoretical covariance matrix of the residuals obtained after prewhitening and model fitting. The transformed errors have covariance $\sigma^2\mathbf{I}$, whereas the transformed residuals have covariance $\sigma^2(\mathbf{I}-\mathbf{H}^{\ast})$ because they have additionally been projected onto the residual subspace.
@@ -697,7 +691,6 @@ and
 
 \begin{equation} 
     \operatorname{Cov} \left[\varepsilon_t, \varepsilon_{t+s} \right] = \gamma(s), \qquad \rho(s) = \frac{\gamma(s)}{\gamma(0)}, \qquad s \in \mathbb{Z}
-    \label{eq:error-autocorrelation}
 \end{equation}
 
 where $\gamma(s)$ is the autocovariance function and $\rho(s)$ is the autocorrelation function at lag $s$.
@@ -706,7 +699,6 @@ The covariance matrix of the error vector can then be written as
 
 \begin{equation}
     \boldsymbol{\Sigma} = \sigma_\varepsilon^2\mathbf{V}, \qquad V_{ij} = \rho(|i-j|).
-    \label{eq:stationary-error-covariance}
 \end{equation}
 
 Thus, $\mathbf{V}$ is the temporal correlation matrix, while $\boldsymbol{\Sigma}$ is the corresponding covariance matrix.
@@ -716,7 +708,6 @@ A simple model for temporally autocorrelated regression errors is the first-orde
 % NAPRAWIONE: zalozenia o $t$, poszedlem w strone teorytycznego zdefiniowania modelu AR(1), co sprawia, ze wymagania o epsilon_0 nie sa konieczne
 \begin{equation}
     \varepsilon_t = \phi\varepsilon_{t-1} + \nu_t, \qquad \nu_t \overset{\mathrm{i.i.d.}}{\sim} \mathcal{N} \left(0, \sigma_\nu^2 \right), \qquad t \in \mathbb{Z}
-    \label{eq:ar1-error-model}
 \end{equation}
 
 where $\phi$ is the autoregressive coefficient and $\nu_t$ is the noise term.
@@ -725,14 +716,12 @@ For the AR(1) process to be stationary, the autoregressive coefficient must sati
 
 \begin{equation}
     |\phi| < 1.
-    \label{eq:ar1-stationarity}
 \end{equation}
 
 Under this condition, the variance and autocorrelation function are
 
 \begin{equation}
     \sigma_\varepsilon^2 = \frac{\sigma_\nu^2}{1-\phi^2}, \qquad \rho(s) = \phi^{|s|}.
-    \label{eq:ar1-autocorrelation}
 \end{equation}
 
 In particular the correlation between two one-lagged errors is
@@ -751,7 +740,6 @@ The temporal correlation matrix therefore has the form
 
 \begin{equation}
     V_{ij} = \phi^{|i-j|}.
-    \label{eq:ar-covariance-elements}
 \end{equation}
 
 Since the true regression errors $\boldsymbol{\varepsilon}$ are not observed, the autoregressive coefficient must be estimated from residuals obtained from an initial OLS model fit, introduced in Equation~\eqref{eq:ols-residuals}:
@@ -769,7 +757,6 @@ finally obtaining:
 
 \begin{equation}
     \widehat{\phi} = \frac{\sum_{t=2}^{n} e_t e_{t-1} }{\sum_{t=2}^{n}e_{t-1}^2 }.
-    \label{eq:ar1-phi-estimator}
 \end{equation}
 
 The estimated temporal correlation matrix is then constructed from the estimated autoregressive parameter
@@ -796,7 +783,6 @@ For a single voxel, the GLM can be written as
 
 \begin{equation}
     \mathbf{y} = \mathbf{X}_{\mathrm{task}} \boldsymbol{\beta}_{\mathrm{task}} + \mathbf{X}_{\mathrm{nuis}} \boldsymbol{\beta}_{\mathrm{nuis}} + \boldsymbol{\varepsilon},
-    \label{eq:glm-task-nuisance}
 \end{equation}
 
 where the design matrix and coefficient vector are partitioned as
@@ -861,7 +847,6 @@ For category $k$, let $J_k$ denote the number of stimulus presentations, and let
 
 \begin{equation}
     s_k(t) = \sum_{j=1}^{J_k} \mathbbm{1}_{[o_{kj},\,o_{kj}+d_{kj})}(t).
-    \label{eq:combined-boxcar-representation}
 \end{equation}
 
 The set of categories is the same for every run, but the order of the category blocks differs. As a result, the eight columns have the same interpretation across runs but unique values.
@@ -874,7 +859,6 @@ The task regressor for category $k$ \cite[Equation 1]{hrf-theory} is defined as
 
 \begin{equation}
     x_k(t) = \left(s_k \ast h\right)(t) + \eta(t)
-    \label{eq:boxcar-hrf-convolution}
 \end{equation}
 
 where
@@ -900,7 +884,6 @@ The selected function is the canonical HRF used in Statistical Parameter Mapping
 
 \begin{equation}
     h(t) = g(t;\alpha_1,\theta_1) - cg(t;\alpha_2,\theta_2),
-    \label{eq:hrf-function}
 \end{equation}
 
 where
@@ -922,7 +905,6 @@ For a fixed scaling convention, the HRF is normalized to have a maximum value of
 
 \begin{equation}
     \widetilde{h}(t) = \frac{h(t)}{\max_{\tau \geq 0} h(\tau)}.
-    \label{eq:normalized-hrf}
 \end{equation}
 
 This normalization fixes the scale of the HRF and affects the interpretation of the corresponding regression coefficients. It does not change the shape of the regressor.
@@ -972,7 +954,6 @@ Let $n$ denote the number of time points in a run. A DCT-II basis function \cite
 
 \begin{equation}
     d_k(i) = \cos \left(\frac{\pi k(2i+1)}{2n}\right), \qquad i=0,\ldots,n-1, \qquad k=0,\ldots,K.
-    \label{eq:dct-drift-basis}
 \end{equation}
 
 Note, that the constant component corresponding to $k=0$ produces an intercept column.
@@ -981,7 +962,6 @@ The number of DCT regressors should depend on the duration of the run and the se
 
 \begin{equation}
     K = \left\lfloor\frac{2T}{\tau_c}\right\rfloor.
-    \label{eq:number-dct-regressors}
 \end{equation}
 
 Only the low-frequency basis functions below the selected cutoff are included. The cutoff must be chosen carefully because including too many DCT regressors may remove slow task-related variation together with signal drift. For the analyzed dataset, each run lasts approximately 300 seconds, but the number of DCT regressors cannot be determined from the run duration alone. It also requires an explicit choice of the cutoff period $\tau_c$, which in this thesis is the default value provided by SPM \cite{spm-filter} $\tau_c = 128s$.
@@ -1044,7 +1024,6 @@ For voxel $v$, the cross-validated coefficient of determination is
 
 \begin{equation}
     R^2_{\mathrm{CV},v} = 1 - \frac{SS_{\text{resid}}}{SS_{\text{tot}}} = 1 - \frac{\sum_i\left(y_{iv} - \widehat{y}_{iv}\right)^2}{\sum_i\left(y_{iv} - \overline{y}_v \right)^2},
-    \label{eq:pca-noise-pool-r2}
 \end{equation}
 
 % NAPRAWIONE: poszukac przykladu kiedy R^2 jest ujemne
@@ -1058,7 +1037,6 @@ Voxels are included in the noise pool if they satisfy two conditions. First,
 
 \begin{equation}
     R^2_{\mathrm{CV},v} < 0.
-    \label{eq:pca-noise-pool-r2-condition}
 \end{equation}
 
 This reduces the risk of including task-related voxels.
@@ -1073,7 +1051,6 @@ where $T_r$ is the number of time points in run $r$. Let $P_{99}$ denote the 99t
 
 \begin{equation}
     \overline{y}_v > \frac{1}{2}P_{99}.
-    \label{eq:pca-noise-pool-intensity-condition}
 \end{equation}
 
 This reduces the risk of including voxels outside the brain. The same spatial set of noise-pool voxels is used for every run.
@@ -1094,14 +1071,12 @@ Before PCA is performed, the drift contribution is projected out, according to E
     \mathbf{H}_{P_r} = \mathbf{P}_r \left(\mathbf{P}_r^T\mathbf{P}_r\right)^{-1}\mathbf{P}_r^T, 
     \qquad 
     \widetilde{\mathbf{Y}}_{\mathrm{noise},r} = \left(\mathbf{I} - \mathbf{H}_{P_r}\right) \mathbf{Y}_{\mathrm{noise},r} = \mathbf{Z}_r.
-    \label{eq:pca-noise-pool-residualization}
 \end{equation}
 
 PCA is then applied separately to the prepared noise-pool matrix of each run. Using singular value decomposition,
 
 \begin{equation}
     \mathbf{Z}_r = \mathbf{U}_r \mathbf{L}_r \mathbf{A}_r^T.
-    \label{eq:pca-noise-pool-svd}
 \end{equation}
 
 The columns of $\mathbf{U}_r$ are orthogonal and provide the principal components. The first columns correspond to the directions associated with the largest amounts of variance~\cite{pca}. They are treated as candidate temporal nuisance regressors for run $r$. For a candidate number $k$, the PCA-derived nuisance-regressor matrix contains all columns up to, and including, column $k$.
@@ -1115,7 +1090,6 @@ For $k_{\max}$ number of considered principal components, each $k \in \left\{0,1
     \begin{bmatrix}
         \mathbf{X}_{\mathrm{task},r} & \mathbf{P}_r & \mathbf{U}_r^{(k)}
     \end{bmatrix}.
-    \label{eq:pca-extended-design-matrix}
 \end{equation}
 
 Leave-one-run-out cross-validation is then performed for each value of $k$. In each iteration:
@@ -1133,7 +1107,6 @@ For each value of $k$, the median performance is
 
 \begin{equation}
     m(k) = \operatorname{median}_{v\in\mathcal{V}_{\mathrm{eval}}} R^2_{\mathrm{CV},v}(k) \text{, where } \mathcal{V}_{\mathrm{eval}} = \left\{ v: \ R^2_{\mathrm{RV},v}(k) > 0 \right\}
-    \label{eq:pca-median-performance}
 \end{equation}
 
 The improvement relative to the model without PCA-derived nuisance regressors is then defined as
@@ -1356,7 +1329,6 @@ so that
 
 \begin{equation}
     \mathbf{S} = \mathbf{W}\mathbf{X}.
-    \label{eq:unmixing-matrix}
 \end{equation}
 
 For ICA, the scale of an independent component cannot be determined uniquely because a scaling factor can be transferred between a source and the corresponding column of the mixing matrix. Moreover, if the source variance is fixed, a sign ambiguity still remains. 
@@ -1431,7 +1403,6 @@ and $\boldsymbol{\eta}_i$ denotes additive Gaussian observational noise. Followi
     \boldsymbol{\eta}_i \sim \mathcal{N}\left(\mathbf{0}, \sigma^2\boldsymbol{\Sigma}_i\right), 
     \qquad \mathbb{E} \left[\boldsymbol{\eta}_i\right] = \mathbf{0},
     \qquad \operatorname{Cov} (\boldsymbol{\eta}_i) = \sigma^2\boldsymbol{\Sigma}_i
-    \label{eq:pica-noise-model}
 \end{equation}
 
 The covariance structure of the noise is unknown and must therefore be estimated from the data. Beckmann and Smith \cite{pica} propose constraining the temporal noise covariance to an autoregressive form and re-estimating it from model residuals, following the approach of Woolrich et al. \cite{woolrich-temporal-autocorrelation}. The estimation of an autoregressive temporal covariance model from residuals was introduced earlier in Section~\ref{section:ar-noise-model}.
@@ -1513,7 +1484,6 @@ Using the eigendecomposition of matrix $\mathbf{C}$
 
 \begin{equation}
     \mathbf{C} = \mathbf{U} \boldsymbol{\Lambda} \mathbf{U}^T,
-    \label{eq:eigendecomposition-covariance}
 \end{equation}
 
 and Equation~\eqref{eq:pica-observation-covariance}, the $\mathbf{C}$ can be described as
@@ -1535,7 +1505,6 @@ Therefore the eigenvalues of $\mathbf{C}$ are the eigenvalues of $\boldsymbol{\L
         \gamma_j+\sigma^2, & j=1,\ldots,q, \\
         \sigma^2, & j=q+1,\ldots,t.
     \end{cases}
-    \label{eq:pica-eigenvalues}
 \end{equation}
 
 Hence,
@@ -1557,7 +1526,6 @@ Unfortunately, the covariance matrix $\mathbf{C}$ is unknown. For centered data,
 
 \begin{equation}
     \widehat{\mathbf{C}} = \frac{1}{v} \mathbf{X}\mathbf{X}^T.
-    \label{eq:pica-sample-covariance}
 \end{equation}
 
 Even if the true noise is isotropic and Gaussian, the eigenvalues $\widehat{\lambda}_{q+1}, \cdots, \widehat{\lambda}_t$, later called \textit{minor} eigenvalues of the covariance matrix will not all be exactly equal to $\sigma^2$. The observed noise eigenspectrum instead fluctuates around the true value. Consequently, simply searching for an exact equality in the observed minor eigenspectrum is not sufficient for correct model order selection \cite{pica}.
@@ -1574,7 +1542,6 @@ provides the eigenspectrum $\widehat{\boldsymbol{\Lambda}} = \operatorname{diag}
 
 \begin{equation}
     \widehat{\sigma}_{\mathrm{ML}}^2(q) = \frac{1}{t-q} \sum_{j=q+1}^{t} \widehat{\lambda}_j.
-    \label{eq:pica-noise-variance}
 \end{equation}
 
 This maximum-likelihood estimator is then calculated for each candidate value $q$.
@@ -1602,7 +1569,6 @@ Following \cite{pica}, the predicted Gaussian-noise eigenspectrum is then used t
 
 \begin{equation}
     \widehat{q} = \arg\max_q p(\mathbf{X}\mid q).
-    \label{eq:pica-model-order}
 \end{equation}
 
 Once the model order $\widehat{q}$ has been selected, the first $\widehat{q}$ eigenvectors of $\widehat{\mathbf{C}}$, i.e. the first $\widehat{q}$ columns of $\widehat{\mathbf{U}}$ define the estimated PPCA source subspace. Let
@@ -1633,6 +1599,7 @@ Let the centered data in the reduced space be $\mathbf{X}_{\widehat{q}}$ and let
 
 \begin{equation}
     \mathbf{Z} = \mathbf{K}\mathbf{X}_{\widehat{q}},
+    \label{eq:ica-whitening}
 \end{equation}
 
 where 
@@ -1746,12 +1713,14 @@ The remaining ICA problem therefore consists of estimating the appropriate ortho
 
 \begin{equation}
     \mathbf{Q} := \widetilde{\mathbf{A}}^T.
+    \label{eq:q-orthogonal}
 \end{equation}
 
 The estimated independent components can then be written as
 
 \begin{equation}
     \widehat{\mathbf{S}} = \mathbf{Q}\mathbf{Z}.
+    \label{eq:estimated-ics}
 \end{equation}
 
 To obtain the estimation of independent components presented in \cite[Chapter 8.4]{ica}, consider a single whitened observation $\mathbf{z} \in \mathbb{R}^{\widehat{q}}$ for a fixed component direction $\mathbf{q} \in \mathbb{R}^{\widehat{q}}$, corresponding to one row of $\mathbf{Q}$. The corresponding scalar projection is 
@@ -1923,11 +1892,60 @@ so that
     \widehat{\mathbf{S}} = \mathbf{W}\mathbf{X}.
 \end{equation}
 
+The mixing matrix can be recovered by reversing the transformations applied before the estimation of the independent components. From the whitening transformation in Equation~\eqref{eq:ica-whitening},
+
+\begin{equation}
+    \mathbf{Z} = \mathbf{K}\mathbf{X}_{\widehat{q}},
+\end{equation}
+
+and therefore
+
+\begin{equation}
+    \mathbf{X}_{\widehat{q}} = \mathbf{K}^{-1}\mathbf{Z}.
+\end{equation}
+
+Furthermore, from the estimated ICs in Equation~\eqref{eq:estimated-ics}
+
+\begin{equation}
+    \widehat{\mathbf{S}} = \mathbf{Q}\mathbf{Z},
+\end{equation}
+
+and since $\mathbf{Q}$ was defined in Equation~\eqref{eq:q-orthogonal} as $\mathbf{Q} = \widehat{\mathbf{A}}^T$, where $\widehat{\mathbf{A}}$ is orthogonal, meaning $\mathbf{Q}$ is also orthogonal, its inverse is equal to its transpose. Hence,
+
+\begin{equation}
+    \mathbf{Z} = \mathbf{Q}^{-1}\widehat{\mathbf{S}} = \mathbf{Q}^T\widehat{\mathbf{S}}.
+\end{equation}
+
+Combining the two transformations gives 
+
+\begin{equation}
+    \mathbf{X}_{\widehat{q}} = \mathbf{K}^{-1}\mathbf{Q}^T\widehat{\mathbf{S}}.
+\end{equation}
+
+The representation in the original temporal space is obtained by mapping the reduced data back through the eigenvectors in Equation~\eqref{eq:pica-dimensionality-reduction}:
+
+\begin{equation}
+    \widehat{\mathbf{X}}_{\mathrm{signal}} = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{X}_{\widehat{q}}
+    = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{K}^{-1}\mathbf{Q}^T\widehat{\mathbf{S}}.
+\end{equation}
+
+Comparing this expression with the estimated ICA signal model
+
+\begin{equation}
+    \widehat{\mathbf{X}}_{\mathrm{signal}} = \widehat{\mathbf{A}}\widehat{\mathbf{S}},
+\end{equation}
+
+gives the estimated mixing matrix
+
+\begin{equation}
+    \widehat{\mathbf{A}} = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{K}^{-1}\mathbf{Q}^T.
+\end{equation}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
+% \newpage
 
-\chapter{Application of selected statistical models to the fMRI data}
+% \chapter{Application of selected statistical models to the fMRI data}
 
 
 
@@ -1938,9 +1956,9 @@ so that
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
+% \newpage
 
-\chapter{Summary}
+% \chapter{Summary}
 
 
 
