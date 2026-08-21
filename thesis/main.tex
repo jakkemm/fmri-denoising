@@ -1579,6 +1579,7 @@ Let the centered data in the reduced space be $\mathbf{X}_{\widehat{q}}$ and let
 
 \begin{equation}
     \mathbf{Z} = \mathbf{K}\mathbf{X}_{\widehat{q}},
+    \label{eq:ica-whitening}
 \end{equation}
 
 where 
@@ -1820,12 +1821,14 @@ The remaining ICA problem therefore consists of estimating the appropriate ortho
 
 \begin{equation}
     \mathbf{Q} := \widetilde{\mathbf{A}}^T.
+    \label{eq:q-orthogonal}
 \end{equation}
 
 The estimated independent components can then be written as
 
 \begin{equation}
     \widehat{\mathbf{S}} = \mathbf{Q}\mathbf{Z}.
+    \label{eq:estimated-ics}
 \end{equation}
 
 To obtain the estimation of independent components presented in \cite[Chapter 8.4]{ica}, consider a single whitened observation $\mathbf{z} \in \mathbb{R}^{\widehat{q}}$ for a fixed component direction $\mathbf{q} \in \mathbb{R}^{\widehat{q}}$, corresponding to one row of $\mathbf{Q}$. The corresponding scalar projection is 
@@ -2045,14 +2048,6 @@ gives the estimated mixing matrix
 \begin{equation}
     \widehat{\mathbf{A}} = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{K}^{-1}\mathbf{Q}^T.
 \end{equation}
-
-
-
-
-
-
-
-
 
 
 
