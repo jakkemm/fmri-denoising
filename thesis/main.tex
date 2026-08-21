@@ -1228,7 +1228,7 @@ In \eqref{eq:basic-ica-dimensions}, $n$ is the number of observed mixtures, whil
 In the cocktail-party example these matrices have the following representation:
 
 \begin{equation}
-    \mathbf{X} = \begin{bmatrix}x_1(t) & x_2(t) & x_3(t)\end{bmatrix}
+    \mathbf{X} = \begin{bmatrix}x_1(t) \\ x_2(t) \\ x_3(t)\end{bmatrix}
     , \qquad
     \mathbf{A} = 
     \begin{bmatrix}
@@ -1237,7 +1237,7 @@ In the cocktail-party example these matrices have the following representation:
     a_{31} & a_{32} & a_{33} \\ 
     \end{bmatrix}
     , \qquad
-    \mathbf{S} = \begin{bmatrix}s_1(t) & s_2(t) & s_3(t)\end{bmatrix}
+    \mathbf{S} = \begin{bmatrix}s_1(t) \\ s_2(t) \\ s_3(t)\end{bmatrix}
 \end{equation}
 
 \section{Assumptions of the ICA model}
@@ -1272,12 +1272,10 @@ Their joint density is
     p_{\mathbf{s}}(\mathbf{s}) = \frac{1}{2\pi} \exp \left(-\frac{\|\mathbf{s}\|_2^2}{2}\right).
 \end{equation}
 
-Suppose that the mixing matrix $\mathbf{A}$ is orthogonal, so that $\mathbf{A}^{-1} = \mathbf{A}^T$. For $\mathbf{x} = \mathbf{A}\mathbf{s}$,
-
-the density of $\mathbf{s}$ is
+Suppose that the mixing matrix $\mathbf{A}$ is orthogonal, so that $\mathbf{A}^{-1} = \mathbf{A}^T$. For $\mathbf{x} = \mathbf{A}\mathbf{s}$, the density of $\mathbf{x}$ is
 
 \begin{equation}
-    p_{\mathbf{s}}(\mathbf{s}) = p_{\mathbf{s}} \left(\mathbf{A}^{-1}\mathbf{x}\right) \left|\det\left(\mathbf{A}^{-1}\right)\right|.
+    p_{\mathbf{x}}(\mathbf{x}) = p_{\mathbf{s}} \left(\mathbf{A}^{-1}\mathbf{x}\right) \left|\det\left(\mathbf{A}^{-1}\right)\right|.
 \end{equation}
 
 Since an orthogonal transformation preserves the Euclidean norm,
@@ -1506,6 +1504,7 @@ Unfortunately, the covariance matrix $\mathbf{C}$ is unknown. For centered data,
 
 \begin{equation}
     \widehat{\mathbf{C}} = \frac{1}{v} \mathbf{X}\mathbf{X}^T.
+    \label{eq:pica-covariance-matrix}
 \end{equation}
 
 Even if the true noise is isotropic and Gaussian, the eigenvalues $\widehat{\lambda}_{q+1}, \cdots, \widehat{\lambda}_t$, later called \textit{minor} eigenvalues of the covariance matrix will not all be exactly equal to $\sigma^2$. The observed noise eigenspectrum instead fluctuates around the true value. Consequently, simply searching for an exact equality in the observed minor eigenspectrum is not sufficient for correct model order selection \cite{pica}.
@@ -1516,6 +1515,7 @@ Performing the eigendecomposition of the sample covariance matrix
 
 \begin{equation}
     \widehat{\mathbf{C}} = \widehat{\mathbf{U}} \widehat{\boldsymbol{\Lambda}} \widehat{\mathbf{U}}^T,
+    \label{eq:eig-covariance}
 \end{equation}
 
 provides the eigenspectrum $\widehat{\boldsymbol{\Lambda}} = \operatorname{diag}\left(\widehat{\lambda}_1, \ldots, \widehat{\lambda}_t\right)$ of $\widehat{\mathbf{C}}$. For a fixed candidate value $q$, the maximum-likelihood estimate of the isotropic noise variance is obtained by averaging the eigenvalues associated with the minor subspace spanned by $t - q$ eigenvectors \cite{pica}:
@@ -1531,19 +1531,19 @@ Under the Gaussian noise model, the sample covariance matrix follows a Wishart d
 Let $\mathbf{G}$ be a $p \times n$ matrix whose columns are independent realizations of $p$-variate normal distribution with zero mean $\mathbf{g}_i \sim \mathcal{N}(\mathbf{0}, \mathbf{V})$. The probability distribution of the matrix $\mathbf{G}\mathbf{G}^T$ has a Wishart distribution $W_p(\mathbf{V}, n)$ with scale matrix $\mathbf{V}$ and $n$ degrees of freedom. In the high-dimensional limit, where both $p$ and $n$ increase while their ratio
 
 \begin{equation}
-    \gamma = \frac{p}{n}
+    c = \frac{p}{n}
 \end{equation}
 
 remains fixed, the empirical distribution of the eigenvalues of the corresponding sample covariance matrix converges to the Marchenko-Pastur distribution \cite{pica}. Its density is
 
 \begin{equation}
-    g_\gamma(\nu) = \frac{\sqrt{(\nu - b_-)(b_+ - \nu)}}{2\pi\gamma\nu},
+    g_c(\nu) = \frac{\sqrt{(\nu - b_-)(b_+ - \nu)}}{2\pi c\nu},
     \qquad
-    b_\pm = (1 \pm \sqrt{\gamma})^2,
+    b_\pm = (1 \pm \sqrt{c})^2,
     \qquad \nu \in [b_-, b_+].
 \end{equation}
 
-The cumulative distribution function corresponding to $g_\gamma$ can then be used to obtain the expected quantiles of the noise eigenspectrum. These quantiles describe the eigenvalue spread that is expected purely as a consequence of finite sampling.
+The cumulative distribution function corresponding to $g_c$ can then be used to obtain the expected quantiles of the noise eigenspectrum. These quantiles describe the eigenvalue spread that is expected purely as a consequence of finite sampling.
 
 Following \cite{pica}, the predicted Gaussian-noise eigenspectrum is then used to adjust the observed eigenspectrum before evaluating the approximate Bayesian model evidence described in \cite[Equation 10]{pica}. The model evidence is calculated for every candidate model order $q$ and the selected model order is
 
@@ -1571,7 +1571,7 @@ The extension of classical ICA to probabilistic ICA with the implementation of t
 
 \section{Whitening}
 
-After dimensionality reduction, ICA is performed within the estimated $\widehat{q}$-dimensional source subspace. Before estimating the independent components, the reduced data are whitened. This is a second and conceptually different transformation from the temporal prewhitening introduced in the previous section, since temporal prewhitening acts along the time dimension and is used to account for autocorrelation in the observational noise. 
+After dimensionality reduction, ICA is performed within the estimated $\widehat{q}$-dimensional source subspace. Before estimating the independent components, the reduced data are whitened. This is a second and conceptually different transformation from the temporal prewhitening introduced in the previous section, since temporal prewhitening acts along the time dimension and is used to account for autocorrelation in the observational noise. Conversely, the whitening conducted in this section will be guided by the same principles, as in Section~\ref{section:gls-prewhitening}.
 
 The whitening presented in this section acts upon the reduced ICA space and removes correlations between the mixture variables.
 
@@ -1593,6 +1593,7 @@ such that the sample covariance matrix of the whitened observations is
 
 \begin{equation}
     \operatorname{Cov}(\mathbf{Z}) = \frac{1}{v}\mathbf{Z}\mathbf{Z}^T = \mathbf{I}_{\widehat{q}}.
+    \label{eq:whitened-covariance-pica}
 \end{equation}
 
 Suppose that $\mathbf{D}$ is an arbitrary orthogonal matrix and
@@ -1632,7 +1633,13 @@ as was shown in equations \eqref{eq:pica-model}, \eqref{eq:pica-dimensions}. Pro
 \begin{equation}
     \mathbf{X}_{\widehat{q}}
     = \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{X}
-    = \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{A}\mathbf{S}.
+    = \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{A}\mathbf{S} + \widehat{\mathbf{U}}_{\widehat{q}}^T\mathbf{E},
+\end{equation}
+
+while the retained signal representation using the classical noise-free ICA notation within the selected subspace is 
+
+\begin{equation}
+    \mathbf{X}_{\widehat{q}, \mathrm{signal}} = \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{A} \mathbf{S}.
 \end{equation}
 
 Define the mixing matrix in the reduced space as
@@ -1644,7 +1651,8 @@ Define the mixing matrix in the reduced space as
 where $\mathbf{A}_{\widehat{q}} \in \mathbb{R}^{\widehat{q} \times \widehat{q}}$. The reduced model can therefore be written as
 
 \begin{equation}
-    \mathbf{X}_{\widehat{q}} = \mathbf{A}_{\widehat{q}}\mathbf{S}.
+    \mathbf{X}_{\widehat{q}, \mathrm{signal}} = \mathbf{A}_{\widehat{q}}\mathbf{S}.
+    \label{eq:noise-free-ica}
 \end{equation}
 
 Assume that the source components are centered and scaled to unit variance, so that
@@ -1653,19 +1661,19 @@ Assume that the source components are centered and scaled to unit variance, so t
     \operatorname{Cov}(\mathbf{S}) = \frac{1}{v}\mathbf{S}\mathbf{S}^T = \mathbf{I}_{\widehat{q}}.
 \end{equation}
 
-The whitened data are
+Considering the corresponding noise-free ICA representation within the retained subspace, represented in Equation~\ref{eq:noise-free-ica}, its whitened signal representation is:
 
 \begin{equation}
-    \mathbf{Z} = \mathbf{K}\mathbf{X}_{\widehat{q}} = \mathbf{K}\mathbf{A}_{\widehat{q}}\mathbf{S} =: \widetilde{\mathbf{A}}\mathbf{S}
+    \mathbf{Z}_{\mathrm{signal}} = \mathbf{K}\mathbf{X}_{\widehat{q}, \mathrm{signal}} = \mathbf{K}\mathbf{A}_{\widehat{q}}\mathbf{S} =: \widetilde{\mathbf{A}}\mathbf{S}
     \label{eq:whitened-data}
 \end{equation}
 
-where $\widetilde{\mathbf{A}} \in \mathbb{R}^{\widehat{q} \times t}$. For the square whitened model,
+where $\widetilde{\mathbf{A}} \in \mathbb{R}^{\widehat{q} \times \widehat{q}}$. For the square whitened model,
 
 \begin{equation}
     \begin{aligned}
-        \operatorname{Cov}\left(\mathbf{Z}\right) = \mathbf{I}_{\widehat{q}}
-        &= \frac{1}{v} \mathbf{Z}\mathbf{Z}^T \\
+        \operatorname{Cov}\left(\mathbf{Z_{\mathrm{signal}}}\right) = \mathbf{I}_{\widehat{q}}
+        &= \frac{1}{v} \mathbf{Z_{\mathrm{signal}}}\mathbf{Z_{\mathrm{signal}}}^T \\
         &= \widetilde{\mathbf{A}} \left(\frac{1}{v} \mathbf{S}\mathbf{S}^T \right) \widetilde{\mathbf{A}}^T \\
         &= \widetilde{\mathbf{A}} \mathbf{I}_{\widehat{q}} \widetilde{\mathbf{A}}^T \\
         &= \widetilde{\mathbf{A}} \widetilde{\mathbf{A}}^T. 
@@ -1673,6 +1681,126 @@ where $\widetilde{\mathbf{A}} \in \mathbb{R}^{\widehat{q} \times t}$. For the sq
 \end{equation}
 
 Thus, $\widetilde{\mathbf{A}}$ is orthogonal. Instead of estimating an arbitrary mixing matrix, ICA can therefore search over orthogonal transformations of the whitened data.
+
+To estimate the whitening matrix $\mathbf{K}$ the eigenvalue decomposition of the covariance matrix is used, similarly to the whitening done in Section~\ref{section:gls-prewhitening}. Let 
+
+\begin{equation}
+    \widehat{\mathbf{C}}_{\widehat{q}} = \operatorname{Cov}\left(\mathbf{X}_{\widehat{q}}\right)
+\end{equation}
+
+be the covariance matrix of the retained signal representation within the selected subspace. This covariance matrix can be simplified, following the Equation~\eqref{eq:pica-covariance-matrix} and the eigendecomposition of the sample covariance matrix presented in Equation~\eqref{eq:eig-covariance}
+
+\begin{equation}
+    \begin{aligned}
+        \widehat{\mathbf{C}}_{\widehat{q}}
+        &= \frac{1}{v} \mathbf{X}_{\widehat{q}} \mathbf{X}_{\widehat{q}}^T \\
+        &= \frac{1}{v} \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{X} \mathbf{X}^T \widehat{\mathbf{U}}_{\widehat{q}} \\
+        &= \widehat{\mathbf{U}}_{\widehat{q}}^T \widehat{\mathbf{C}} \widehat{\mathbf{U}}_{\widehat{q}} \\
+        &= \widehat{\mathbf{U}}_{\widehat{q}}^T \widehat{\mathbf{U}} \widehat{\boldsymbol{\Lambda}} \widehat{\mathbf{U}}^T \widehat{\mathbf{U}}_{\widehat{q}}
+    \end{aligned}
+    \label{eq:subspace-covariance-matrix}
+\end{equation}
+
+We can present the orthogonal matrix $\widehat{\mathbf{U}}$ as 
+
+\begin{equation}
+    \widehat{\mathbf{U}} = \begin{bmatrix}\widehat{\mathbf{U}}_{\widehat{q}} & \widehat{\mathbf{U}}_\perp \end{bmatrix},
+\end{equation}
+
+where
+
+\begin{equation}
+    \widehat{\mathbf{U}} \in \mathbb{R}^{t \times t}, \qquad
+    \widehat{\mathbf{U}}_{\widehat{q}} \in \mathbb{R}^{t \times \widehat{q}}, \qquad
+    \widehat{\mathbf{U}}_\perp \in \mathbb{R}^{t \times \left(t - \widehat{q}\right)}.
+\end{equation}
+
+Because all columns of $\widehat{\mathbf{U}}$ are orthonormal
+
+\begin{equation}
+    \widehat{\mathbf{U}}_{\widehat{q}}^T \widehat{\mathbf{U}}_{\widehat{q}} = \mathbf{I}_{\widehat{q}},
+\end{equation}
+
+and 
+
+\begin{equation}
+    \widehat{\mathbf{U}}_{\widehat{q}}^T \widehat{\mathbf{U}}_\perp = \mathbf{0}.
+\end{equation}
+
+Therefore
+
+\begin{equation}
+    \widehat{\mathbf{U}}_{\widehat{q}}^T \widehat{\mathbf{U}} 
+    = \widehat{\mathbf{U}}_{\widehat{q}}^T \begin{bmatrix}\widehat{\mathbf{U}}_{\widehat{q}} & \widehat{\mathbf{U}}_\perp \end{bmatrix}
+    = \begin{bmatrix}\widehat{\mathbf{U}}_{\widehat{q}}^T\widehat{\mathbf{U}}_{\widehat{q}} & \widehat{\mathbf{U}}_{\widehat{q}}^T\widehat{\mathbf{U}}_\perp \end{bmatrix}
+    = \begin{bmatrix} \mathbf{I}_{\widehat{q}} & \mathbf{0} \end{bmatrix},
+\end{equation}
+
+and analogously
+
+\begin{equation}
+    \widehat{\mathbf{U}}^T \widehat{\mathbf{U}}_{\widehat{q}}
+    = \begin{bmatrix} \mathbf{I}_{\widehat{q}} \\ \mathbf{0} \end{bmatrix}.
+\end{equation}
+
+Further partitioning the eigenvalue matrix $\widehat{\boldsymbol{\Lambda}}$
+
+\begin{equation}
+    \widehat{\boldsymbol{\Lambda}} = 
+    \begin{bmatrix}
+        \widehat{\boldsymbol{\Lambda}}_{\widehat{q}} & \mathbf{0} \\
+        \mathbf{0} & \widehat{\boldsymbol{\Lambda}}_\perp     
+    \end{bmatrix}
+\end{equation}
+
+The derivation of the covariance matrix in \eqref{eq:subspace-covariance-matrix} continues 
+
+\begin{equation}
+    \begin{aligned}
+        \widehat{\mathbf{C}}_{\widehat{q}}
+        &= \widehat{\mathbf{U}}_{\widehat{q}}^T \widehat{\mathbf{U}} \widehat{\boldsymbol{\Lambda}} \widehat{\mathbf{U}}^T \widehat{\mathbf{U}}_{\widehat{q}} \\
+        &= 
+            \begin{bmatrix} 
+                \mathbf{I}_{\widehat{q}} & \mathbf{0} 
+            \end{bmatrix} 
+            \begin{bmatrix}
+                \widehat{\boldsymbol{\Lambda}}_{\widehat{q}} & \mathbf{0} \\
+                \mathbf{0} & \widehat{\boldsymbol{\Lambda}}_\perp     
+            \end{bmatrix}
+            \begin{bmatrix} 
+                \mathbf{I}_{\widehat{q}} \\ \mathbf{0} 
+            \end{bmatrix} \\
+        &= \widehat{\boldsymbol{\Lambda}}_{\widehat{q}}.
+    \end{aligned}
+\end{equation}
+
+Following the whitening presented in \cite[Equation 7.20]{ica} the whitening matrix is therefore 
+
+\begin{equation}
+    \mathbf{K} = \widehat{\boldsymbol{\Lambda}}_{\widehat{q}}^{-1/2}.
+\end{equation}
+
+The whitened data in Equation~\eqref{eq:ica-whitening} are therefore
+
+\begin{equation}
+    \mathbf{Z} =  \mathbf{K}\mathbf{X}_{\widehat{q}}
+    = \widehat{\boldsymbol{\Lambda}}_{\widehat{q}}^{-1/2} \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{X}.
+\end{equation}
+
+The resulting covariance is therefore
+
+\begin{equation}
+    \begin{aligned}
+        \operatorname{Cov}(\mathbf{Z}) 
+        &= \mathbf{K} \operatorname{Cov}(\mathbf{X_{\widehat{q}}}) \mathbf{K}^T \\
+        &= \widehat{\boldsymbol{\Lambda}}_{\widehat{q}}^{-1/2} \widehat{\boldsymbol{\Lambda}}_{\widehat{q}} \left(\widehat{\boldsymbol{\Lambda}}_{\widehat{q}}^{-1/2} \right)^T \\
+        &= \widehat{\boldsymbol{\Lambda}}_{\widehat{q}}^{-1/2} \widehat{\boldsymbol{\Lambda}}_{\widehat{q}} \widehat{\boldsymbol{\Lambda}}_{\widehat{q}}^{-1/2} \\
+        &= \mathbf{I}_{\widehat{q}},
+    \end{aligned}
+\end{equation}
+
+proving the assertion in Equation~\eqref{eq:whitened-covariance-pica}.
+
 
 \section{Estimation of independent components with FastICA}
 
@@ -1857,7 +1985,7 @@ Finally, after estimating the independent components in the whitened reduced spa
     \widehat{\mathbf{S}} = \mathbf{Q}\mathbf{Z} = \mathbf{Q}\mathbf{K}\mathbf{X}_{\widehat{q}} = \mathbf{Q}\mathbf{K}\widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{X}.
 \end{equation}
 
-Therefore the full unmixing matrix mapping the original observations to the estimated independent components is
+Therefore the full unmixing matrix mapping the prewhitened signal observations to the estimated independent components is
 
 \begin{equation}
     \mathbf{W} = \mathbf{Q}\mathbf{K}\widehat{\mathbf{U}}_{\widehat{q}}^T,
@@ -1869,11 +1997,54 @@ so that
     \widehat{\mathbf{S}} = \mathbf{W}\mathbf{X}.
 \end{equation}
 
+The mixing matrix can be recovered by reversing the transformations applied before the estimation of the independent components. From the whitening transformation in Equation~\eqref{eq:ica-whitening},
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
+\begin{equation}
+    \mathbf{Z} = \mathbf{K}\mathbf{X}_{\widehat{q}},
+\end{equation}
 
-\chapter{Application of selected statistical models to the fMRI data}
+and therefore
+
+\begin{equation}
+    \mathbf{X}_{\widehat{q}} = \mathbf{K}^{-1}\mathbf{Z}.
+\end{equation}
+
+Furthermore, from the estimated ICs in Equation~\eqref{eq:estimated-ics}
+
+\begin{equation}
+    \widehat{\mathbf{S}} = \mathbf{Q}\mathbf{Z},
+\end{equation}
+
+and since $\mathbf{Q}$ was defined in Equation~\eqref{eq:q-orthogonal} as $\mathbf{Q} = \widetilde{\mathbf{A}}^T$, where $\widetilde{\mathbf{A}}$ is orthogonal, meaning $\mathbf{Q}$ is also orthogonal, its inverse is equal to its transpose. Hence,
+
+\begin{equation}
+    \mathbf{Z} = \mathbf{Q}^{-1}\widehat{\mathbf{S}} = \mathbf{Q}^T\widehat{\mathbf{S}}.
+\end{equation}
+
+Combining the two transformations gives 
+
+\begin{equation}
+    \mathbf{X}_{\widehat{q}} = \mathbf{K}^{-1}\mathbf{Q}^T\widehat{\mathbf{S}}.
+\end{equation}
+
+The representation in the original temporal space is obtained by mapping the reduced data back through the eigenvectors in Equation~\eqref{eq:pica-dimensionality-reduction}:
+
+\begin{equation}
+    \widehat{\mathbf{X}}_{\mathrm{signal}} = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{X}_{\widehat{q}, \mathrm{signal}}
+    = \widehat{\mathbf{U}}_{\widehat{q}, \mathrm{signal}}\mathbf{K}^{-1}\mathbf{Q}^T\widehat{\mathbf{S}}.
+\end{equation}
+
+Comparing this expression with the estimated ICA signal model
+
+\begin{equation}
+    \widehat{\mathbf{X}}_{\mathrm{signal}} = \widehat{\mathbf{A}}\widehat{\mathbf{S}},
+\end{equation}
+
+gives the estimated mixing matrix
+
+\begin{equation}
+    \widehat{\mathbf{A}} = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{K}^{-1}\mathbf{Q}^T.
+\end{equation}
 
 
 
@@ -1882,11 +2053,6 @@ so that
 
 
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-
-\chapter{Summary}
 
 
 
