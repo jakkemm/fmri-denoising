@@ -1591,7 +1591,7 @@ The extension of classical ICA to probabilistic ICA with the implementation of t
 
 \section{Whitening}
 
-After dimensionality reduction, ICA is performed within the estimated $\widehat{q}$-dimensional source subspace. Before estimating the independent components, the reduced data are whitened. This is a second and conceptually different transformation from the temporal prewhitening introduced in the previous section, since temporal prewhitening acts along the time dimension and is used to account for autocorrelation in the observational noise. Conversely, the whitening conducted in this section will be guided by the same principles, as in Chapter~\ref{section:gls-prewhitening}.
+After dimensionality reduction, ICA is performed within the estimated $\widehat{q}$-dimensional source subspace. Before estimating the independent components, the reduced data are whitened. This is a second and conceptually different transformation from the temporal prewhitening introduced in the previous section, since temporal prewhitening acts along the time dimension and is used to account for autocorrelation in the observational noise. Conversely, the whitening conducted in this section will be guided by the same principles, as in Section~\ref{section:gls-prewhitening}.
 
 The whitening presented in this section acts upon the reduced ICA space and removes correlations between the mixture variables.
 
@@ -1703,7 +1703,7 @@ where $\widetilde{\mathbf{A}} \in \mathbb{R}^{\widehat{q} \times \widehat{q}}$. 
 
 Thus, $\widetilde{\mathbf{A}}$ is orthogonal. Instead of estimating an arbitrary mixing matrix, ICA can therefore search over orthogonal transformations of the whitened data.
 
-To estimate the whitening matrix $\mathbf{K}$ the eigenvalue decomposition of the covariance matrix is used, similarly to the whitening done in Chapter~\ref{section:gls-prewhitening}. Let 
+To estimate the whitening matrix $\mathbf{K}$ the eigenvalue decomposition of the covariance matrix is used, similarly to the whitening done in Section~\ref{section:gls-prewhitening}. Let 
 
 \begin{equation}
     \widehat{\mathbf{C}}_{\widehat{q}} = \operatorname{Cov}\left(\mathbf{X}_{\widehat{q}}\right)
@@ -1733,7 +1733,7 @@ where
 \begin{equation}
     \widehat{\mathbf{U}} \in \mathbb{R}^{t \times t}, \qquad
     \widehat{\mathbf{U}}_{\widehat{q}} \in \mathbb{R}^{t \times \widehat{q}}, \qquad
-    \widehat{\mathbf{U}}_\perp \in \mathbb{R}^{t \times (t - \widehat{q})}.
+    \widehat{\mathbf{U}}_\perp \in \mathbb{R}^{t \times \left(t - \widehat{q}\right)}.
 \end{equation}
 
 Because all columns of $\widehat{\mathbf{U}}$ are orthonormal
