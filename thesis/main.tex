@@ -1570,9 +1570,22 @@ contain these eigenvectors. The observed data can then be projected onto this su
     \label{eq:pica-dimensionality-reduction}
 \end{equation}
 
-The dimensionality has been reduced from the original $t$ temporal mixtures to $\widehat{q}$ mixtures. The reduced representation contains the estimated structured source subspace, while the remaining directions are treated as Gaussian observational noise.
+The dimensionality has been reduced from the original $t$ temporal mixtures to $\widehat{q}$ mixtures. The reduced representation contains the estimated structured source subspace, while the remaining directions are treated as Gaussian observational noise. The reduced dimensionality model with the extension of noise, introduced in Equation~\eqref{eq:pica-model}, can therefore be expressed as
 
-The extension of classical ICA to probabilistic ICA with the implementation of the noise term is used for establishing the need for dimensionality reduction, separating signal subspace from noise subspace and the subsequent model order selection. The derivation of the independent components thus follows the classical ICA model after the reduction, which is described in the next sections.
+\begin{equation}
+    \mathbf{X}_{\widehat{q}} 
+    = \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{X}
+    = \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{A}\mathbf{S} + \widehat{\mathbf{U}}_{\widehat{q}}^T\mathbf{E}.
+\end{equation}
+
+Probabilistic ICA is used here to motivate the noisy generative model and to estimate the dimensionality of the structured source subspace. After selecting $\widehat{q}$, the subsequent source estimation is performed using the classical noise-free ICA approximation within this retained subspace
+
+\begin{equation}
+    \mathbf{X}_{\widehat{q}} \approx \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{A}\mathbf{S}.
+    \label{eq:noise-free-ica-approx}
+\end{equation}
+
+Thus, residual observational noise may still be present in the retained subspace, but it is no longer modeled explicitly in the subsequent FastICA estimation.
 
 \section{Whitening}
 
@@ -1620,35 +1633,7 @@ Then
 
 Therefore, infinitely many possible rotations $\mathbf{D}$ preserve the whitened covariance structure. However, whitening alone cannot determine which of these rotations produces statistically independent components.
 
-It is nevertheless useful, because it reduces the number of parameters that must be estimated. Recall that before dimensionality reduction, the signal part of the ICA model is represented as 
-
-\begin{equation}
-    \mathbf{X} = \mathbf{A}\mathbf{S},
-\end{equation}
-
-where 
-
-\begin{equation}
-    \mathbf{X} \in \mathbb{R}^{t \times v}, \qquad 
-    \mathbf{A} \in \mathbb{R}^{t \times \widehat{q}}, \qquad
-    \mathbf{S} \in \mathbb{R}^{\widehat{q} \times v},
-\end{equation}
-
-as was shown in equations \eqref{eq:pica-model}, \eqref{eq:pica-dimensions}. Projecting the observations onto the estimated $\widehat{q}$-dimensional source subspace gives
-
-\begin{equation}
-    \mathbf{X}_{\widehat{q}}
-    = \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{X}
-    = \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{A}\mathbf{S} + \widehat{\mathbf{U}}_{\widehat{q}}^T\mathbf{E},
-\end{equation}
-
-while the retained signal representation using the classical noise-free ICA notation within the selected subspace is 
-
-\begin{equation}
-    \mathbf{X}_{\widehat{q}, \mathrm{signal}} = \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{A} \mathbf{S}.
-\end{equation}
-
-Define the mixing matrix in the reduced space as
+Under the classical noise-free ICA approximation adopted after model-order selection in Equation~\eqref{eq:noise-free-ica-approx}, define the mixing matrix in the reduced space as
 
 \begin{equation}
     \mathbf{A}_{\widehat{q}} := \widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{A},
@@ -1657,7 +1642,7 @@ Define the mixing matrix in the reduced space as
 where $\mathbf{A}_{\widehat{q}} \in \mathbb{R}^{\widehat{q} \times \widehat{q}}$. The reduced model can therefore be written as
 
 \begin{equation}
-    \mathbf{X}_{\widehat{q}, \mathrm{signal}} = \mathbf{A}_{\widehat{q}}\mathbf{S}.
+    \mathbf{X}_{\widehat{q}} = \mathbf{A}_{\widehat{q}}\mathbf{S}.
     \label{eq:noise-free-ica}
 \end{equation}
 
@@ -1667,10 +1652,10 @@ Assume that the source components are centered and scaled to unit variance, so t
     \operatorname{Cov}(\mathbf{S}) = \frac{1}{v}\mathbf{S}\mathbf{S}^T = \mathbf{I}_{\widehat{q}}.
 \end{equation}
 
-Considering the corresponding noise-free ICA representation within the retained subspace, represented in Equation~\ref{eq:noise-free-ica}, its whitened signal representation is:
+Considering the corresponding noise-free ICA representation within the retained subspace, represented in Equation~\ref{eq:noise-free-ica}, its whitened representation is:
 
 \begin{equation}
-    \mathbf{Z}_{\mathrm{signal}} = \mathbf{K}\mathbf{X}_{\widehat{q}, \mathrm{signal}} = \mathbf{K}\mathbf{A}_{\widehat{q}}\mathbf{S} =: \widetilde{\mathbf{A}}\mathbf{S}
+    \mathbf{Z} = \mathbf{K}\mathbf{X}_{\widehat{q}} = \mathbf{K}\mathbf{A}_{\widehat{q}}\mathbf{S} =: \widetilde{\mathbf{A}}\mathbf{S}
     \label{eq:whitened-data}
 \end{equation}
 
@@ -1678,8 +1663,8 @@ where $\widetilde{\mathbf{A}} \in \mathbb{R}^{\widehat{q} \times \widehat{q}}$. 
 
 \begin{equation}
     \begin{aligned}
-        \operatorname{Cov}\left(\mathbf{Z_{\mathrm{signal}}}\right) = \mathbf{I}_{\widehat{q}}
-        &= \frac{1}{v} \mathbf{Z_{\mathrm{signal}}}\mathbf{Z_{\mathrm{signal}}}^T \\
+        \operatorname{Cov}\left(\mathbf{Z}\right) = \mathbf{I}_{\widehat{q}}
+        &= \frac{1}{v} \mathbf{Z}\mathbf{Z}^T \\
         &= \widetilde{\mathbf{A}} \left(\frac{1}{v} \mathbf{S}\mathbf{S}^T \right) \widetilde{\mathbf{A}}^T \\
         &= \widetilde{\mathbf{A}} \mathbf{I}_{\widehat{q}} \widetilde{\mathbf{A}}^T \\
         &= \widetilde{\mathbf{A}} \widetilde{\mathbf{A}}^T. 
@@ -1694,7 +1679,7 @@ To estimate the whitening matrix $\mathbf{K}$ the eigenvalue decomposition of th
     \widehat{\mathbf{C}}_{\widehat{q}} = \operatorname{Cov}\left(\mathbf{X}_{\widehat{q}}\right)
 \end{equation}
 
-be the covariance matrix of the retained signal representation within the selected subspace. This covariance matrix can be simplified, following the Equation~\eqref{eq:pica-covariance-matrix} and the eigendecomposition of the sample covariance matrix presented in Equation~\eqref{eq:eig-covariance}
+be the covariance matrix of the retained representation within the selected subspace. This covariance matrix can be simplified, following the Equation~\eqref{eq:pica-covariance-matrix} and the eigendecomposition of the sample covariance matrix presented in Equation~\eqref{eq:eig-covariance}
 
 \begin{equation}
     \begin{aligned}
@@ -1987,13 +1972,13 @@ The full algorithm in matrix notation, follows the FastICA algorithm presented i
 \end{algorithmic}
 \end{algorithm}
 
-Finally, after estimating the independent components in the whitened reduced space, the full unmixing matrix with respect to the original observation space can be obtained by combining the dimensionality-reduction, whitening, and ICA transformations. Using Equation~\eqref{eq:whitened-data} together with the projection defined in Equation~\eqref{eq:pica-dimensionality-reduction},
+Finally, after estimating the independent components in the whitened reduced space, the full unmixing matrix with respect to the temporally prewhitened observation space can be obtained by combining the dimensionality-reduction, whitening, and ICA transformations. Using Equation~\eqref{eq:whitened-data} together with the projection defined in Equation~\eqref{eq:pica-dimensionality-reduction},
 
 \begin{equation}
     \widehat{\mathbf{S}} = \mathbf{Q}\mathbf{Z} = \mathbf{Q}\mathbf{K}\mathbf{X}_{\widehat{q}} = \mathbf{Q}\mathbf{K}\widehat{\mathbf{U}}_{\widehat{q}}^T \mathbf{X}.
 \end{equation}
 
-Therefore the full unmixing matrix mapping the prewhitened signal observations to the estimated independent components is
+Therefore the full unmixing matrix mapping the prewhitened observations to the estimated independent components is
 
 \begin{equation}
     \mathbf{W} = \mathbf{Q}\mathbf{K}\widehat{\mathbf{U}}_{\widehat{q}}^T,
@@ -2038,14 +2023,14 @@ Combining the two transformations gives
 The representation in the original temporal space is obtained by mapping the reduced data back through the eigenvectors in Equation~\eqref{eq:pica-dimensionality-reduction}:
 
 \begin{equation}
-    \widehat{\mathbf{X}}_{\mathrm{signal}} = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{X}_{\widehat{q}, \mathrm{signal}}
+    \widehat{\mathbf{X}} = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{X}_{\widehat{q}}
     = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{K}^{-1}\mathbf{Q}^T\widehat{\mathbf{S}}.
 \end{equation}
 
-Comparing this expression with the estimated ICA signal model
+Comparing this expression with the ICA reconstruction in the retained subspace
 
 \begin{equation}
-    \widehat{\mathbf{X}}_{\mathrm{signal}} = \widehat{\mathbf{A}}\widehat{\mathbf{S}},
+    \widehat{\mathbf{X}} = \widehat{\mathbf{A}}\widehat{\mathbf{S}},
 \end{equation}
 
 gives the estimated mixing matrix
