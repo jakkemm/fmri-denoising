@@ -444,6 +444,7 @@ If $\mathbf{X}$ has full column rank $p$, then $\mathbf{X}^T\mathbf{X}$ is inver
 
 \begin{equation}
     \widehat{\boldsymbol{\beta}}_{\mathrm{OLS}} = \left(\mathbf{X}^T\mathbf{X}\right)^{-1} \mathbf{X}^T\mathbf{y}.
+    \label{eq:ols-estimator}
 \end{equation}
 
 The fitted values are then given by
@@ -768,6 +769,7 @@ The regression model is then fitted again using the transformed data, which was 
 
 
 \section{Construction of the design matrix}
+\label{section:design-matrix}
 
 The construction of the design matrix is a crucial part of GLM-based denoising. The design matrix contains explanatory variables representing task-related and nuisance variability. The estimated coefficients of the task-related regressors are used to model the BOLD response associated with the experiment, while the coefficients of the nuisance regressors describe contribution of modeled nuisance.
 
@@ -812,6 +814,7 @@ A typical fMRI design matrix contains: task-related regressors, motion regressor
 For a given run, the untransformed design matrix is the same for all analyzed voxels. Each voxel has its own estimated coefficient vector. Separate design matrices are constructed for different runs because stimulus timing and run-specific nuisance effects may differ between them.
 
 \subsection{Task-related regressors}
+\label{section:task-regressors}
 
 As described in Chapter \ref{chapter:dataset}, the participants were presented with visual stimuli at specified times during each experimental run. The purpose of the task-related regressors is to model the expected BOLD response associated with these stimulus presentations.
 
@@ -967,6 +970,7 @@ The method used in this thesis is inspired by GLMdenoise, introduced in \cite{gl
 The procedure follows the main structure of GLMdenoise, with two modifications. First, the drift component is represented using the DCT regressors introduced earlier rather than the polynomial regressors used in the original method. Second, ordinary least squares is replaced by the feasible generalized least squares procedure developed in the previous sections.
 
 \subsection{Selection of the noise pool}
+\label{section:selection-noise}
 
 An initial model is fitted without PCA-derived nuisance regressors. For each cross-validation iteration, one run is left out and the model is fitted to all remaining runs. The training design matrices contain the task-related and drift regressors.
 
@@ -1014,6 +1018,7 @@ For voxel $v$, the cross-validated coefficient of determination is
 
 \begin{equation}
     R^2_{\mathrm{CV},v} = 1 - \frac{SS_{\text{resid}}}{SS_{\text{tot}}} = 1 - \frac{\sum_i\left(y_{iv} - \widehat{y}_{iv}\right)^2}{\sum_i\left(y_{iv} - \overline{y}_v \right)^2},
+    \label{eq:r2-calculation}
 \end{equation}
 
 % NOTE: poszukac cytowania do R^2 < 0
@@ -2034,7 +2039,7 @@ The representation in the original temporal space is obtained by mapping the red
 
 \begin{equation}
     \widehat{\mathbf{X}}_{\mathrm{signal}} = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{X}_{\widehat{q}, \mathrm{signal}}
-    = \widehat{\mathbf{U}}_{\widehat{q}, \mathrm{signal}}\mathbf{K}^{-1}\mathbf{Q}^T\widehat{\mathbf{S}}.
+    = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{K}^{-1}\mathbf{Q}^T\widehat{\mathbf{S}}.
 \end{equation}
 
 Comparing this expression with the estimated ICA signal model
@@ -2048,6 +2053,248 @@ gives the estimated mixing matrix
 \begin{equation}
     \widehat{\mathbf{A}} = \widehat{\mathbf{U}}_{\widehat{q}}\mathbf{K}^{-1}\mathbf{Q}^T.
 \end{equation}
+
+
+\section{ICA-based denoising and component classification}
+\label{section:ica-denoising}
+
+The ICA decomposition described in the previous sections separates the observed data into statistically independent spatial components and their corresponding temporal courses. However, statistical independence alone does not determine whether a component represents variability related to the experimental task or variability that should be treated as nuisance. An additional classification procedure is therefore required before the ICA decomposition can be used for denoising.
+
+The classification procedure used in this thesis is based on the ICA-based denoising method considered in \cite{glm-denoise}. In that approach, the temporal course associated with each independent component is compared with the task-related part of the experimental design. Components whose temporal courses exhibit sufficiently strong correspondence with the task are retained, whereas the remaining components are treated as nuisance and removed from the data.
+
+To avoid ambiguity with the notation used for the GLM design matrix, let
+
+\begin{equation}
+    \mathbf{Y} \in \mathbb{R}^{t \times v}
+\end{equation}
+
+denote the fMRI data matrix, where $t$ is the number of time points and $v$ is the number of voxels. The spatial ICA model estimated for this run can be written as
+
+\begin{equation}
+    \mathbf{Y} = \widehat{\mathbf{A}} \widehat{\mathbf{S}} + \mathbf{E},
+\end{equation}
+
+where
+
+\begin{equation}
+    \widehat{\mathbf{A}} \in \mathbb{R}^{t \times \widehat{q}},
+    \qquad
+    \widehat{\mathbf{S}} \in \mathbb{R}^{\widehat{q} \times v}.
+\end{equation}
+
+The $j$-th independent component is represented by the pair
+
+\begin{equation}
+    \left(\widehat{\mathbf{a}}_j, \, \widehat{\mathbf{s}}_j \right),
+\end{equation}
+
+where
+
+\begin{equation}
+    \widehat{\mathbf{a}}_j \in \mathbb{R}^{t}
+\end{equation}
+
+is the temporal course associated with the component, and the $j$-th column of the mixing matrix $\widehat{\mathbf{A}}$, and
+
+\begin{equation}
+    \widehat{\mathbf{s}}_j \in \mathbb{R}^{v}
+\end{equation}
+
+is its spatial map, and $j$-th row of the source matrix $\widehat{\mathbf{S}}$. Thus, the contribution of component $j$ to the observed data is the rank-one matrix
+
+\begin{equation}
+    \widehat{\mathbf{a}}_j \widehat{\mathbf{s}}_j^T.
+\end{equation}
+
+Before performing the following classification, the temporal courses and the task-related regressors must be represented in the same temporal coordinate system. If the ICA decomposition is estimated from temporally prewhitened data, the component time courses are therefore transformed back to the corresponding original temporal representation before comparison with the untransformed task design matrix.
+
+\subsection{Task-relatedness of the independent components}
+
+Let
+
+\begin{equation}
+    \mathbf{X}_{\mathrm{task}} \in \mathbb{R}^{t \times p}
+\end{equation}
+
+denote the task-related part of the GLM design matrix, where in the considered experiment $p=8$, as described in Subsection~\ref{section:task-regressors}. For each ICA temporal course $\widehat{\mathbf{a}}_j$, its relationship with the experimental task is evaluated using the linear regression model
+
+\begin{equation}
+    \widehat{\mathbf{a}}_j = \mathbf{X}_{\mathrm{task}} \boldsymbol{\gamma}_j + \boldsymbol{\varepsilon}_j.
+\end{equation}
+
+Assuming that $\mathbf{X}_{\mathrm{task}}$ has full column rank, similarly as in the Equation~\ref{section:task-regressors}, the OLS estimator of the coefficient vector is
+
+\begin{equation}
+    \widehat{\boldsymbol{\gamma}}_j =
+    \left(\mathbf{X}_{\mathrm{task}}^{T} \mathbf{X}_{\mathrm{task}} \right)^{-1}
+    \mathbf{X}_{\mathrm{task}}^{T}
+    \widehat{\mathbf{a}}_j.
+\end{equation}
+
+The fitted temporal course is therefore
+
+\begin{equation}
+    \widehat{\mathbf{a}}_{\mathrm{fit},j} = \mathbf{X}_{\mathrm{task}} \widehat{\boldsymbol{\gamma}}_j.
+\end{equation}
+
+The authors of \cite{glm-denoise} describe the classification criterion as the amount of variance in a component time course explained by the task-related regressors, but do not provide an explicit formula for this quantity. In this thesis, this quantity is implemented using the coefficient of determination
+
+\begin{equation}
+    R^2_{\mathrm{IC},j} = 1 - \frac{ \left| \widehat{\mathbf{a}}_j - \widehat{\mathbf{a}}_{\mathrm{fit}, j} \right|_2^2}{\left| \widehat{\mathbf{a}}_j - \overline{a}_j \mathbf{1} \right|_2^2},
+\end{equation}
+
+where $\overline{a}_j$ is the mean of the temporal course. The notation $R^2_{\mathrm{IC}, j}$ is used to distinguish this quantity from the cross-validated coefficient of determination $R^2_{\mathrm{CV},v}$ used in Subsection~\ref{section:selection-noise} to evaluate voxel-wise prediction accuracy.
+
+A large value of $R^2_{\mathrm{IC},j}$ alone is not sufficient to classify the component as task-related, since some correspondence with the task design may occur by chance. Following \cite{glm-denoise}, the temporal order of each component course is therefore randomly permuted. Let
+
+\begin{equation}
+    \widehat{\mathbf{a}}_j^{(b)}, \qquad b=1,\ldots,B,
+\end{equation}
+
+denote the $b$-th randomly shuffled version of the temporal course, with $B=1000$. The same regression procedure is applied to every shuffled time course, producing
+
+\begin{equation}
+    R_{\mathrm{IC},j}^{2,(1)}, \ldots, R_{\mathrm{IC},j}^{2,(B)}.
+\end{equation}
+
+These values form an empirical reference distribution representing the task-related variance that can be obtained after the original temporal ordering of the component has been destroyed. Its empirical mean and standard deviation are
+
+\begin{equation}
+    \mu_j = \frac{1}{B} \sum_{b=1}^{B} R_{\mathrm{IC},j}^{2,(b)}
+\end{equation}
+
+and
+
+\begin{equation}
+    \sigma_j =\sqrt{\frac{1}{B-1} \sum_{b=1}^{B} \left(R_{\mathrm{IC},j}^{2,(b)}-\mu_j \right)^2}.
+\end{equation}
+
+For convenience, the classification rule from \cite{glm-denoise} can be expressed using the standardized score
+
+\begin{equation}
+    z_j = \frac{R^2_{\mathrm{IC},j} - \mu_j}{\sigma_j}.
+\end{equation}
+
+The notation $z_j$ is introduced here only as a convenient representation of the classification rule, and should not be interpreted as a classical normally distributed $z$-test statistic.
+
+Component $j$ is classified as task-related when
+
+\begin{equation}
+    z_j > c,
+\end{equation}
+
+and is otherwise classified as task-unrelated and treated as a nuisance component. Equivalently, a component is retained when
+
+\begin{equation}
+    z_j \leq c.
+\end{equation}
+
+Two thresholds are considered in \cite{glm-denoise}. For the conservative variant, $c=0$ so a component is retained whenever its actual task-related variance exceeds the mean obtained from the shuffled time courses. This criterion is conservative with respect to component removal, since ambiguous components tend to remain in the data.
+
+For the liberal variant, $c=3$, a component must explain substantially more task-related variance than the shuffled time courses in order to be retained. Consequently, more components are classified as nuisance and removed from the data.
+
+The classification should be interpreted as distinguishing components that are task-related from components that are task-unrelated with respect to the considered experiment. A component classified as nuisance is not necessarily non-neural. It may represent genuine neural activity that is unrelated to the experimental paradigm.
+
+\subsection{Removal of nuisance components}
+
+For a single run, let
+
+\begin{equation}
+    \mathcal{S} = \left\{j : z_j > c \right\}
+\end{equation}
+
+denote the set of task-related components and let
+
+\begin{equation}
+    \mathcal{N} = \left\{j : z_j \leq c\right\}
+\end{equation}
+
+denote the set of components treated as nuisance.
+
+The corresponding columns of the mixing matrix and rows of the source matrix are collected respectively into
+
+\begin{equation}
+    \widehat{A} = 
+    \begin{bmatrix}
+        \widehat{\mathbf{A}}_{\mathrm{S}} & \widehat{\mathbf{A}}_{\mathrm{N}}
+    \end{bmatrix},
+    \qquad
+    \widehat{S} =
+    \begin{bmatrix}
+        \widehat{\mathbf{S}}_{\mathrm{S}} \\
+        \widehat{\mathbf{S}}_{\mathrm{N}}
+    \end{bmatrix}
+\end{equation}
+
+The structured part of the ICA representation can then be decomposed as
+
+\begin{equation}
+    \widehat{\mathbf{A}} \widehat{\mathbf{S}}
+    = \widehat{\mathbf{A}}_{\mathrm{S}} \widehat{\mathbf{S}}_{\mathrm{S}}
+    + \widehat{\mathbf{A}}_{\mathrm{N}} \widehat{\mathbf{S}}_{\mathrm{N}}.
+\end{equation}
+
+The first term represents the contribution of components classified as task-related, whereas the second term represents the contribution of components classified as nuisance. The estimated ICA nuisance contribution is
+
+\begin{equation}
+    \widehat{\mathbf{Y}}_{\mathrm{ICA,nuis}} = \widehat{\mathbf{A}}_{\mathrm{N}} \widehat{\mathbf{S}}_{\mathrm{N}}.
+\end{equation}
+
+After mapping this contribution to the same temporal representation and scale as the original measurements, the ICA-denoised data are obtained by subtraction:
+
+\begin{equation}
+    \mathbf{Y}_{\mathrm{ICA}} = \mathbf{Y} - \widehat{\mathbf{Y}}_{\mathrm{ICA,nuis}}.
+\end{equation}
+
+Thus, ICA removes the structured contribution assigned to task-unrelated independent components. The remaining residual term of the probabilistic ICA model is not explicitly removed by this operation.
+
+The original procedure in \cite{glm-denoise} uses FSL's \verb|fsl_regfilt| for removal of components classified as noise. In the present implementation, the same principle is represented directly through reconstruction and subtraction of the ICA nuisance contribution.
+
+\subsection{Cross-validation and estimation of the task-related response}
+
+The quality of ICA-based denoising is evaluated using the same leave-one-run-out cross-validation framework as the GLM- and PCA-based procedures. Let $R$ denote the total number of runs and let $q$ denote the run left out in a given outer cross-validation fold.
+
+The complete ICA decomposition, component classification, and nuisance removal procedure is performed using the training runs
+
+\begin{equation}
+    r \in \left\{1,\ldots, q-1, q+1, \ldots, R\right\}.
+\end{equation}
+
+The held-out run is not denoised before evaluation. Following the notation from Subsection~\ref{section:selection-noise}, for the training runs the ICA-denoised matrices are concatenated into
+
+\begin{equation}
+    \mathbf{Y}_{\mathrm{ICA}}^{(-q)}.
+\end{equation}
+
+The task-related and drift regressors are constructed analogously to the GLM procedure described in Section~\ref{section:design-matrix}.
+
+In contrast to the ICA implementation evaluated in \cite{glm-denoise}, which is followed by their Standard GLM analysis, the present thesis applies the FGLS procedure introduced in Section~\ref{section:gls-prewhitening}. The temporal covariance matrix for the concatenated training data retains the block-diagonal structure introduced for the PCA-assisted GLM in Subsection~\ref{section:selection-noise}
+
+After fitting the model to the ICA-denoised training runs, the estimated task-related coefficient matrix is denoted by
+
+\begin{equation}
+    \widehat{\mathbf{B}}_{\mathrm{task}}^{(-q)}.
+\end{equation}
+
+The expected task-related response in the held-out run, similarly as in Equation~\eqref{eq:pca-cv-task-prediction}, is then predicted using only its task design matrix:
+
+\begin{equation}
+    \widehat{\mathbf{Y}}_{\mathrm{task},q}^{(-q)} =
+    \mathbf{X}_{\mathrm{task},q} \widehat{\mathbf{B}}_{\mathrm{task}}^{(-q)}.
+\end{equation}
+
+This prediction is not subtracted from the held-out data. Instead, it is compared directly with the observed signal $\mathbf{Y}_q$. As in the previous cross-validation procedure, the modeled drift subspace is projected out from both the measured and predicted signals before calculation of the coefficient of determination.
+% sprawdzic czy faktycznie jest opisane
+
+After every run has served once as the held-out run, the predictions are concatenated and the voxel-wise cross-validated coefficient of determination
+
+\begin{equation}
+    R^2_{\mathrm{CV},v}
+\end{equation}
+
+is calculated according to Equation~\eqref{eq:r2-calculation}. The resulting values quantify how accurately task-related coefficients estimated after ICA denoising generalize to unseen runs and provide a performance measure directly comparable with the GLM- and PCA-based denoising procedures.
+
+After the cross-validation evaluation has been completed, the ICA denoising procedure may additionally be applied to all available runs to obtain the final ICA-denoised fMRI data used for subsequent visualization and statistical analysis.
 
 
 
