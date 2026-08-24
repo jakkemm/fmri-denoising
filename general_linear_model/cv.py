@@ -7,7 +7,7 @@ from general_linear_model.fgls import FGLSRegressor
 from general_linear_model.glm_matrix import GLMMatrixBuilder
 from general_linear_model.pca import PCADriftRegressorExtractor
 from utils.constants import BoolArray, FloatArray, RunData
-from utils.misc import iter_chunks, log
+from utils.misc import calculate_r2, iter_chunks, log
 
 
 @dataclass
@@ -97,7 +97,7 @@ class LeaveOneRunOutEvaluator:
             Y_pred_chunk = Y_pred[:, chunk_slice]
             Y_raw_chunk = Y_true_raw[:, chunk_slice]
             
-            r2_per_voxel[chunk_slice] = self._calculate_r2(Y_true_chunk, Y_pred_chunk)
+            r2_per_voxel[chunk_slice] = calculate_r2(Y_true_chunk, Y_pred_chunk)
             mean_per_voxel[chunk_slice] = np.mean(Y_raw_chunk, axis=0)
             
         threshold = 0.5 * np.percentile(mean_per_voxel, 99)
@@ -120,7 +120,7 @@ class LeaveOneRunOutEvaluator:
         for chunk_slice, Y_true_chunk in iter_chunks(Y_true, self.chunk_size):
             Y_pred_chunk = Y_pred[:, chunk_slice]
             
-            r2_per_voxel[chunk_slice] = self._calculate_r2(Y_true_chunk, Y_pred_chunk)
+            r2_per_voxel[chunk_slice] = calculate_r2(Y_true_chunk, Y_pred_chunk)
         
         candidates_mask = r2_per_voxel > 0.0
         
@@ -134,21 +134,6 @@ class LeaveOneRunOutEvaluator:
             median_r2=median_r2
         )
 
-    @staticmethod
-    def _calculate_r2(y_true, y_pred):
-        mean_true = np.mean(y_true, axis=0, keepdims=True)
-        
-        ss_res = np.sum((y_true - y_pred)**2, axis=0)
-        ss_tot = np.sum((y_true - mean_true)**2, axis=0)
-        
-        r2 = np.full(ss_tot.shape, np.nan, dtype=np.float32)
-        
-        valid = ss_tot > 0
-
-        r2[valid] = 1.0 - ss_res[valid] / ss_tot[valid]
-        return r2
-        
-    
     def _log(self, message):
         if self.verbose:
             log(module="CV", message=message)
