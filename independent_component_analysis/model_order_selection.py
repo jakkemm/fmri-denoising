@@ -97,9 +97,7 @@ class ModelOrderSelectionResult:
 class ModelOrderSelection:
     def find_best_q(self, X: FloatArray):
         """Estimate the PICA model order."""
-        n_timepoints, n_samples = X.shape
-
-        gamma = n_timepoints / n_samples
+        n_samples = X.shape[1]
 
         covariance = (X @ X.T) / n_samples
         eigenvalues, eigenvectors = np.linalg.eigh(covariance)
@@ -110,16 +108,29 @@ class ModelOrderSelection:
         eigenvalues = eigenvalues[order]
         eigenvectors = eigenvectors[:, order]
 
+        # Remove numerical null eigenvalues 
+        tol = np.finfo(float).eps * max(X.shape) * eigenvalues[0]
+        positive = eigenvalues > tol
+        
+        mos_eigenvalues = eigenvalues[positive]
+        p_eff = len(mos_eigenvalues)
+        gamma = p_eff / n_samples
+        
         # Expected finite-sample eigenspectrum for isotropic Gaussian noise
         expected_noise_spectrum = _mp_quantiles(
-            n_components=n_timepoints,
+            n_components=p_eff,
             gamma=gamma,
         )
 
-        # finite-sample eigenspectrum adjustment
-        adjusted_eigenvalues = eigenvalues / expected_noise_spectrum
+        # finite-sample model-order-selection eigenspectrum adjustment
+        adjusted_eigenvalues = mos_eigenvalues / expected_noise_spectrum
+        adjusted_eigenvalues = np.sort(adjusted_eigenvalues)[::-1]
 
-        candidate_q = np.arange(1, n_timepoints)
+        # setting max_q to be a maximum number of components to explain 98% of variance
+        explained = np.cumsum(eigenvalues) / np.sum(eigenvalues)
+        q_threshold = np.searchsorted(explained, 0.98) + 1
+        max_q = min(q_threshold, p_eff - 1)
+        candidate_q = np.arange(1, max_q + 1)
 
         log_evidence = np.array([
             _assess_dimension(spectrum=adjusted_eigenvalues, rank=int(q), n_samples=n_samples)
