@@ -31,14 +31,14 @@ def load_glm_pca_results(subject):
     
     return final_fit
 
-def run_ica_pipeline(subject):
+def run_ica_pipeline(subject, threshold):
     runs, _, _ = load_data(
         base_path=BASE_PATH,
         subject=subject
     )
     
     pipeline = ICADenoisingPipeline(
-        threshold=0.0,
+        threshold=threshold,
         n_permutations=1000,
         tolerance=1e-5,
         max_iter=1000,
@@ -49,7 +49,7 @@ def run_ica_pipeline(subject):
     )
     result = pipeline.fit(runs)
 
-    pickle_path = Path.cwd() / "results" / f"ica_result_{subject}.pkl"
+    pickle_path = Path.cwd() / "results" / f"ica_result_{subject}_thresh{threshold:.0f}.pkl"
     dataclass_to_pickle(result, pickle_path)
 
 if __name__ == "__main__":
@@ -58,6 +58,7 @@ if __name__ == "__main__":
     parser.add_argument("--run_glm", action="store_true")
     parser.add_argument("--load_result", action="store_true")
     parser.add_argument("--run_ica", action="store_true")
+    parser.add_argument("--ica_threshold", type=float)
     args = parser.parse_args()
 
     if args.run_glm:
@@ -65,5 +66,6 @@ if __name__ == "__main__":
     elif args.load_result:
         result = load_glm_pca_results(subject=args.subject)
     if args.run_ica:
-        run_ica_pipeline(subject=args.subject)
+        threshold = float(args.ica_threshold) if args.ica_threshold else 0.0
+        run_ica_pipeline(subject=args.subject, threshold=threshold)
     
