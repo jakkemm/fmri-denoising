@@ -25,7 +25,7 @@ class FGLSRegressor:
         V = create_prewhitening_matrix(X, Y, self.chunk_size)
         V_inv = np.linalg.pinv(V)
 
-        gls_operator = (np.linalg.inv(X.T @ V_inv @ X) @ X.T @ V_inv)
+        gls_operator = (np.linalg.pinv(X.T @ V_inv @ X) @ X.T @ V_inv)
 
         self.coef_ = self._calculate_coefficients_chunked(gls_operator, Y)
 
