@@ -142,12 +142,16 @@ class ICADenoiser:
         # Reconstruct nuisance
         # Y_nuis = A_N S_N
         if np.any(nuisance_mask):
-            Y_nuisance = A[:, nuisance_mask] @ S[nuisance_mask, :]
+            nuis_std_pw = A[:, nuisance_mask] @ S[nuisance_mask, :]
         else:
-            Y_nuisance = np.zeros_like(Y, dtype=float)
+            nuis_std_pw = np.zeros_like(Y, dtype=float)
 
+        # undo transformations (voxel standardization and prewhitening)
+        nuis_pw = nuis_std_pw * voxel_std[0, valid]
+        nuis_original = L @ nuis_pw
+        
         # Remove nuisance from original
-        Y_denoised = Y - Y_nuisance
+        Y_denoised = Y - nuis_original
 
         self._log(
             f"Finished ICA | "
