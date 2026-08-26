@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+from evaluation.pipeline import EvaluationPipeline, SubjectEvaluationResult
 from general_linear_model.pipeline import PCADenoisingPipeline, PCADenoisingResult
 from independent_component_analysis.pipeline import ICADenoisingPipeline
 from utils.load_data import dataclass_from_pickle, dataclass_to_pickle, load_data
@@ -52,6 +53,32 @@ def run_ica_pipeline(subject, threshold):
     pickle_path = Path.cwd() / "results" / f"ica_result_{subject}_thresh{threshold:.0f}.pkl"
     dataclass_to_pickle(result, pickle_path)
 
+def run_evaluation(subject):
+    runs, _, _ = load_data(base_path=BASE_PATH, subject=subject)
+
+    pipeline = EvaluationPipeline(
+        k_max=20,
+        threshold=0.0,
+        n_permutations=1000,
+        tolerance=1e-5,
+        max_iter=1000,
+        high_pass_cutoff=128.0,
+        chunk_size=5000,
+        random_state=42,
+        verbose=True,
+    )
+
+    result = pipeline.evaluate(runs)
+    pickle_path = Path.cwd() / "results" / f"evaluation_{subject}.pkl"
+    dataclass_to_pickle(result, pickle_path)
+
+def load_evaluation_result(subject):
+    pickle_path = Path.cwd() / "results" / f"evaluation_{subject}.pkl"
+    final_fit = dataclass_from_pickle(SubjectEvaluationResult, pickle_path)
+    
+    return final_fit
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--subject", type=str, required=True)
@@ -59,6 +86,7 @@ if __name__ == "__main__":
     parser.add_argument("--load_result", action="store_true")
     parser.add_argument("--run_ica", action="store_true")
     parser.add_argument("--ica_threshold", type=float)
+    parser.add_argument("--evaluate", action="store_true")
     args = parser.parse_args()
 
     if args.run_glm:
@@ -68,4 +96,6 @@ if __name__ == "__main__":
     if args.run_ica:
         threshold = float(args.ica_threshold) if args.ica_threshold else 0.0
         run_ica_pipeline(subject=args.subject, threshold=threshold)
+    if args.evaluate:
+        run_evaluation(subject=args.subject)
     
