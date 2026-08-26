@@ -126,12 +126,7 @@ class ModelOrderSelection:
         adjusted_eigenvalues = mos_eigenvalues / expected_noise_spectrum
         adjusted_eigenvalues = np.sort(adjusted_eigenvalues)[::-1]
 
-        # setting max_q to be a maximum number of components to explain 98% of variance
-        explained = np.cumsum(eigenvalues) / np.sum(eigenvalues)
-        q_threshold = np.searchsorted(explained, 0.98) + 1
-        max_q = min(q_threshold, p_eff - 1)
-        candidate_q = np.arange(1, max_q + 1)
-
+        candidate_q = np.arange(1, p_eff)
         log_evidence = np.array([
             _assess_dimension(spectrum=adjusted_eigenvalues, rank=int(q), n_samples=n_samples)
             for q in candidate_q
