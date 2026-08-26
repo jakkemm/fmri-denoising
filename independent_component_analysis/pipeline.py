@@ -70,7 +70,6 @@ class ICADenoisingPipeline:
         for (run_index, glm_run) in enumerate(glm_runs):
             self._log(f"ICA denoising run {run_index + 1}/{len(glm_runs)}.")
             
-            glm_run.Y = self._detrend(glm_run)
             result = self.ica_denoiser.fit_transform(run=glm_run)
 
             ica_results.append(result)
@@ -191,14 +190,6 @@ class ICADenoisingPipeline:
             r2_per_voxel=r2,
             median_r2=median_r2,
         )
-
-    def _detrend(self, glm_run):
-        Y = glm_run.Y
-        X_dct = glm_run.X[:, glm_run.drift_slice]
-        X_drift = X_dct[:, 1:]
-        
-        out_projected = self.drift_extractor.out_project_drift(Y, X_drift)
-        return out_projected
 
     def _log(self, message):
         if self.verbose:
