@@ -17,6 +17,8 @@ def create_prewhitening_matrix(X, Y, chunk_size):
 
 def _estimate_phis_chunked(X, Y, n_runs, chunk_size):
     # TODO: descrive the change from global phi over all voxels to median phi
+    # this also means describing the choice of not using a signle covariance matrix for each voxel
+    # so no \Sigma_i, rather one V
     Xt = X.T
     XtX = X.T @ X
 

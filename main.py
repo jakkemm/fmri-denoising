@@ -45,7 +45,7 @@ def run_ica_pipeline(subject):
         high_pass_cutoff=128.0,
         chunk_size=5000,
         random_state=42,
-        verbose=False
+        verbose=True
     )
     result = pipeline.fit(runs)
 

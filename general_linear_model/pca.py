@@ -22,6 +22,7 @@ class PCADriftRegressorExtractor:
             Y_detrended = self._remove_drift(Y_chunk, drift_basis)
             
             # implementing unit-norm noralization as per GLMdenoise
+            # TODO: write about it in the thesis
             norms = np.linalg.norm(Y_detrended, axis=0)
             valid = norms > 1e-8
             Y_detrended[:, valid] /= norms[valid]
