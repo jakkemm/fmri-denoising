@@ -11,7 +11,11 @@ from utils.prewhitening import create_prewhitening_matrix
 class FGLSRegressor:
     chunk_size: int = 5_000
     verbose: bool = True
+    
     coef_: np.ndarray | None = field(default=None, init=False)
+    covariance_base_: np.ndarray | None = field(default=None, init=False)
+    residual_variance_: np.ndarray | None = field(default=None, init=False)
+    dof_resid_: int | None = field(default=None, init=False)
 
     def fit(self, X, Y) -> "FGLSRegressor":
         total_start = time.perf_counter()
@@ -24,10 +28,18 @@ class FGLSRegressor:
 
         V = create_prewhitening_matrix(X, Y, self.chunk_size)
         V_inv = np.linalg.pinv(V)
+        
+        self.covariance_base_ = np.linalg.pinv(X.T @ V_inv @ X)
 
-        gls_operator = (np.linalg.pinv(X.T @ V_inv @ X) @ X.T @ V_inv)
+        gls_operator = (self.covariance_base_ @ X.T @ V_inv)
 
         self.coef_ = self._calculate_coefficients_chunked(gls_operator, Y)
+        
+        self.dof_resid_ = X.shape[0] - np.linalg.matrix_rank(X)
+        if self.dof_resid_ <= 0:
+            raise ValueError("The model has no residual degrees of freedom.")
+        
+        self.residual_variance_ = self._calculate_residual_variance_chunked(X=X, Y=Y, V_inv=V_inv)
 
         self._log(f"Total fit time: {time.perf_counter() - total_start:.3f} s")
         return self
@@ -49,6 +61,19 @@ class FGLSRegressor:
             coefficients[:, chunk_slice] = (gls_operator @ Y_chunk)
 
         return coefficients
+
+    def _calculate_residual_variance_chunked(self, X, Y, V_inv):
+        residual_variance = np.empty(Y.shape[1], dtype=float)
+
+        for chunk_slice, Y_chunk in iter_chunks(Y, self.chunk_size):
+            beta_chunk = self.coef_[:, chunk_slice]
+
+            residuals = Y_chunk - X @ beta_chunk
+            weighted_residuals = V_inv @ residuals
+
+            residual_variance[chunk_slice] = np.sum(residuals * weighted_residuals, axis=0) / self.dof_resid_
+
+        return residual_variance
 
     def _log(self, message):
         if self.verbose:

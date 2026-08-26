@@ -12,24 +12,56 @@ from utils.misc import log
 
 
 @dataclass
+class StandardGLMResult:
+    coef: FloatArray
+    task_coef: FloatArray
+
+    task_covariance_base: FloatArray
+    residual_variance: FloatArray
+
+class StandardGLMPipeline:
+    def __init__(self, high_pass_cutoff=128.0, chunk_size=5000, verbose=True):
+        self.chunk_size = chunk_size
+        self.verbose = verbose
+
+        self.glm_builder = GLMMatrixBuilder(high_pass_cutoff=high_pass_cutoff, verbose=verbose)
+
+    def fit(self, runs: list[RawData]):
+        glm_runs = self.glm_builder.build_runs(runs)
+        data = self.glm_builder.combine(glm_runs)
+
+        model = FGLSRegressor(chunk_size=self.chunk_size, verbose=self.verbose)
+        model.fit(X=data.X, Y=data.Y)
+
+        task_coef = model.coef_[data.task_slice]
+        task_covariance_base = model.covariance_base_[data.task_slice, data.task_slice]
+
+        return StandardGLMResult(
+            coef=model.coef_,
+            task_coef=task_coef,
+            task_covariance_base=task_covariance_base,
+            residual_variance=model.residual_variance_,
+        )
+
+@dataclass
 class PCADenoisingResult:
     selected_n_components: int
     noise_mask: BoolArray
     cv_scores: dict[int, float]
+
     coef: FloatArray
     task_coef: FloatArray
+
+    task_covariance_base: FloatArray
+    residual_variance: FloatArray
+
     components_by_run: list[FloatArray]
     
 
 class PCADenoisingPipeline:
-    def __init__(
-            self, 
-            k_max : int = 20, 
-            high_pass_cutoff : float = 128.0,
-            chunk_size : int = 5000, 
-            verbose : bool = True, 
-        ):
+    def __init__(self, k_max=20, high_pass_cutoff=128.0, chunk_size=5000, verbose=True): 
         self.k_max = k_max
+        self.chunk_size = chunk_size
         self.verbose = verbose
 
         self.cv = LeaveOneRunOutEvaluator(chunk_size=chunk_size, verbose=verbose)
@@ -115,10 +147,11 @@ class PCADenoisingPipeline:
 
         Y_all = np.vstack([run.Y for run in glm_runs])
 
-        final_model = FGLSRegressor()
+        final_model = FGLSRegressor(chunk_size=self.chunk_size, verbose=self.verbose)
         final_model.fit(X=final_design.X, Y=Y_all)
 
         task_coef = final_model.coef_[final_design.task_slice]
+        task_covariance_base = final_model.covariance_base_[final_design.task_slice, final_design.task_slice]
 
         return PCADenoisingResult(
             selected_n_components=selected_k,
@@ -126,6 +159,8 @@ class PCADenoisingPipeline:
             cv_scores=cv_scores,
             coef=final_model.coef_,
             task_coef=task_coef,
+            task_covariance_base=task_covariance_base,
+            residual_variance=final_model.residual_variance_,
             components_by_run=components_by_run,
         )
 
