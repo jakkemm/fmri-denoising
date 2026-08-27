@@ -37,6 +37,7 @@ class SubjectEvaluationResult:
     outer_cv_runtime_seconds: dict[str, float]
     normalized_performance: dict[str, float]
 
+    final_method_specific_data: dict[str, dict]
 
 class EvaluationPipeline:
     def __init__(
@@ -114,6 +115,7 @@ class EvaluationPipeline:
         final_task_coef = {}
         final_task_covariance_base = {}
         final_residual_variance = {}
+        final_method_specific_data = {}
 
         fit_runtime_seconds = {}
 
@@ -129,6 +131,7 @@ class EvaluationPipeline:
             final_task_coef[method_name] = result.task_coef
             final_task_covariance_base[method_name] = result.task_covariance_base
             final_residual_variance[method_name] = result.residual_variance
+            final_method_specific_data[method_name] = self._extract_method_specific_data(result, method_name)
 
         # 6. Normalized performance
         normalized_performance = normalize_subject_performance(median_r2)
@@ -151,8 +154,26 @@ class EvaluationPipeline:
             fit_runtime_seconds=fit_runtime_seconds,
             outer_cv_runtime_seconds=outer_cv_runtime_seconds,
             normalized_performance=normalized_performance,
+            final_method_specific_data=final_method_specific_data
         )
 
     def _log(self, message):
         if self.verbose:
             log(module="EVALUATION", message=message)
+    
+    def _extract_method_specific_data(self, result, method_name):
+        if method_name == "ica":
+            return {
+                "q_by_run": result.q_by_run,
+                "z_scores_by_run": result.z_scores_by_run,
+                "n_task_by_run": [int(mask.sum()) for mask in result.task_masks_by_run],
+                "n_nuisance_by_run": [int(mask.sum()) for mask in result.nuisance_masks_by_run],
+            }
+        elif method_name == "glm_pca":
+            return {
+                "selected_n_components": result.selected_n_components,
+                "noise_mask": result.noise_mask,
+                "cv_scores": result.cv_scores
+            }
+
+        return {}
