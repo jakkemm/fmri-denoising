@@ -33,22 +33,25 @@ class ICAComponentClassifier:
         # Task projection
         XtX = X_centered.T @ X_centered
         task_operator = np.linalg.pinv(XtX) @ X_centered.T
+
+        # Actual task-explained R^2.
         gamma = task_operator @ A_centered
-        
         A_fitted = X_centered @ gamma
 
         r2_actual = calculate_r2(A_centered, A_fitted)
 
         n_timepoints, n_components = A.shape
-        shuffled_mean = np.empty(n_components, dtype=float)
-        shuffled_std = np.empty(n_components, dtype=float)
-        z_scores = np.empty(n_components, dtype=float,)
 
-        # Generate B random temporal permutations.
+        shuffled_mean = np.full(n_components, np.nan, dtype=float)
+        shuffled_std = np.full(n_components, np.nan, dtype=float)
+        z_scores = np.full(n_components, np.nan, dtype=float)
+
         permutation_indices = np.array([
             self.rng.permutation(n_timepoints)
             for _ in range(self.n_permutations)
         ])
+
+        eps = np.finfo(float).eps
 
         for component_index in range(n_components):
             a = A_centered[:, component_index]
@@ -56,8 +59,8 @@ class ICAComponentClassifier:
             # (B, t) -> (t, B)
             shuffled = a[permutation_indices].T
 
-            gamma = task_operator @ shuffled
-            shuffled_fitted = X_centered @ gamma
+            gamma_shuffled = task_operator @ shuffled
+            shuffled_fitted = X_centered @ gamma_shuffled
 
             shuffled_r2 = calculate_r2(shuffled, shuffled_fitted)
 
@@ -66,16 +69,16 @@ class ICAComponentClassifier:
 
             shuffled_mean[component_index] = mu
             shuffled_std[component_index] = sigma
+
             actual = r2_actual[component_index]
 
-            if (not np.isfinite(actual) or not np.isfinite(mu)):
-                z = np.nan
-            else:
-                z = (actual - mu) / sigma
-            z_scores[component_index] = z
+            if np.isfinite(actual) and np.isfinite(mu) and np.isfinite(sigma) and sigma > eps:
+                z_scores[component_index] = (actual - mu) / sigma
 
-        task_mask = ~np.isnan(z_scores) & (z_scores > self.threshold)
-        nuisance_mask = ~task_mask
+        # Conservative behaviour:
+        # invalid/undefined components are retained.
+        nuisance_mask = np.isfinite(z_scores) & (z_scores <= self.threshold)
+        task_mask = ~nuisance_mask
 
         return ICAClassificationResult(
             task_mask=task_mask,

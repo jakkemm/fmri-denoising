@@ -123,13 +123,12 @@ class ICADenoiser:
         A = U_q @ (np.diag(np.sqrt(lambda_q))) @ Q.T
 
         # Classify Components
+        # TODO: changed task dm to also be prewhitened to operate on the same set of coordinates (1st chat point)
+        # "Before classification, the ICA component time courses and task-related regressors must be represented in the same temporal coordinate system. Since ICA is estimated from temporally prewhitened data, the task-related design matrix is transformed using the same temporal prewhitening transformation before its relationship with the component time courses is evaluated."
         X_task = X[:, run.task_slice]
+        X_task_pw = np.linalg.solve(L, X_task)
 
-        A_original = L @ A
-        classification = self.classifier.classify(
-            A=A_original,
-            X_task=X_task,
-        )
+        classification = self.classifier.classify(A=A, X_task=X_task_pw)
         nuisance_mask = classification.nuisance_mask
 
         self._log(
@@ -140,16 +139,18 @@ class ICADenoiser:
         )
 
         # Reconstruct nuisance
-        # Y_nuis = A_N S_N
+        nuis_original = np.zeros_like(Y, dtype=float)
+        
         if np.any(nuisance_mask):
             nuis_std_pw = A[:, nuisance_mask] @ S[nuisance_mask, :]
+            nuis_pw = nuis_std_pw * voxel_std[0, valid]
+            nuis_original[:, valid] = L @ nuis_pw
+            
+            # undo transformations (voxel standardization and prewhitening)
+            nuis_pw = nuis_std_pw * voxel_std[0, valid]
         else:
-            nuis_std_pw = np.zeros_like(Y, dtype=float)
+            nuis_pw = np.zeros_like(Y, dtype=float)
 
-        # undo transformations (voxel standardization and prewhitening)
-        nuis_pw = nuis_std_pw * voxel_std[0, valid]
-        nuis_original = L @ nuis_pw
-        
         # Remove nuisance from original
         Y_denoised = Y - nuis_original
 
