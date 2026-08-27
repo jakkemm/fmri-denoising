@@ -32,7 +32,7 @@ def pairwise_contrast(positive_category, negative_category):
 def calculate_contrast_t(task_coef, task_covariance_base, residual_variance, contrast):
     contrast = np.asarray(contrast, dtype=float)
 
-    if contrast.shape != task_coef.shape[0]:
+    if contrast.shape[0] != task_coef.shape[0]:
         raise ValueError("Contrast length must equal the number of task regressors.")
 
     effect = contrast @ task_coef
