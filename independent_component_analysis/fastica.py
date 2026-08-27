@@ -74,6 +74,7 @@ class SymmetricFastICA:
         QQT = Q @ Q.T
 
         eigenvalues, eigenvectors = np.linalg.eigh(QQT)
+        eigenvalues = np.maximum(eigenvalues, self.eigenvalue_floor)
 
         inverse_sqrt = eigenvectors * (1.0 / np.sqrt(eigenvalues))[None, :] @ eigenvectors.T
         return inverse_sqrt @ Q
