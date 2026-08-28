@@ -3,6 +3,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from matplotlib import colormaps
+from matplotlib.colors import ListedColormap
 from matplotlib.patches import Patch
 from nilearn.plotting import find_cut_slices, plot_stat_map
 
@@ -21,7 +23,7 @@ def _save_figure(fig, output_path):
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    fig.savefig(output_path, dpi=200, bbox_inches="tight")
+    fig.savefig(output_path, dpi=200, bbox_inches="tight", facecolor=fig.get_facecolor())
 
 def _finite_pair(x, y, mask=None):
     x = np.asarray(x)
@@ -281,53 +283,63 @@ def plot_runtime(fit_runtime_sub, outer_cv_runtime_sub, output_path=None):
     _save_figure(fig, output_path)
     return fig
 
-def _common_abs_vmax(images):
-    vmax = max(
-        np.nanmax(np.abs(image.get_fdata()))
-        for image in images.values()
-    )
+def _common_abs_vmax(images, percentile=100.0):
+    values = []
+
+    for image in images.values():
+        data = image.get_fdata()
+
+        finite = np.abs(data[np.isfinite(data)])
+        finite = finite[finite > 0] # Ignore zero-valued background voxels.
+        if finite.size:
+            values.append(finite)
+
+    if not values:
+        return 1.0
+    values = np.concatenate(values)
     
+    vmax = np.percentile(values, percentile)
+
     if not np.isfinite(vmax) or vmax <= 0:
         return 1.0
     return vmax
 
+
+def _transparent_diverging_cmap(name="RdBu_r", n=256, alpha_power=1.5):
+    """
+    Diverging colormap whose opacity decreases toward zero.
+
+    Large positive/negative values remain fully visible, while
+    values close to zero allow the anatomical background to show.
+    """
+    positions = np.linspace(-1.0, 1.0, n)
+
+    rgba = colormaps[name](np.linspace(0.0, 1.0, n))
+    rgba[:, 3] = np.abs(positions) ** alpha_power
+
+    return ListedColormap(rgba)
+
 def _get_cut_coords(reference_img, mask_img, direction, n_cuts):
-    try:
-        return find_cut_slices(
-            reference_img,
-            direction=direction,
-            n_cuts=n_cuts,
-        )
-    except Exception:
-        # Fallback if the statistical map happens to be nearly empty.
-        return find_cut_slices(
-            mask_img,
-            direction=direction,
-            n_cuts=n_cuts,
-        )
+    return find_cut_slices(
+        reference_img,
+        direction=direction,
+        n_cuts=n_cuts,
+    )
 
-
-def _plot_map_comparison(
-    images,
-    mask_img,
-    background_img,
-    title,
-    threshold,
-    output_path=None,
-    display_mode="z",
-    cut_coords=None,
-    n_cuts=5,
-):
+def _plot_map_comparison(images, mask_img, background_img, title, threshold, output_path=None, display_mode="z", cut_coords=None, n_cuts=5, vmax_percentile=100.0, cmap="RdBu_r"):
     reference_img = images["standard_glm"]
 
     if cut_coords is None:
         cut_coords = _get_cut_coords(reference_img, mask_img, direction=display_mode, n_cuts=n_cuts)
 
-    vmax = _common_abs_vmax(images)
+    vmax = _common_abs_vmax(images, percentile=vmax_percentile)
 
-    fig, axes = plt.subplots(len(METHOD_ORDER), 1, figsize=(13, 9))
+    fig, axes = plt.subplots(len(METHOD_ORDER), 1, figsize=(13, 9), facecolor="black")
 
     for index, method in enumerate(METHOD_ORDER):
+        ax = axes[index]
+        ax.set_facecolor("black")
+
         plot_stat_map(
             stat_map_img=images[method],
             bg_img=background_img,
@@ -336,60 +348,50 @@ def _plot_map_comparison(
             threshold=threshold,
             vmax=vmax,
             symmetric_cbar=True,
-            title=METHOD_LABELS[method],
+            cmap=cmap,
+            black_bg=True,
+            dim=-0.5,
+            title=None,
             annotate=True,
             draw_cross=False,
-            axes=axes[index],
+            colorbar=(index == len(METHOD_ORDER) - 1),
+            axes=ax,
         )
+        ax.set_title(METHOD_LABELS[method], color="white", fontsize=14, loc="left", pad=4)
 
-    fig.suptitle(title, fontsize=14)
-    fig.subplots_adjust(top=0.92, hspace=0.25)
+    fig.suptitle(title, fontsize=18, color="white")
+    fig.subplots_adjust(top=0.93, bottom=0.03, hspace=0.12)
+
     _save_figure(fig, output_path)
     return fig
 
-def plot_beta_map_comparison(
-    result,
-    category,
-    mask_img,
-    t1_img,
-    output_path=None,
-    display_mode="z",
-    cut_coords=None,
-    n_cuts=5,
-):
+def plot_beta_map_comparison(result, category, mask_img, t1_img, output_path=None, display_mode="z", cut_coords=None, n_cuts=5):
     images = {
         method: beta_to_img(
-            task_coef=(result.final_task_coef[method]),
+            task_coef=result.final_task_coef[method],
             category=category,
             mask_img=mask_img,
         )
         for method in METHOD_ORDER
     }
 
+    beta_cmap = _transparent_diverging_cmap(name="RdBu_r", alpha_power=1.0)
+
     return _plot_map_comparison(
         images=images,
         mask_img=mask_img,
         background_img=t1_img,
-        title=(f"Beta maps: {category}"),
-        threshold=None,     # Do not threshold beta estimates
+        title=f"Beta maps: {category}",
+        threshold=None,
         output_path=output_path,
         display_mode=display_mode,
         cut_coords=cut_coords,
         n_cuts=n_cuts,
+        vmax_percentile=99.0,   # Avoid one extreme voxel destroying contrast in the entire map.
+        cmap=beta_cmap,
     )
 
-def plot_contrast_t_map_comparison(
-    result,
-    contrast,
-    contrast_name,
-    mask_img,
-    t1_img,
-    threshold=3.0,
-    output_path=None,
-    display_mode="z",
-    cut_coords=None,
-    n_cuts=5,
-):
+def plot_contrast_t_map_comparison(result, contrast, contrast_name, mask_img, t1_img, threshold=3.0, output_path=None, display_mode="z", cut_coords=None, n_cuts=5):
     images = {}
 
     for method in METHOD_ORDER:
@@ -411,6 +413,8 @@ def plot_contrast_t_map_comparison(
         display_mode=display_mode,
         cut_coords=cut_coords,
         n_cuts=n_cuts,
+        vmax_percentile=100.0,
+        cmap="RdBu_r",
     )
 
 def plot_pca_selected_components(cv_scores_sub, best_num_sub, output_path=None):
