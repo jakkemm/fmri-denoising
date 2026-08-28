@@ -4,6 +4,7 @@ __pycache__
 figures
 examples
 *.pkl
+results/plots/*
 
 # .tex build artifacts
 *.aux
