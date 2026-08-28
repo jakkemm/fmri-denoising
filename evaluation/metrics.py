@@ -115,38 +115,3 @@ def normalize_subject_performance(median_r2, standard_name="standard_glm"):
         for method, score in median_r2.items()
     }
     return result
-
-def average_normalized_performance(normalized_by_subject):
-    methods = normalized_by_subject[0].keys()
-
-    return {
-        method: np.nanmean([subject_result[method] for subject_result in normalized_by_subject])
-        for method in methods
-    }
-
-def summarize_normalized_performance(normalized_by_subject):
-    methods = tuple(normalized_by_subject[0].keys())
-    mean_performance = {}
-    sem_performance = {}
-
-    for method in methods:
-        values = np.asarray([
-            subject_result[method]
-            for subject_result in normalized_by_subject
-        ], dtype=float)
-
-        finite_values = values[np.isfinite(values)]
-
-        if finite_values.size == 0:
-            mean_performance[method] = np.nan
-            sem_performance[method] = np.nan
-            continue
-
-        mean_performance[method] = np.mean(finite_values)
-
-        if finite_values.size > 1:
-            sem_performance[method] = np.std(finite_values, ddof=1) / np.sqrt(finite_values.size)
-        else:
-            sem_performance[method] = 0.0
-
-    return mean_performance, sem_performance
