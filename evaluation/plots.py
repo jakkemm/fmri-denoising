@@ -2,6 +2,8 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
+from matplotlib.patches import Patch
 from nilearn.plotting import find_cut_slices, plot_stat_map
 
 from evaluation.maps import beta_to_img, contrast_t_to_img
@@ -13,6 +15,7 @@ METHOD_LABELS = {
     "ica": "ICA",
 }
 
+sns.set_theme()
 
 def _save_figure(fig, output_path):
     output_path = Path(output_path)
@@ -82,116 +85,132 @@ def plot_r2_scatter(r2_per_voxel, candidate_mask, output_path=None):
     _save_figure(fig, output_path)
     return fig
 
-def plot_delta_r2_distribution(delta_r2_vs_standard, candidate_mask, output_path=None):
-    """
-    Distribution of voxelwise improvement over
-    Standard GLM.
+def plot_delta_r2_distribution(delta_r2_vs_standard_sub, candidate_mask_sub, method, output_path=None):
+    subjects = list(delta_r2_vs_standard_sub.keys())
+    fig, axes = plt.subplots(1, len(subjects), figsize=(3.2 * len(subjects), 4.5), constrained_layout=True, sharey=True)
 
-    Values are percentage points.
-    """
+    for ax, subject in zip(axes, subjects):
+        delta = delta_r2_vs_standard_sub[subject][method][candidate_mask_sub[subject]] * 100.0
 
-    methods = ("glm_pca", "ica")
-
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.5), constrained_layout=True)
-
-    for ax, method in zip(axes, methods):
-        delta = delta_r2_vs_standard[method][candidate_mask] * 100.0
         delta = delta[np.isfinite(delta)]
         median = np.median(delta)
 
-        ax.hist(delta, bins=60)
-        ax.axvline(0.0, linestyle="--", linewidth=1)
-        ax.axvline(median, linestyle=":", linewidth=1.5, label=f"median = {median:.4f} pp")
-        ax.set_xlabel("$\\Delta R^2$ vs Standard GLM (percentage points)")
-        ax.set_ylabel("Number of voxels")
-        ax.set_title(METHOD_LABELS[method])
-        ax.legend()
-        ax.grid(alpha=0.2)
+        ax.hist(delta, bins="sqrt", color="C0", alpha=0.85, edgecolor="white")
+        ax.axvline(0.0, linestyle="--", linewidth=1, color="black")
+        ax.axvline(median, linestyle=":", linewidth=1.5, color="C0", label=f"median = {median:.4f} pp")
 
-    fig.suptitle("Voxelwise change in prediction accuracy")
+        ax.set_title(subject)
+        ax.grid(alpha=0.2)
+        ax.legend()
+
+    axes[0].set_ylabel("Number of voxels")
+
+    for ax in axes:
+        ax.set_xlabel(r"$\Delta R^2$ vs Standard GLM (pp)")
+
+    fig.suptitle(f"Voxelwise change in prediction accuracy: {METHOD_LABELS[method]}")
     _save_figure(fig, output_path)
     return fig
 
+def plot_binned_r2_improvement(r2_per_voxel_sub, candidate_mask_sub, method, bin_width_pp=10.0, output_path=None):
+    subjects = list(r2_per_voxel_sub.keys())
+    n_subjects = len(subjects)
 
-def plot_binned_r2_improvement(r2_per_voxel, candidate_mask, bin_width_pp=5.0, output_path=None):
-    """
-    Similar in spirit to Figure 4B of GLMdenoise.
+    all_baseline = []
 
-    Voxels are binned according to Standard GLM
-    R2 and improvement is summarized inside bins.
-    """
+    for subject in subjects:
+        standard = r2_per_voxel_sub[subject]["standard_glm"] * 100.0
+        method_r2 = r2_per_voxel_sub[subject][method] * 100.0
+        candidate_mask = candidate_mask_sub[subject]
 
-    standard = r2_per_voxel["standard_glm"] * 100.0
-    methods = ("glm_pca", "ica")
+        baseline, _ = _finite_pair(standard, method_r2, candidate_mask)
+        if baseline.size > 0:
+            all_baseline.append(baseline)
 
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.5), constrained_layout=True)
+    all_baseline = np.concatenate(all_baseline)
+    minimum = np.floor(np.min(all_baseline) / bin_width_pp) * bin_width_pp
+    maximum = np.ceil(np.max(all_baseline) / bin_width_pp) * bin_width_pp
 
-    for ax, method in zip(axes, methods):
-        method_r2 = r2_per_voxel[method] * 100.0
-        
+    bins = np.arange(minimum, maximum + bin_width_pp, bin_width_pp)
+    centers = (bins[:-1] + bins[1:]) / 2.0
+
+    fig, ax = plt.subplots(figsize=(10, 5), constrained_layout=True)
+
+    group_width = 0.5 * bin_width_pp
+    offsets = np.linspace(-group_width / 2, group_width / 2, n_subjects)
+    colors = plt.cm.Dark2(np.arange(n_subjects))
+
+    for subject_index, subject in enumerate(subjects):
+        standard = r2_per_voxel_sub[subject]["standard_glm"] * 100.0
+        method_r2 = r2_per_voxel_sub[subject][method] * 100.0
+        candidate_mask = candidate_mask_sub[subject]
+
         baseline, denoised = _finite_pair(standard, method_r2, candidate_mask)
         improvement = denoised - baseline
+        plotted_label = False
 
-        minimum = np.floor(np.min(baseline) / bin_width_pp) * bin_width_pp
-        maximum = np.ceil(np.max(baseline) / bin_width_pp) * bin_width_pp
-        bins = np.arange(minimum, maximum + bin_width_pp, bin_width_pp)
-
-        centers = []
-        medians = []
-        lower_ranges = []
-        upper_ranges = []
-
-        for left, right in zip(bins[:-1], bins[1:]):
+        for bin_index, (left, right) in enumerate(zip(bins[:-1], bins[1:])):
             mask = (baseline >= left) & (baseline < right)
 
-            # Ignore nearly empty bins.
             if np.sum(mask) < 5:
                 continue
 
             values = improvement[mask]
+
             median = np.median(values)
             low, high = np.percentile(values, [2.5, 97.5])
 
-            centers.append((left + right) / 2.0)
-            medians.append(median)
+            x = centers[bin_index] + offsets[subject_index]
 
-            lower_ranges.append(median - low)
-            upper_ranges.append(high - median)
+            ax.vlines(x, low, high, linewidth=5, color=colors[subject_index], label=subject if not plotted_label else None)
+            ax.scatter(x, median, s=18, color=colors[subject_index], zorder=3)
+            plotted_label = True
 
-        centers = np.asarray(centers)
-        medians = np.asarray(medians)
+    ax.axhline(0.0, linestyle="--", linewidth=1)
 
-        ax.errorbar(centers, medians, yerr=[lower_ranges, upper_ranges], marker="o", linewidth=1, capsize=2)
-        ax.axhline(0.0, linestyle="--", linewidth=1)
-        ax.set_xlabel(r"Standard GLM outer-CV $R^2$ $(\%)$")
-        ax.set_ylabel(r"$\Delta R^2$ (percentage points)")
-        ax.set_title(METHOD_LABELS[method])
-        ax.grid(alpha=0.2)
+    ax.set_xlabel(r"Standard GLM outer-CV $R^2$ $(\%)$")
+    ax.set_ylabel(r"$\Delta R^2$ (percentage points)")
+    ax.set_title(f"Improvement as a function of baseline accuracy: {METHOD_LABELS[method]}")
+    ax.grid(alpha=0.5)
+    ax.legend(title="Subject", loc="lower right" if method == "ica" else "upper right")
 
-    fig.suptitle("Improvement as a function of baseline accuracy")
     _save_figure(fig, output_path)
     return fig
 
-def plot_median_r2(median_r2, output_path=None):
-    values = [median_r2[method] * 100.0 for method in METHOD_ORDER]
-    labels = [METHOD_LABELS[method] for method in METHOD_ORDER]
+def plot_median_r2(median_r2_sub, output_path=None):
+    subjects = list(median_r2_sub.keys())
+    n_subjects = len(subjects)
 
-    fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)
+    x = np.arange(n_subjects)
+    group_width = 0.8
+    bar_width = group_width / len(METHOD_ORDER)
 
-    bars = ax.bar(labels, values)
+    fig, ax = plt.subplots(figsize=(10, 5), constrained_layout=True)
+
+    for method_index, method in enumerate(METHOD_ORDER):
+        values = np.asarray([median_r2_sub[subject][method] * 100.0 for subject in subjects])
+        
+        positions = x - group_width / 2 + (method_index + 0.5) * bar_width
+        bars = ax.bar(positions, values, width=bar_width * 0.9, label=METHOD_LABELS[method])
+
+        for bar, value in zip(bars, values):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                value,
+                f"{value:.2f}",
+                ha="center",
+                va="bottom" if value >= 0 else "top",
+                fontsize=8,
+            )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(subjects)
+    ax.set_xlabel("Subject")
     ax.set_ylabel(r"Median outer-CV $R^2$ $(\%)$")
-    ax.set_title("Median prediction accuracy")
+    ax.set_title("Median prediction accuracy across subjects")
     ax.axhline(0.0, linewidth=1)
     ax.grid(axis="y", alpha=0.2)
-
-    for bar, value in zip(bars, values):
-        ax.text(
-            bar.get_x() + bar.get_width() / 2, 
-            value, 
-            f"{value:.4f}", 
-            ha="center", 
-            va="bottom" if value >= 0 else "top"
-        )
+    ax.legend()
 
     _save_figure(fig, output_path)
     return fig
@@ -227,24 +246,36 @@ def plot_snr_scatter(snr_by_method, candidate_mask, output_path=None):
     _save_figure(fig, output_path)
     return fig
 
-def plot_runtime(fit_runtime_seconds, outer_cv_runtime_seconds, output_path=None):
-    labels = [METHOD_LABELS[method] for method in METHOD_ORDER]
-    fit_values = [fit_runtime_seconds[method] for method in METHOD_ORDER]
-    outer_values = [outer_cv_runtime_seconds[method] for method in METHOD_ORDER]
+def plot_runtime(fit_runtime_sub, outer_cv_runtime_sub, output_path=None):
+    subjects = list(fit_runtime_sub.keys())
+    n_subjects = len(subjects)
 
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.5), constrained_layout=True)
+    x = np.arange(n_subjects)
+    group_width = 0.8
+    bar_width = group_width / len(METHOD_ORDER)
 
-    axes[0].bar(labels, fit_values)
-    axes[0].set_ylabel("Runtime (s)")
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5), constrained_layout=True)
+
+    for method_index, method in enumerate(METHOD_ORDER):
+        positions = x - group_width / 2 + (method_index + 0.5) * bar_width
+
+        fit_values = np.asarray([fit_runtime_sub[subject][method] for subject in subjects])
+        outer_values = np.asarray([outer_cv_runtime_sub[subject][method] for subject in subjects])
+
+        axes[0].bar(positions, fit_values, width=bar_width, label=METHOD_LABELS[method])
+        axes[1].bar(positions, outer_values, width=bar_width, label=METHOD_LABELS[method])
+
+    for ax in axes:
+        ax.set_xticks(x)
+        ax.set_xticklabels(subjects)
+        ax.set_xlabel("Subject")
+        ax.set_ylabel("Runtime (s)")
+        ax.set_yscale("log")
+        ax.grid(axis="y", alpha=0.2)
+
     axes[0].set_title("Full-data fit")
-    axes[0].tick_params(axis="x", rotation=15)
-    axes[0].grid(axis="y", alpha=0.2)
-    
-    axes[1].bar(labels, outer_values)
-    axes[1].set_ylabel("Runtime (s)")
     axes[1].set_title("Outer-CV benchmark")
-    axes[1].tick_params(axis="x", rotation=15)
-    axes[1].grid(axis="y", alpha=0.2)
+    axes[1].legend()
 
     fig.suptitle("Computational runtime")
     _save_figure(fig, output_path)
@@ -308,7 +339,6 @@ def _plot_map_comparison(
             title=METHOD_LABELS[method],
             annotate=True,
             draw_cross=False,
-            colorbar=(index == len(METHOD_ORDER) - 1),
             axes=axes[index],
         )
 
@@ -383,19 +413,113 @@ def plot_contrast_t_map_comparison(
         n_cuts=n_cuts,
     )
 
-def plot_normalized_performance(mean_performance, sem_performance, output_path=None):
-    labels = [METHOD_LABELS[method] for method in METHOD_ORDER]
-    means = [mean_performance[method] for method in METHOD_ORDER]
-    errors = [sem_performance[method] for method in METHOD_ORDER]
-
-    fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)
-
-    ax.bar(labels, means, yerr=errors, capsize=4)
-    ax.axhline(0.0, linewidth=1)
-
-    ax.set_ylabel("Normalized performance")
-    ax.set_title("Mean normalized performance across subjects")
-    ax.grid(axis="y", alpha=0.2)
+def plot_pca_selected_components(cv_scores_sub, best_num_sub, output_path=None):
     
+    fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)
+    
+    for subject, r2_scores in cv_scores_sub.items():
+        n_components = np.asarray(list(r2_scores.keys()))
+        scores = np.asarray(list(r2_scores.values())) * 100.0
+
+        best_n = best_num_sub[subject]
+        best_score = r2_scores[best_n] * 100.0
+
+        ax.plot(n_components, scores, linewidth=2, label=subject)
+        ax.scatter(best_n, best_score, s=50)
+
+    ax.set_xlabel("Number of PCA noise regressors")
+    ax.set_ylabel(r"Cross-validated $R^2$ (%)")
+    ax.set_title("Selection of PCA noise regressors")
+    ax.set_xticks(n_components)
+    ax.set_xticklabels(n_components)
+    ax.grid(alpha=0.7)
+    ax.legend()
+
     _save_figure(fig, output_path)
+    return fig
+
+def plot_ica_selected_components(q_by_run_sub, n_task_by_run_sub, n_nuisance_by_run_sub, output_path=None):
+    subjects = list(q_by_run_sub.keys())
+    n_subjects = len(subjects)
+
+    group_centers = np.arange(n_subjects)
+    group_width = 0.8
+
+    # Dark = task, light = nuisance
+    task_color = "#2F5D8A"
+    nuisance_color = "#A9C5E8"
+
+    fig, ax = plt.subplots(
+        figsize=(10, 5),
+        constrained_layout=True,
+    )
+
+    for subject_index, subject in enumerate(subjects):
+        task_runs = np.asarray(n_task_by_run_sub[subject])
+        nuisance_runs = np.asarray(n_nuisance_by_run_sub[subject])
+
+        n_runs = len(task_runs)
+        bar_width = group_width / n_runs
+        run_positions = group_centers[subject_index] - group_width / 2 + (np.arange(n_runs) + 0.5) * bar_width
+
+        ax.bar(run_positions, task_runs, width=bar_width * 0.95, color=task_color, edgecolor="black", linewidth=0.3)
+        ax.bar(run_positions, nuisance_runs, width=bar_width * 0.95, bottom=task_runs, color=nuisance_color, edgecolor="black", linewidth=0.3)
+
+    ax.set_xticks(group_centers)
+    ax.set_xticklabels(subjects)
+
+    for i in range(n_subjects - 1):
+        ax.axvline(i + 0.5, linestyle="--", linewidth=0.8, alpha=0.3)
+
+    legend_handles = [
+        Patch(facecolor=task_color, edgecolor="black", label="Task-related"),
+        Patch(facecolor=nuisance_color, edgecolor="black", label="Nuisance"),
+    ]
+    ax.legend(handles=legend_handles, title="Component type", loc="lower right")
+    ax.set_xlabel("Subject")
+    ax.set_ylabel("Number of ICA components")
+    ax.set_title("ICA component classification across runs and subjects")
+    ax.grid(axis="y", alpha=0.2)
+
+    _save_figure(fig, output_path)
+    return fig
+
+def plot_ica_z_scores(z_scores_by_run_sub, threshold=0.0, output_path=None):
+    rng = np.random.default_rng(42)
+    subjects = list(z_scores_by_run_sub.keys())
+
+    fig, ax = plt.subplots(figsize=(9, 5), constrained_layout=True)
+
+    for subject_index, subject in enumerate(subjects):
+        z_scores = np.concatenate([np.asarray(z_run) for z_run in z_scores_by_run_sub[subject]])
+        z_scores = z_scores[np.isfinite(z_scores)]
+
+        group_width = 0.7
+
+        n_runs = len(z_scores_by_run_sub[subject])
+        run_offsets = np.linspace(-group_width / 2, group_width / 2, n_runs)
+
+        for run_index, z_run in enumerate(z_scores_by_run_sub[subject]):
+            z_run = np.asarray(z_run)
+            z_run = z_run[np.isfinite(z_run)]
+
+            local_jitter = rng.uniform(-0.015, 0.015, size=len(z_run))
+            x = subject_index + run_offsets[run_index] + local_jitter
+
+            ax.scatter(x, z_run, s=8, alpha=0.25)
+
+    ax.axhline(threshold, linestyle="--", linewidth=1.2, label=rf"Classification threshold $c={threshold:g}$")
+    ax.axhspan(ax.get_ylim()[0], threshold, alpha=0.2, label="Noise classification area")
+
+    ax.set_xticks(np.arange(len(subjects)))
+    ax.set_xticklabels(subjects)
+
+    ax.set_xlabel("Subject")
+    ax.set_ylabel(r"Task-association $z$-score")
+    ax.set_title("ICA component task-association scores")
+    ax.grid(axis="y", alpha=0.2)
+    ax.legend()
+
+    _save_figure(fig, output_path)
+    
     return fig

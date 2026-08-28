@@ -4,15 +4,16 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 from evaluation.maps import pairwise_contrast
-from evaluation.metrics import summarize_normalized_performance
 from evaluation.pipeline import SubjectEvaluationResult
 from evaluation.plots import (
     plot_beta_map_comparison,
     plot_binned_r2_improvement,
     plot_contrast_t_map_comparison,
     plot_delta_r2_distribution,
+    plot_ica_selected_components,
+    plot_ica_z_scores,
     plot_median_r2,
-    plot_normalized_performance,
+    plot_pca_selected_components,
     plot_r2_scatter,
     plot_runtime,
     plot_snr_scatter,
@@ -21,6 +22,7 @@ from main import BASE_PATH
 from utils.load_data import dataclass_from_pickle, load_data
 
 RESULTS_PATH = Path.cwd() / "results"
+SUBJECTS = [f"sub-{i}" for i in range(1, 7)]
 
 
 def load_evaluation_result(subject):
@@ -47,43 +49,11 @@ def plot_subject(subject, beta_category="face", positive_contrast="face", negati
     )
     _close(fig)
 
-    # Delta R2 distribution
-    fig = plot_delta_r2_distribution(
-        delta_r2_vs_standard=result.delta_r2_vs_standard,
-        candidate_mask=result.candidate_mask,
-        output_path=output_dir / "delta_r2_distribution.png"
-    )
-    _close(fig)
-
-    # Binned R2 improvement
-    fig = plot_binned_r2_improvement(
-        r2_per_voxel=result.r2_per_voxel,
-        candidate_mask=result.candidate_mask,
-        bin_width_pp=10.0,  # TODO: consider changing this to 5.0 if R2 range is narrower
-        output_path=output_dir / "r2_improvement_binned.png"
-    )
-    _close(fig)
-    
-    # Median R2
-    fig = plot_median_r2(
-        median_r2=result.median_r2,
-        output_path=output_dir / "median_r2.png"
-    )
-    _close(fig)
-
     # Jackknife SNR
     fig = plot_snr_scatter(
         snr_by_method=result.jackknife_snr,
         candidate_mask=result.candidate_mask,
         output_path=output_dir / "snr_scatter.png"
-    )
-    _close(fig)
-
-    # Runtime
-    fig = plot_runtime(
-        fit_runtime_seconds=result.fit_runtime_seconds,
-        outer_cv_runtime_seconds=result.outer_cv_runtime_seconds,
-        output_path=output_dir / "runtime.png"
     )
     _close(fig)
 
@@ -121,51 +91,141 @@ def plot_subject(subject, beta_category="face", positive_contrast="face", negati
     
     print(f"Plots saved to: {output_dir}")
 
-
-def plot_group(subjects):
-    normalized_by_subject = []
-
-    for subject in subjects:
+def plot_groups_statistics():
+    median_r2_sub = {}
+    fit_runtime_sub = {}
+    outer_cv_runtime_sub = {}
+    candidate_mask_sub = {}
+    r2_per_voxel_sub = {}
+    delta_r2_vs_standard_sub = {}
+    
+    for subject in SUBJECTS:
         result = load_evaluation_result(subject)
-        normalized_by_subject.append(result.normalized_performance)
-
-        mean_performance, sem_performance = summarize_normalized_performance(normalized_by_subject)
-
+        
+        median_r2_sub[subject] = result.median_r2
+        fit_runtime_sub[subject] = result.fit_runtime_seconds
+        outer_cv_runtime_sub[subject] = result.outer_cv_runtime_seconds
+        candidate_mask_sub[subject] = result.candidate_mask
+        r2_per_voxel_sub[subject] = result.r2_per_voxel
+        delta_r2_vs_standard_sub[subject] = result.delta_r2_vs_standard
+    
     output_dir = RESULTS_PATH / "plots" / "group"
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    fig = plot_normalized_performance(
-        mean_performance=mean_performance,
-        sem_performance=sem_performance,
-        output_path=output_dir / "normalized_performance.png"
+    
+    fig = plot_median_r2(
+        median_r2_sub=median_r2_sub,
+        output_path=output_dir / "median_r2.png"
+    )
+    _close(fig)
+    
+    fig = plot_runtime(
+        fit_runtime_sub=fit_runtime_sub,
+        outer_cv_runtime_sub=outer_cv_runtime_sub,
+        output_path=output_dir / "runtime.png"
     )
     _close(fig)
 
-    print("Mean normalized performance:")
+    fig = plot_binned_r2_improvement(
+        r2_per_voxel_sub=r2_per_voxel_sub,
+        candidate_mask_sub=candidate_mask_sub,
+        method="glm_pca",
+        bin_width_pp=10.0,
+        output_path=output_dir / "r2_improvement_binned_glm_pca.png"
+    )
+    _close(fig)
+    
+    fig = plot_binned_r2_improvement(
+        r2_per_voxel_sub=r2_per_voxel_sub,
+        candidate_mask_sub=candidate_mask_sub,
+        method="ica",
+        bin_width_pp=10.0,
+        output_path=output_dir / "r2_improvement_binned_ica.png"
+    )
+    _close(fig)
 
-    for method, value in mean_performance.items():
-        print(f"  {method}: {value:.4f}")
+    fig = plot_delta_r2_distribution(
+        delta_r2_vs_standard_sub=delta_r2_vs_standard_sub,
+        candidate_mask_sub=candidate_mask_sub,
+        method="glm_pca",
+        output_path=output_dir / "delta_r2_distribution_glm_pca.png"
+    )
+    _close(fig)
+    
+    fig = plot_delta_r2_distribution(
+        delta_r2_vs_standard_sub=delta_r2_vs_standard_sub,
+        candidate_mask_sub=candidate_mask_sub,
+        method="ica",
+        output_path=output_dir / "delta_r2_distribution_ica.png"
+    )
+    _close(fig)
+
+def plot_component_comparison():
+    pca_cv_scores = {}
+    pca_best_component = {}
+    ica_model_order = {}
+    ica_n_task = {}
+    ica_n_nuis = {}
+    ica_z_scores = {}
+    
+    for subject in SUBJECTS:
+        result = load_evaluation_result(subject)
+        
+        pca_cv_scores[subject] = result.final_method_specific_data["glm_pca"]["cv_scores"]
+        pca_best_component[subject] = result.final_method_specific_data["glm_pca"]["selected_n_components"]
+        ica_model_order[subject] = result.final_method_specific_data["ica"]["q_by_run"]
+        ica_n_task[subject] = result.final_method_specific_data["ica"]["n_task_by_run"]
+        ica_n_nuis[subject] = result.final_method_specific_data["ica"]["n_nuisance_by_run"]
+        ica_z_scores[subject] = result.final_method_specific_data["ica"]["z_scores_by_run"]
+        
+    output_dir = RESULTS_PATH / "plots" / "group"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    fig = plot_pca_selected_components(
+        cv_scores_sub=pca_cv_scores,
+        best_num_sub=pca_best_component,
+        output_path=output_dir / "pca_component_comparison.png"
+    )
+    _close(fig)
+    
+    fig = plot_ica_selected_components(
+        q_by_run_sub=ica_model_order,
+        n_task_by_run_sub=ica_n_task,
+        n_nuisance_by_run_sub=ica_n_nuis,
+        output_path=output_dir / "ica_component_comparison.png"
+    )
+    _close(fig)
+    
+    fig = plot_ica_z_scores(
+        z_scores_by_run_sub=ica_z_scores,
+        threshold=0.0,
+        output_path=output_dir / "ica_z_scores_comparison.png"
+    )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--subject", type=str)
-    parser.add_argument("--subjects", nargs="+")
     parser.add_argument("--beta_category", type=str, default="face")
     parser.add_argument("--contrast", nargs=2, default=["face", "scrambledpix"], metavar=("POSITIVE", "NEGATIVE"))
     parser.add_argument("--cuts", nargs="+", type=float, default=None)
+    
+    parser.add_argument("--individual", action="store_true")
+    parser.add_argument("--group", action="store_true")
+    parser.add_argument("--components", action="store_true")
 
     args = parser.parse_args()
 
-    if args.subject is not None:
-        plot_subject(
-            subject=args.subject,
-            beta_category=args.beta_category,
-            positive_contrast=args.contrast[0],
-            negative_contrast=args.contrast[1],
-            cut_coords=args.cuts
-        )
+    if args.individual:
+        for subject in SUBJECTS:
+            plot_subject(
+                subject=subject,
+                beta_category=args.beta_category,
+                positive_contrast=args.contrast[0],
+                negative_contrast=args.contrast[1],
+                cut_coords=args.cuts
+            )
 
-    if args.subjects is not None:
-        plot_group(subjects=args.subjects)
+    if args.group:
+        plot_groups_statistics()
+    if args.components:
+        plot_component_comparison()
