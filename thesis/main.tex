@@ -254,15 +254,14 @@ where $X$, $Y$, and $Z$ represent the spatial dimensions and $T$ represents the 
 The event files contain the columns \verb|onset|, \verb|duration|, and \verb|trial_type|. The \verb|onset| value gives the time of a stimulus presentation in seconds relative to the beginning of the corresponding run. The \verb|duration| value specifies how long the stimulus was displayed, while \verb|trial_type| identifies its category.
 
 \section{Caveats related to the dataset}
+\label{section:caveats}
 
-
-% NOTE: dodac zrodlo o CV i tego na co pozwala
 The experimental conditions were repeated across 12 runs. This makes leave-one-run-out cross-validation possible. For a single cross-validation fold, the 12 runs are split into two datasets:
 \begin{enumerate}
     \item training dataset, consisting of 11 runs,
     \item test dataset, consisting of the left-out run.
 \end{enumerate}
-For each fold data from one run is used as a test dataset, until data from all 12 runs are used as a test dataset, i.e. left-out run. 12 runs means 12 cross-validation folds. This allows for clearer evaluation of the fitted model and can support the selection of model parameters. \ts{(potrzebne źródło)} The multiple-run structure may also help identify run-specific noise effects. The detailed description and implementation of this framework will be explained in the later chapters.
+For each fold data from one run is used as a test dataset, until data from all 12 runs are used as a test dataset, i.e. left-out run. 12 runs means 12 cross-validation folds. This allows the predictive performance of the fitted model to be evaluated on data not used during estimation \cite{glm-denoise}. The multiple-run structure may also help identify run-specific noise effects. The detailed description and implementation of this framework will be explained in the later chapters.
 
 The dataset does not provide a noise-free reference image or a known true BOLD signal. The quality of denoising must therefore be evaluated indirectly using criteria such as: \ts{(dodac zrodla po ewaluacji)}
 
@@ -274,7 +273,8 @@ The dataset does not provide a noise-free reference image or a known true BOLD s
     \item reduction of anatomically impossible spatial patterns.
 \end{itemize}
 
-The dataset has also a few limitations. It contains only six participants and was acquired using an older method with relatively coarse spatial and temporal resolution. It represents one specific visual experiment with a block design. Therefore conclusions obtained using this dataset may not generalize directly to other conditions (like event-related designs, resting-state data, or experiments involving different processes). Furthermore, the dataset does not include separate respiratory or cardiac recordings commonly provided in the BIDS structure \cite{BIDS}, that could be used to construct physiological nuisance regressors.
+% ZMIANA: doczytalem, ze jest jeden run dla 5-go partycypanta byl wadliwy i zostal wyrzucony z datasetu
+The dataset has also a few limitations. It contains only six participants and was acquired using an older method with relatively coarse spatial and temporal resolution. It represents one specific visual experiment with a block design. Therefore conclusions obtained using this dataset may not generalize directly to other conditions (like event-related designs, resting-state data, or experiments involving different processes). Furthermore, one run was deemed as faulty during data acquisition for 5th subject. This run is absent in the final dataset, bringing the number of runs for said subject from 12 to 11. Lastly, the dataset does not include separate respiratory or cardiac recordings commonly provided in the BIDS structure \cite{BIDS}, that could be used to construct physiological nuisance regressors.
 
 Nevertheless, the repeated and clearly defined experimental structure makes the dataset useful for comparing denoising methods. In particular, the presence of 12 runs per participant supports within-subject cross-validation and the evaluation of the stability of task-related estimates.
 
@@ -311,13 +311,11 @@ where $t=n_T$ denotes the number of time points, $v$ denotes the number of units
 
 The possibility of describing the selected methods within a related mathematical framework is one of the main reasons for their selection. Their comparison allows the following aspects to be studied:
 
-% sprawdzic, czy faktyzcnie mam napisane, ze to co wybieram to hiperparametry
 \begin{itemize}
     \item the role of the design matrix;
     \item the role of nuisance regressors;
     \item dimensionality reduction;
-    \item separation of signal and noise;
-    \item selection of hyperparameters.
+    \item separation of signal and noise.
 \end{itemize}
 
 Chapters \ref{chapter:glm} and \ref{chapter:ica} introduce the mathematical foundations of each method, the assumptions on which it is based, and its possible role in fMRI denoising.
@@ -578,11 +576,13 @@ Thus, the transformed errors are uncorrelated and have equal variance. OLS can t
 
 \begin{equation}
     \begin{aligned}
-        \widehat{\boldsymbol{\beta}}_{\mathrm{GLS}} &= \left[ \left( \mathbf{X}^{\ast} \right)^T \mathbf{X}^{\ast} \right]^{-1} \left( \mathbf{X}^{\ast} \right)^T \mathbf{y}^{\ast} \\
+        \widehat{\boldsymbol{\beta}}_{\mathrm{GLS}} 
+        &= \left[ \left( \mathbf{X}^{\ast} \right)^T \mathbf{X}^{\ast} \right]^{-1} \left( \mathbf{X}^{\ast} \right)^T \mathbf{y}^{\ast} \\
         &= \left[ \left( \mathbf{V}^{-1/2} \mathbf{X} \right)^T \mathbf{V}^{-1/2} \mathbf{X} \right]^{-1} \left( \mathbf{V}^{-1/2} \mathbf{X} \right)^T \mathbf{V}^{-1/2} \mathbf{y} \\
         &= \left[  \mathbf{X}^T \mathbf{V}^{-1/2} \mathbf{V}^{-1/2} \mathbf{X} \right]^{-1} \mathbf{X}^T \mathbf{V}^{-1/2} \mathbf{V}^{-1/2} \mathbf{y} \\
         &= \left( \mathbf{X}^T \mathbf{V}^{-1} \mathbf{X} \right)^{-1} \mathbf{X}^T \mathbf{V}^{-1} \mathbf{y}.
     \end{aligned}
+    \label{eq:gls-estimator}
 \end{equation}
 
 This is the Generalized Least Squares (GLS) estimator of $\boldsymbol{\beta}$ \cite[Equation 2.12]{agresti}. The transformation of the data and design matrix by $\mathbf{V}^{-1/2}$ is referred to as \textit{prewhitening}. The term was coined in \cite[p. 215]{prewhitening} and it refers to the data transformation, resembling white noise, hence the term prewhitening. Below are the definitions of both \textit{white} random vector and \textit{prewhitening}, which follow the terminology used in \cite{ica}. 
@@ -614,11 +614,12 @@ such that
 $$ \operatorname{Cov}(\mathbf{z}) = \mathbf{I}. $$
 \end{definition}
 
-If the covariance structure $\mathbf{V}$ is correctly specified and known, GLS provides the Best Linear Unbiased Estimator (BLUE) of the regression coefficients \cite{agresti}\cite{woolrich-temporal-autocorrelation}\cite{bullmore-fmri-estimation}.
+If the covariance structure $\mathbf{V}$ is correctly specified and known, GLS provides the Best Linear Unbiased Estimator (BLUE) of the regression coefficients \cite{agresti, woolrich-temporal-autocorrelation, bullmore-fmri-estimation}.
 
 In practice, $\mathbf{V}$ is unknown and must be estimated from the data. From this, the resulting procedure is described as Feasible Generalized Least Squares (FGLS) \cite{fgls}. The estimation of the \textit{temporal covariance} structure, including its possible autoregressive representation, is discussed in a later section. Here, temporal covariance refers to the covariance between regression errors at different time points.
 
 \subsection{Covariance of the prewhitened residuals}
+\label{section:covariance-residuals}
 
 The subsequent calculations follow \cite[Chapter 2.7]{agresti}. Let the hat matrix derived from Equation~\eqref{eq:hat-matrix} for the transformed model be
 
@@ -749,7 +750,8 @@ In order to estimate the autoregressive parameter $\phi$ we can use OLS to the A
 finally obtaining:
 
 \begin{equation}
-    \widehat{\phi} = \frac{\sum_{t=2}^{n} e_t e_{t-1} }{\sum_{t=2}^{n}e_{t-1}^2 }.
+    \widehat{\phi} = \frac{\sum_{t=2}^{n} e_t e_{t-1} }{\sum_{t=2}^{n}e_{t-1}^2}.
+    \label{eq:phi-estimation}
 \end{equation}
 
 The estimated temporal correlation matrix is then constructed from the estimated autoregressive parameter
@@ -759,7 +761,8 @@ The estimated temporal correlation matrix is then constructed from the estimated
     \label{eq:estimated-ar1-covariance}
 \end{equation}
 
-This estimated covariance matrix $\widehat{\mathbf{V}}$ can now be used in the prewhitening transformation from Equation~\eqref{eq:prewhitening-transform}:
+% ZMIANA: poprzednia metoda tworzyla dosc odbiegajace wyniki, wiec wprowadzilem metode, ktora estymuje phi z mediany wszystkich phi dla wszystkich voxeli
+There are several ways, that a covariance matrix can be further constructed for the fMRI data. In this thesis the choice was made to estimate one covariance matrix per run. Such a choice necessitates estimation of one parameter $\phi$ from all voxels. Additionally, instead of calculating a single parameter from all voxels jointly, each voxel had a $\phi$ parameter estimated individually using the Equation~\eqref{eq:phi-estimation}, and then a median $\phi$ was chosen as the target parameter for building the covariance matrix $\widehat{\mathbf{V}}$. This matrix can now be used in the prewhitening transformation from Equation~\eqref{eq:prewhitening-transform}:
 
 \begin{equation}
     \mathbf{y}^{\ast} = \widehat{\mathbf{V}}^{-1/2}\mathbf{y}, \qquad \mathbf{X}^{\ast} = \widehat{\mathbf{V}}^{-1/2}\mathbf{X}.
@@ -841,6 +844,7 @@ For category $k$, let $J_k$ denote the number of stimulus presentations, and let
 
 \begin{equation}
     s_k(t) = \sum_{j=1}^{J_k} \mathbbm{1}_{[o_{kj},\,o_{kj}+d_{kj})}(t).
+    \label{eq:stimulus-function}
 \end{equation}
 
 The set of categories is the same for every run, but the order of the category blocks differs. As a result, the eight columns have the same interpretation across runs but unique values.
@@ -929,8 +933,7 @@ Not all of these matrices must be present in every analysis. Their inclusion dep
 
 \subsubsection{Motion and physiological regressors}
 
-% NOTE: wyjasnic first-level, zastapic, albo dodac odnosik do literatury, jesli za trudne do wyjasnienia
-Motion regressors are commonly included in first-level fMRI models to account for signal changes associated with participant movement. A standard set contains three translation parameters and three rotation parameters estimated during motion correction \cite{motion-correction}.
+Motion regressors are commonly included in fMRI models to account for signal changes associated with participant movement. A standard set contains three translation parameters and three rotation parameters estimated during motion correction \cite{motion-correction}.
 
 The raw dataset does not include precomputed motion parameters, hence explicit motion regressors were not included in the design matrix.
 
@@ -1021,8 +1024,8 @@ For voxel $v$, the cross-validated coefficient of determination is
     \label{eq:r2-calculation}
 \end{equation}
 
-% NOTE: poszukac cytowania do R^2 < 0
-where the index $i$ denotes given time point in the concatenated time points from all held-out predictions. This is not to be mistaken with the Pearson correlation coefficient squared $r^2$, which cannot have negative values. For the coefficient of determination $R^2$ a negative value coefficient results from sum of squared residuals being greater, than total sum of squares, which indicates that the task-related model predicts the unseen data less accurately than a model that predicts only the mean signal.
+% ZMIANA: dodalem cytowanie do R^2 i do tego, ze moze byc ujemne
+where the index $i$ denotes given time point in the concatenated time points from all left-out predictions. This is not to be mistaken with the Pearson correlation coefficient squared $r^2$, which cannot have negative values. For the coefficient of determination $R^2$ a negative value coefficient results from sum of squared residuals being greater, than total sum of squares, which indicates that the task-related model predicts the unseen data less accurately than a model that predicts only the mean signal \cite{coefficient-determination}.
 
 Voxels are included in the noise pool if they satisfy two conditions, as per \cite{glm-denoise}. 
 First,
@@ -1035,10 +1038,10 @@ This reduces the risk of including task-related voxels.
 Second, the mean signal intensity must exceed an intensity threshold. The mean signal intensity of voxel $v$ across all runs is
 
 \begin{equation}
-    \overline{y}_v = \frac{1}{\sum_{r=1}^{R}T_r} \sum_{r=1}^{R} \sum_{t=1}^{T_r} y_{rtv},
+    \overline{y}_v = \frac{1}{t} \sum_{r=1}^{R} \sum_{\tau=1}^{t} y_{r\tau v},
 \end{equation}
 
-where $T_r$ is the number of time points in run $r$. Let $P_{99}$ denote the 99th percentile of the mean signal intensities across all voxels. The intensity condition, proposed by the authors of \cite{glm-denoise}, is
+where $t=121$ is the same number of time points in each run. Let $P_{99}$ denote the 99th percentile of the mean signal intensities across all voxels. The intensity condition, proposed by the authors of \cite{glm-denoise}, is
 
 \begin{equation}
     \overline{y}_v > \frac{1}{2}P_{99}.
@@ -1051,7 +1054,7 @@ This reduces the risk of including voxels outside the brain. The same spatial se
 For each run $r$, the time series of the selected voxels are collected in a matrix
 
 \begin{equation}
-    \mathbf{Y}_{\mathrm{noise},r} \in \mathbb{R}^{T \times M},
+    \mathbf{Y}_{\mathrm{noise},r} \in \mathbb{R}^{t \times M},
 \end{equation}
 
 where $M$ is the number of voxels in the noise pool. Each column contains the time series of one voxel.
@@ -1061,10 +1064,19 @@ Before PCA is performed, the drift contribution is projected out, according to E
 \begin{equation}
     \mathbf{H}_{P_r} = \mathbf{P}_r \left(\mathbf{P}_r^T\mathbf{P}_r\right)^{-1}\mathbf{P}_r^T, 
     \qquad 
-    \widetilde{\mathbf{Y}}_{\mathrm{noise},r} = \left(\mathbf{I} - \mathbf{H}_{P_r}\right) \mathbf{Y}_{\mathrm{noise},r} = \mathbf{Z}_r.
+    \widetilde{\mathbf{Y}}_{\mathrm{noise},r} = \left(\mathbf{I} - \mathbf{H}_{P_r}\right) \mathbf{Y}_{\mathrm{noise},r}.
 \end{equation}
 
-PCA is then applied separately to the prepared noise-pool matrix of each run. Using singular value decomposition,
+% ZMIANA: dodalem wzmianke o normalizacji do unit length, to poprawiło moje wyniki w kodzie i jest odzwierciedleniem GLMdenoise
+Additionally, reflecting the \cite{glm-denoise} algorithm, after out-projecting the drift and baseline offsets contributions, each time-series, i.e., 
+each column $\mathbf{y}_j$ in $\widetilde{\mathbf{Y}}_{\mathrm{noise}} = \begin{bmatrix}\mathbf{y}_1 & \ldots &  \mathbf{y}_M\end{bmatrix}$ 
+is normalized to unit length, such that
+
+\begin{equation}
+    \widehat{\mathbf{y}}_j = \frac{\mathbf{y}_j}{||\mathbf{y}_j||_2}.
+\end{equation}
+
+Denoting the out-projected and normalized matrix as $\mathbf{Z}_r = \begin{bmatrix}\widehat{\mathbf{y}}_1 & \ldots &  \widehat{\mathbf{y}}_M\end{bmatrix}$, the PCA is then applied separately to the prepared noise-pool matrix of each run. Using singular value decomposition,
 
 \begin{equation}
     \mathbf{Z}_r = \mathbf{U}_r \mathbf{L}_r \mathbf{A}_r^T.
@@ -1392,9 +1404,10 @@ and $\boldsymbol{\eta}_i$ denotes additive Gaussian observational noise. Followi
     \qquad \operatorname{Cov} (\boldsymbol{\eta}_i) = \sigma^2\boldsymbol{\Sigma}_i
 \end{equation}
 
-The covariance structure of the noise is unknown and must therefore be estimated from the data. Beckmann and Smith \cite{pica} propose constraining the temporal noise covariance to an autoregressive form and re-estimating it from model residuals, following the approach of Woolrich et al. \cite{woolrich-temporal-autocorrelation}. The estimation of an autoregressive temporal covariance model from residuals was introduced earlier in Section~\ref{section:ar-noise-model}.
+% ZMIANA: Dodałem, że wyprowadzenie macierzy kowariancji było już wprowadzone i ze przyjmujemy zalozenie, ze jest jedna macierz kowariancji per run, a nie jedna dla kazdego voxela
+The covariance structure of the noise is unknown and must therefore be estimated from the data. Beckmann and Smith \cite{pica} propose constraining the temporal noise covariance to an autoregressive form and re-estimating it from model residuals, following the approach of Woolrich et al. \cite{woolrich-temporal-autocorrelation}. The estimation of an autoregressive temporal covariance model from residuals was introduced earlier in Section~\ref{section:ar-noise-model} as $\mathbf{V}$ in Equation~\eqref{eq:estimated-ar1-covariance}.
 
-Before dimensionality reduction, the data can be temporally prewhitened with respect to this covariance structure. The following derivations are mirroring the derivations from~\cite{pica}. Since $\boldsymbol{\Sigma}_i$ is a covariance matrix and therefore symmetric and positive definite matrix, let
+Before dimensionality reduction, the data can be temporally prewhitened with respect to this covariance structure. The following derivations are mirroring the derivations from~\cite{pica}. Since the estimated covariance matrix is utilized, in this thesis a single covariance matrix $\mathbf{V}$ is used, instead of a covariance matrix $\boldsymbol{\Sigma}_i$ for an individual voxel. This ovariance matrix and therefore symmetric and positive definite matrix, let
 
 \begin{equation}
     \boldsymbol{\Sigma}_i = \mathbf{L}_i\mathbf{L}_i^T
@@ -2076,22 +2089,20 @@ The $j$-th independent component is represented by the pair
 where
 
 \begin{equation}
-    \widehat{\mathbf{a}}_j \in \mathbb{R}^{t}
+    \widehat{\mathbf{a}}_j \in \mathbb{R}^{t \times 1}
 \end{equation}
 
 is the temporal course associated with the component, and the $j$-th column of the mixing matrix $\widehat{\mathbf{A}}$, and
 
 \begin{equation}
-    \widehat{\mathbf{s}}_j \in \mathbb{R}^{v}
+    \widehat{\mathbf{s}}_j \in \mathbb{R}^{1 \times v}
 \end{equation}
 
 is its spatial map, and $j$-th row of the source matrix $\widehat{\mathbf{S}}$. Thus, the contribution of component $j$ to the observed data is the rank-one matrix
 
 \begin{equation}
-    \widehat{\mathbf{a}}_j \widehat{\mathbf{s}}_j^T.
+    \widehat{\mathbf{a}}_j \widehat{\mathbf{s}}_j.
 \end{equation}
-
-Before performing the following classification, the temporal courses and the task-related regressors must be represented in the same temporal coordinate system. If the ICA decomposition is estimated from temporally prewhitened data, the component time courses are therefore transformed back to the corresponding original temporal representation before comparison with the untransformed task design matrix.
 
 \subsection{Task-relatedness of the independent components}
 
@@ -2168,11 +2179,7 @@ Component $j$ is classified as task-related when
     z_j > c,
 \end{equation}
 
-and is otherwise classified as task-unrelated and treated as a nuisance component. Equivalently, a component is retained when
-
-\begin{equation}
-    z_j \leq c.
-\end{equation}
+and is otherwise classified as task-unrelated and treated as a nuisance component.
 
 Two thresholds are considered in \cite{glm-denoise}. For the conservative variant, $c=0$ so a component is retained whenever its actual task-related variance exceeds the mean obtained from the shuffled time courses. This criterion is conservative with respect to component removal, since ambiguous components tend to remain in the data.
 
@@ -2201,13 +2208,13 @@ The corresponding columns of the mixing matrix and rows of the source matrix are
 \begin{equation}
     \widehat{A} = 
     \begin{bmatrix}
-        \widehat{\mathbf{A}}_{\mathrm{S}} & \widehat{\mathbf{A}}_{\mathrm{N}}
+        \widehat{\mathbf{A}}_{\mathcal{S}} & \widehat{\mathbf{A}}_{\mathcal{N}}
     \end{bmatrix},
     \qquad
     \widehat{S} =
     \begin{bmatrix}
-        \widehat{\mathbf{S}}_{\mathrm{S}} \\
-        \widehat{\mathbf{S}}_{\mathrm{N}}
+        \widehat{\mathbf{S}}_{\mathcal{S}} \\
+        \widehat{\mathbf{S}}_{\mathcal{N}}
     \end{bmatrix}
 \end{equation}
 
@@ -2215,14 +2222,31 @@ The structured part of the ICA representation can then be decomposed as
 
 \begin{equation}
     \widehat{\mathbf{A}} \widehat{\mathbf{S}}
-    = \widehat{\mathbf{A}}_{\mathrm{S}} \widehat{\mathbf{S}}_{\mathrm{S}}
-    + \widehat{\mathbf{A}}_{\mathrm{N}} \widehat{\mathbf{S}}_{\mathrm{N}}.
+    = \widehat{\mathbf{A}}_{\mathcal{S}} \widehat{\mathbf{S}}_{\mathcal{S}}
+    + \widehat{\mathbf{A}}_{\mathcal{N}} \widehat{\mathbf{S}}_{\mathcal{N}}.
 \end{equation}
 
-The first term represents the contribution of components classified as task-related, whereas the second term represents the contribution of components classified as nuisance. The estimated ICA nuisance contribution is
+% ZMIANA: wyjasnilem dlaczego mozemy zapisac sume macierzy
+The first term represents the contribution of components classified as task-related, whereas the second term represents the contribution of components classified as nuisance. To understand why the representation can be presented in this way consider a a 3-component example, where
 
 \begin{equation}
-    \widehat{\mathbf{Y}}_{\mathrm{ICA,nuis}} = \widehat{\mathbf{A}}_{\mathrm{N}} \widehat{\mathbf{S}}_{\mathrm{N}}.
+    \mathbf{A} = \begin{bmatrix}\mathbf{a}_1 & \mathbf{a}_2 & \mathbf{a}_3\end{bmatrix}, \qquad
+    \mathbf{S} = \begin{bmatrix}\mathbf{s}_1 \\ \mathbf{s}_2 \\ \mathbf{s}_3\end{bmatrix},
+\end{equation}
+
+with components 1 and 2 classified as signal and component 3 as noise. Therefore
+
+\begin{equation}
+    \mathbf{A}\mathbf{S} 
+    = \mathbf{a}_1\mathbf{s}_1 + \mathbf{a}_2\mathbf{s}_2 + \mathbf{a}_3\mathbf{s}_3
+    = \begin{bmatrix}\mathbf{a}_1 & \mathbf{a}_2\end{bmatrix} \begin{bmatrix}\mathbf{s}_1 \\ \mathbf{s}_2 \end{bmatrix} + \mathbf{a}_3\mathbf{s}_3
+    = \mathbf{A}_{\mathcal{S}}\mathbf{S}_{\mathcal{S}} + \mathbf{A}_{\mathcal{N}}\mathbf{S}_{\mathcal{N}}.
+\end{equation}
+
+The estimated ICA nuisance contribution is
+
+\begin{equation}
+    \widehat{\mathbf{Y}}_{\mathrm{ICA,nuis}} = \widehat{\mathbf{A}}_{\mathcal{N}} \widehat{\mathbf{S}}_{\mathcal{N}}.
 \end{equation}
 
 After mapping this contribution to the same temporal representation and scale as the original measurements, the ICA-denoised data are obtained by subtraction:
@@ -2239,13 +2263,7 @@ The original procedure in \cite{glm-denoise} uses FSL's \verb|fsl_regfilt| for r
 
 The quality of ICA-based denoising is evaluated using the same leave-one-run-out cross-validation framework as the GLM- and PCA-based procedures. Let $R$ denote the total number of runs and let $q$ denote the run left out in a given outer cross-validation fold.
 
-The complete ICA decomposition, component classification, and nuisance removal procedure is performed using the training runs
-
-\begin{equation}
-    r \in \left\{1,\ldots, q-1, q+1, \ldots, R\right\}.
-\end{equation}
-
-The held-out run is not denoised before evaluation. Following the notation from Subsection~\ref{section:selection-noise}, for the training runs the ICA-denoised matrices are concatenated into
+The complete ICA decomposition, component classification, and nuisance removal procedure is performed using the training runs, each run being fitted independently. Following the notation from Subsection~\ref{section:selection-noise}, for the training runs the ICA-denoised matrices are concatenated into
 
 \begin{equation}
     \mathbf{Y}_{\mathrm{ICA}}^{(-q)}.
@@ -2261,17 +2279,14 @@ After fitting the model to the ICA-denoised training runs, the estimated task-re
     \widehat{\mathbf{B}}_{\mathrm{task}}^{(-q)}.
 \end{equation}
 
-The expected task-related response in the held-out run, similarly as in Equation~\eqref{eq:pca-cv-task-prediction}, is then predicted using only its task design matrix:
+The expected task-related response in the left-out run, similarly as in Equation~\eqref{eq:pca-cv-task-prediction}, is then predicted using only its task design matrix:
 
 \begin{equation}
     \widehat{\mathbf{Y}}_{\mathrm{task},q}^{(-q)} =
     \mathbf{X}_{\mathrm{task},q} \widehat{\mathbf{B}}_{\mathrm{task}}^{(-q)}.
 \end{equation}
 
-This prediction is not subtracted from the held-out data. Instead, it is compared directly with the observed signal $\mathbf{Y}_q$. As in the previous cross-validation procedure, the modeled drift subspace is projected out from both the measured and predicted signals before calculation of the coefficient of determination.
-% sprawdzic czy faktycznie jest opisane
-
-After every run has served once as the held-out run, the predictions are concatenated and the voxel-wise cross-validated coefficient of determination
+This prediction is not subtracted from the left-out data. Instead, it is compared directly with the observed signal $\mathbf{Y}_q$. After every run has served once as the left-out run, the predictions are concatenated and the voxel-wise cross-validated coefficient of determination
 
 \begin{equation}
     R^2_{\mathrm{CV},v}
@@ -2282,6 +2297,266 @@ is calculated according to Equation~\eqref{eq:r2-calculation}. The resulting val
 After the cross-validation evaluation has been completed, the ICA denoising procedure may additionally be applied to all available runs to obtain the final ICA-denoised fMRI data used for subsequent visualization and statistical analysis.
 
 
+\chapter{Evaluation and results}
+\label{chapter:evaluation}
+
+The previous chapters introduced the three procedures considered in this thesis: the Standard GLM, the GLM with PCA-derived nuisance regressors, and ICA-based denoising. The purpose of the present chapter is to compare these methods using a common evaluation framework. The dataset does not provide reference noise-free image, as mentioned in Section~\ref{section:caveats}, hence the evaluation focuses primarily on the ability of the estimated task-related response to reflect and generalize to previously unseen functional runs.
+
+The evaluation framework is based on the Denoise Benchmark (DNB) proposed together with GLMdenoise in \cite{glm-denoise}. The authors utilized the multi-run structure of the dataset to implement leave-one-run-out cross-validation pipeline in order to apply given denoising method only to a training subset of the runs. This results in the subsequent task-related estimates to predict a held-out run, i.e., test dataset. This improves robustness, thanks to the separation of the evaluation procedure from the internal method operations. Such separation prevents the model to have artificially increased the reported performence, by selecting parameters using the test data.
+
+The common framework of the methods ensures, that each method produces a set of task-related coefficients. This allows for the comparison of stability of the estimated task-related coefficients, related to the task regressors in the design matrix. Moreover, obtaining the coefficients for individual conditions produces spatial maps of estimated brain responses to this condition, which can be presented in form of spatial patterns, activating specific parts of the brain. The beta coefficients can also be used to evaluate predefined linear combinations of estimated task-related effects. This helps determining the clarity of task-related differences after denoising procedure. Such an evaluation method is called statistical contrast map.
+
+
+\section{Outer cross-validation framework}
+\label{section:outer-cv-evaluation}
+
+The comparison is performed using leave-one-run-out outer cross-validation, where \textit{outer} distinguishes this procedure from any cross-validation performed internally by a denoising method. In each outer fold, one run is held out for evaluation, while the remaining runs constitute the training dataset. All method-specific processing is performed using only the training runs. For the ICA-based procedure, ICA decomposition, component classification, and denoising are performed independently for each training run. The resulting denoised runs are then concatenated and used to estimate the task-related GLM coefficients, which are subsequently used to predict the task-related signal in the held-out run. For the PCA-assisted GLM, an additional internal cross-validation procedure is used within the training dataset to select the number of PCA-derived nuisance regressors. Thus, the outer cross-validation evaluates the complete analysis pipeline, including any method-specific model-selection procedures.
+
+Remembering the notation introduced in previous chapters, let $R$ denote the total number of functional runs. For the dataset considered in this thesis, $R=12$. For a given outer fold, let $q\in\{1,\ldots,R\}$ denote the held-out run. The complete denoising procedure is fitted using only
+
+\begin{equation}
+    \left\{1,\ldots,q-1,q+1,\ldots,R\right\}.
+\end{equation}
+
+For the Standard GLM, this consists of fitting the FGLS model to the training runs. For the PCA-assisted GLM, the complete noise-pool construction, extraction of PCA-derived regressors, internal cross-validation, selection of $k^\ast$, and final FGLS fit are performed using only the training data. Consequently, the PCA method has a nested structure: the inner cross-validation is part of model construction, whereas the outer cross-validation measures the performance of the procedure.
+
+For ICA-based denoising, the ICA decomposition, model-order estimation, component classification and nuisance-component removal are similarly performed without access to the held-out run, but no internal cross-validation is done. The denoised training data are subsequently analyzed using FGLS, as described in Section~\ref{section:ica-denoising}.
+
+For every method $m$, the training procedure yields an estimate
+
+\begin{equation}
+    \widehat{\mathbf{B}}_{\mathrm{task},m}^{(-q)}
+\end{equation}
+
+of the task-related coefficient matrix. The expected task-related signal in the held-out run is then
+
+\begin{equation}
+    \widehat{\mathbf{Y}}_{\mathrm{task},m,q}^{(-q)}
+    = \mathbf{X}_{\mathrm{task},q} \widehat{\mathbf{B}}_{\mathrm{task},m}^{(-q)}.
+    \label{eq:outer-cv-prediction}
+\end{equation}
+
+Only the task-related component is predicted. Nuisance effects estimated from the training runs are not extrapolated to the held-out run, since run-specific drift and noise realizations are not expected to repeat across independent measurements. Importantly, the held-out fMRI signal itself is not denoised before the comparison. This follows the evaluation principle used in the Denoise Benchmark of \cite{glm-denoise}, where a denoising procedure is judged by whether the task-related estimates obtained from the training data improve prediction of an unseen measurement, rather than by how well the procedure reconstructs the original data.
+
+
+\section{Cross-validated prediction accuracy}
+\label{section:evaluation-r2}
+
+After all $R$ outer folds have been completed, the measured and predicted time series are concatenated across held-out runs. Prediction accuracy is quantified separately for every voxel using the cross-validated coefficient of determination introduced previously in Equation~\eqref{eq:r2-calculation}. For method $m$ and voxel $v$ it is denoted by
+
+\begin{equation}
+    R^2_{\mathrm{CV},v,m}.
+\end{equation}
+
+This criterion is particularly appropriate for comparing the considered denoising methods because it evaluates the accuracy of the estimated task-related response. A denoising method may substantially modify the observed time series while nevertheless failing to improve the generalization of task estimates. Such a procedure should not be considered superior merely because the resulting data appear less variable.
+
+
+\subsection{Common evaluation voxel set}
+
+% NOTE: citation nilearn, ale w tej pracy nie ma o tworzeniu tego brain mask
+% autorzy pakietu nilearn jednak sugeruja, zeby ta prace cytowac
+A very common preprocessing step in the fMRI denoising is the construction and utilization of the brain mask, which is masking of the data, to only include voxels corresponding to the brain structure, since voxels outside of the brain will not partake in any neural activity. The brain mask was not provided in the analyzed dataset and had to be constructed individually using techniques described in \cite{nilearn}. The fMRI time series considered by the evaluation procedure are restricted to said brain mask, construced during data loading. Nevertheless, many voxels within this mask may exhibit little or no relationship with the experiment. Summarizing performance over all such voxels would cause the comparison to be dominated by locations for which none of the models is expected to make useful task-related predictions.
+
+A common candidate set is therefore constructed across all compared methods:
+
+\begin{equation}
+    \mathcal{V}_{\mathrm{eval}}
+    = \left\{v: \max_m R^2_{\mathrm{CV},v,m}>0\right\}.
+    \label{eq:common-candidate-mask}
+\end{equation}
+
+Thus, a voxel is included when at least one of the considered methods achieves positive outer-CV prediction accuracy. The same voxel set is then used when comparing all methods.
+
+This criterion is closely related to the procedure used in the Denoise Benchmark \cite{glm-denoise}, where voxels with positive cross-validated $R^2$ under at least one compared method are retained. The benchmark additionally applies spatial criteria to suppress isolated positive voxels. In the present implementation, an explicit common brain mask is already applied to the functional data and no additional smoothing criterion is introduced for selection of the evaluation voxels.
+
+
+\subsection{Median outer-CV performance}
+
+For each method $m$, the subject-level prediction accuracy is summarized using the median across the common evaluation set:
+
+\begin{equation}
+    \widetilde{R}^2_m
+    = \operatorname{median}_{v\in\mathcal{V}_{\mathrm{eval}}} R^2_{\mathrm{CV},v,m}.
+    \label{eq:median-outer-r2}
+\end{equation}
+
+The median is preferred to the mean because voxelwise prediction accuracies may contain extreme negative or positive values. It therefore provides a robust summary of the typical performance among voxels for which at least one method detects a reproducible task-related response.
+
+The resulting values are presented separately for the Standard GLM, the PCA-assisted GLM, and ICA-based denoising. Since the coefficient of determination is internally represented as a proportion, values shown in the figures are multiplied by $100$ and expressed as percentages.
+
+
+\subsection{Improvement relative to the Standard GLM}
+
+The Standard GLM serves as the common baseline against which the two component-based denoising approaches are compared. For method $m$ and voxel $v$, the change in prediction accuracy is
+
+\begin{equation}
+    \Delta R^2_{v,m} = R^2_{\mathrm{CV},v,m} - R^2_{\mathrm{CV},v,\mathrm{Standard}}.
+    \label{eq:delta-r2-standard}
+\end{equation}
+
+When multiplied by $100$, $\Delta R^2$ is reported in percentage points. A positive value indicates improved prediction of the held-out task-related signal relative to the Standard GLM, while a negative value indicates worsening of the prediction.
+
+Two additional visualization methods are used. First, the voxelwise distributions of $\Delta R^2$, which show whether an improvement is widespread or driven only by a limited subset of voxels. Second, the outer-CV $R^2$ values obtained by each denoising method are plotted directly against the Standard GLM. Points above the identity line indicate voxels for which denoising improves prediction.
+
+To examine whether the effect of denoising depends on baseline prediction accuracy, voxels are additionally grouped according to the outer-CV $R^2$ obtained under the Standard GLM. For each interval, the median $\Delta R^2$ is calculated together with the $2.5$th and $97.5$th percentiles of the voxelwise improvements. These ranges summarize the empirical distribution of improvements. The visualization is analogous to the multi-dataset comparison presented in \cite[Figure 4.]{glm-denoise}.
+
+\section{Stability of task-related coefficient estimates}
+\label{section:jackknife-snr}
+
+Cross-validated prediction accuracy measures how well the estimated task response generalizes to unseen measurements. Following the Denoise Benchmark in \cite{glm-denoise}, the variability of coefficient estimates across leave-one-run-out fits is evaluated using a jackknife-based measure.
+
+For method $m$, category $k$, voxel $v$, and outer fold $q$, let
+
+\begin{equation}
+    \widehat{\beta}_{mkv}^{(-q)}
+\end{equation}
+
+denote the task coefficient obtained after leaving run $q$ out. The mean of the leave-one-run-out estimates is
+
+\begin{equation}
+    \overline{\beta}_{mkv} = \frac{1}{R} \sum_{q=1}^{R} \widehat{\beta}_{mkv}^{(-q)}.
+    \label{eq:jackknife-beta-mean}
+\end{equation}
+
+The jackknife estimate of its standard error, as per \cite{jackknife}, is
+
+\begin{equation}
+    \widehat{\mathrm{SE}}_{mkv}
+    = \sqrt{\frac{R-1}{R} \sum_{q=1}^{R} \left(\widehat{\beta}_{mkv}^{(-q)} - \overline{\beta}_{mkv} \right)^2}.
+    \label{eq:jackknife-beta-se}
+\end{equation}
+
+A smaller value of $\widehat{\mathrm{SE}}_{mkv}$ indicates that the estimated response is less sensitive to the removal of an individual run and therefore more stable across repeated measurements.
+
+Following \cite{glm-denoise}, the signal term used for comparing methods is shared across the methods. For each voxel, define
+
+\begin{equation}
+    S_v = \frac{1}{M} \sum_{m=1}^{M} \max_k \left|\overline{\beta}_{mkv}\right|,
+\end{equation}
+
+where $M$ is the number of compared methods. The noise term for method $m$ is obtained as the mean jackknife standard error across task categories:
+
+\begin{equation}
+    N_{mv} = \frac{1}{p} \sum_{k=1}^{p} \widehat{\mathrm{SE}}_{mkv},
+\end{equation}
+
+where $p=8$ for the analyzed experiment.
+
+The jackknife signal-to-noise ratio is then
+
+\begin{equation}
+    \mathrm{SNR}_{mv} = \frac{S_v}{N_{mv}}.
+    \label{eq:jackknife-snr}
+\end{equation}
+
+However, SNR is treated as a secondary criterion. A method may produce highly stable but inaccurate task estimates. Consequently, increased jackknife SNR is interpreted as beneficial only together with preserved or improved outer-CV $R^2$. This distinction between reliability and prediction accuracy is also emphasized in \cite{glm-denoise}.
+
+
+\section{Spatial maps of task-related estimates}
+\label{section:evaluation-maps}
+
+The metrics are complemented by spatial visualization of the final estimates obtained after fitting each method to all $R$ available runs. These full-data fits are not used to estimate outer-CV performance; instead, they provide the estimates available for visualization and subsequent interpretation.
+
+\subsection{Beta maps}
+
+For a selected task category $k$, the corresponding row of the estimated task coefficient matrix can be writen as
+
+\begin{equation}
+    \widehat{\mathbf{B}}_{\mathrm{task},m},
+\end{equation}
+
+and is transformed from the voxel representation back into the original three-dimensional image space. The resulting beta map shows the estimated amplitude of the modeled response to category $k$ at each voxel.
+
+The beta maps are displayed without any thresholding and using a common range across methods. This allows direct comparison of the spatial distribution and magnitude of the coefficient estimates.
+
+The maps should be interpreted with the neural analytical analysis, since spatial changes that are compatible with the expected response may indicate improved estimation, but do not guarantee it, whereas strong isolated changes or widespread alterations should be examined together with the quantitative prediction metrics. This thesis will therefore not focus greatly on the beta maps results. Nevertheless, the results can give an outline understanding of the spatial coefficient distribution.
+
+\subsection{Contrast \texorpdfstring{$t$}{t}-maps}
+
+To compare responses between two experimental categories, a linear contrast is constructed. Such a contrast is reprecented by the contrast vector 
+
+\begin{equation}
+    \mathbf{c} = \mathbf{e}_k - \mathbf{e}_l,
+\end{equation}
+
+where $\mathbf{e}_k$ and $\mathbf{e}_l$ denotes the basis vector corresponding to $k$-th and $l$-th category respectively.
+
+For example, the comparison
+
+\begin{equation}
+    \text{face} > \text{scrambledpix}
+\end{equation}
+
+is represented by the contrast vector. Therefore $\mathbf{c}$ in this example takes the form of
+
+\begin{equation}
+    \mathbf{c} = \mathbf{e}_{\mathrm{face}} - \mathbf{e}_{\mathrm{scrambledpix}} 
+    = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \end{bmatrix} - \begin{bmatrix} 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 1 \end{bmatrix}
+    = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ -1 \end{bmatrix}
+\end{equation}
+
+For voxel $v$, the estimated contrast effect under method $m$ is
+
+\begin{equation}
+    \widehat{\theta}_{mv}
+    = \mathbf{c}^T \widehat{\boldsymbol{\beta}}_{\mathrm{task},mv}.
+    \label{eq:contrast-effect}
+\end{equation}
+
+Under the FGLS model described in Chapter~\ref{chapter:glm}, from Equation~\eqref{eq:gls-estimator} let
+
+\begin{equation}
+    \widehat{\boldsymbol{\beta}}_{\mathrm{FGLS}} = \mathbf{A}\mathbf{y}^{\ast}, \qquad
+    \mathbf{A} = \left[ \left( \mathbf{X}^{\ast} \right)^T \mathbf{X}^{\ast} \right]^{-1} \left( \mathbf{X}^{\ast} \right)^T,
+\end{equation}
+
+with $\operatorname{Var}\left( \mathbf{y}^\ast \right) = \sigma^2 \mathbf{I}$. Therefore the covariance of the $\widehat{\boldsymbol{\beta}}_{\mathrm{FGLS}}$ estimator is
+
+\begin{equation}
+    \operatorname{Var} \mathbf{A} \operatorname{Var}\left( \mathbf{y}^\ast \right) \mathbf{A}^T 
+    = \sigma^2 \left[ \left( \mathbf{X}^{\ast} \right)^T \mathbf{X}^{\ast} \right]^{-1}.
+\end{equation}
+
+Let $\widehat{\mathbf{C}}_{\mathrm{task},m}$ denote the task-related block of this estimated coefficient covariance matrix and $\widehat{\sigma}_{mv}^2$ denote the residual variance for voxel $v$. The estimated standard error of the contrast is therefore
+
+\begin{equation}
+    \begin{aligned}
+        \widehat{\mathrm{SE}} \left(\widehat{\theta}_{mv}\right)
+        &= \sqrt{\operatorname{Var}\left(\widehat{\theta}_{mv}\right)} \\
+        &= \sqrt{\operatorname{Var}\left( \mathbf{c}^T \widehat{\boldsymbol{\beta}}_{\mathrm{task},mv} \right)} \\
+        &= \sqrt{\mathbf{c}^T \operatorname{Var}\left(\widehat{\boldsymbol{\beta}}_{\mathrm{task},mv} \right)} \mathbf{c} \\
+        &= \sqrt{\widehat{\sigma}_{mv}^2  \mathbf{c}^T \widehat{\mathbf{C}}_{\mathrm{task},m} \mathbf{c}}.  
+    \end{aligned}
+    \label{eq:contrast-se}
+\end{equation}
+
+The corresponding statistic is
+\begin{equation}
+    t_{mv} = \frac
+    {
+        \mathbf{c}^T\widehat{\boldsymbol{\beta}}_{\mathrm{task},mv}
+    }{
+        \sqrt{\widehat{\sigma}_{mv}^2 \mathbf{c}^T \widehat{\mathbf{C}}_{\mathrm{task},m} \mathbf{c}}
+    }.
+    \label{eq:contrast-t}
+\end{equation}
+
+For visualization, contrast maps are thresholded at a magnitude of $3$. The same anatomical slices and display range are used for all methods. Similar activation-map comparisons were used by Kay et al. \cite{glm-denoise} to illustrate how denoising affects the statistical strength and spatial extent of task-related responses.
+
+\section{Computational runtime}
+\label{section:evaluation-runtime}
+
+The methods differ substantially in computational complexity. Therefore, denoising quality is considered together with execution time.
+
+Two runtime measures are reported. The first is the time required to fit a method once using all available runs. This approximates the computational cost of applying the method in a conventional analysis after all parameters have been selected. The second is the total runtime of the complete outer cross-validation benchmark.
+
+The latter includes fitting a new instance of a method in every outer fold. Consequently, for the PCA-assisted GLM it also includes repeated noise-pool construction and internal component-number selection, while for ICA it includes repeated model-order estimation, FastICA decomposition, component classification, nuisance reconstruction, and subsequent FGLS estimation.
+
+Outer-CV runtime should therefore not be interpreted as the runtime required for a single practical application of the fitted procedure. Instead, it measures the computational cost of rigorously evaluating the complete method under the adopted cross-validation framework.
+
+
+
+% NOTE: dodac o tym, ze czasy sie roznia, bo komputer sie przegrzewa, wiec model time-complexity nie uwzglednil low-frequency driftu i te dane nie powinny byc tak analizowane jednoznacznie - more thorough analysis should include out-projecting machine drift, due to the heating up of the device
 
 % styl bibliografii, tutaj unsrt
 \bibliographystyle{plain}
