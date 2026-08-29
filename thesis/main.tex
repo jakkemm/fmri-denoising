@@ -273,8 +273,7 @@ The dataset does not provide a noise-free reference image or a known true BOLD s
     \item reduction of anatomically impossible spatial patterns.
 \end{itemize}
 
-% ZMIANA: doczytalem, ze jest jeden run dla 5-go partycypanta byl wadliwy i zostal wyrzucony z datasetu
-The dataset has also a few limitations. It contains only six participants and was acquired using an older method with relatively coarse spatial and temporal resolution. It represents one specific visual experiment with a block design. Therefore conclusions obtained using this dataset may not generalize directly to other conditions (like event-related designs, resting-state data, or experiments involving different processes). Furthermore, one run was deemed as faulty during data acquisition for 5th subject. This run is absent in the final dataset, bringing the number of runs for said subject from 12 to 11. Lastly, the dataset does not include separate respiratory or cardiac recordings commonly provided in the BIDS structure \cite{BIDS}, that could be used to construct physiological nuisance regressors.
+The dataset has also a few limitations. It contains only six participants and was acquired using an older method with relatively coarse spatial and temporal resolution. It represents one specific visual experiment with a block design. Therefore conclusions obtained using this dataset may not generalize directly to other conditions (like event-related designs, resting-state data, or experiments involving different processes). Furthermore, one run was deemed as faulty during data acquisition for 5th subject. This run is absent in the final dataset, bringing the number of runs for said subject from 12 to 11. The absence of this run does not justify discarding valid runs from the remaining subjects. Therefore, subject 5 is analyzed using 11 runs, while all other subjects are analyzed using 12 runs. Lastly, the dataset does not include separate respiratory or cardiac recordings commonly provided in the BIDS structure \cite{BIDS}, that could be used to construct physiological nuisance regressors. 
 
 Nevertheless, the repeated and clearly defined experimental structure makes the dataset useful for comparing denoising methods. In particular, the presence of 12 runs per participant supports within-subject cross-validation and the evaluation of the stability of task-related estimates.
 
@@ -761,7 +760,6 @@ The estimated temporal correlation matrix is then constructed from the estimated
     \label{eq:estimated-ar1-covariance}
 \end{equation}
 
-% ZMIANA: poprzednia metoda tworzyla dosc odbiegajace wyniki, wiec wprowadzilem metode, ktora estymuje phi z mediany wszystkich phi dla wszystkich voxeli
 There are several ways, that a covariance matrix can be further constructed for the fMRI data. In this thesis the choice was made to estimate one covariance matrix per run. Such a choice necessitates estimation of one parameter $\phi$ from all voxels. Additionally, instead of calculating a single parameter from all voxels jointly, each voxel had a $\phi$ parameter estimated individually using the Equation~\eqref{eq:phi-estimation}, and then a median $\phi$ was chosen as the target parameter for building the covariance matrix $\widehat{\mathbf{V}}$. This matrix can now be used in the prewhitening transformation from Equation~\eqref{eq:prewhitening-transform}:
 
 \begin{equation}
@@ -1017,14 +1015,13 @@ After fitting the model, the estimated task-related coefficients are used to pre
 
 The procedure is repeated until every run has been left out once. The predictions and measured signals are then concatenated across runs. Before calculating the coefficient of determination, the drift regressors are projected out from both the measured and predicted time series.
 
-For voxel $v$, the cross-validated coefficient of determination is
+For voxel $v$, the cross-validated coefficient of determination is \cite[Equation 3.]{coefficient-determination}
 
 \begin{equation}
     R^2_{\mathrm{CV},v} = 1 - \frac{SS_{\text{resid}}}{SS_{\text{tot}}} = 1 - \frac{\sum_i\left(y_{iv} - \widehat{y}_{iv}\right)^2}{\sum_i\left(y_{iv} - \overline{y}_v \right)^2},
     \label{eq:r2-calculation}
 \end{equation}
 
-% ZMIANA: dodalem cytowanie do R^2 i do tego, ze moze byc ujemne
 where the index $i$ denotes given time point in the concatenated time points from all left-out predictions. This is not to be mistaken with the Pearson correlation coefficient squared $r^2$, which cannot have negative values. For the coefficient of determination $R^2$ a negative value coefficient results from sum of squared residuals being greater, than total sum of squares, which indicates that the task-related model predicts the unseen data less accurately than a model that predicts only the mean signal \cite{coefficient-determination}.
 
 Voxels are included in the noise pool if they satisfy two conditions, as per \cite{glm-denoise}. 
@@ -1067,7 +1064,6 @@ Before PCA is performed, the drift contribution is projected out, according to E
     \widetilde{\mathbf{Y}}_{\mathrm{noise},r} = \left(\mathbf{I} - \mathbf{H}_{P_r}\right) \mathbf{Y}_{\mathrm{noise},r}.
 \end{equation}
 
-% ZMIANA: dodalem wzmianke o normalizacji do unit length, to poprawiło moje wyniki w kodzie i jest odzwierciedleniem GLMdenoise
 Additionally, reflecting the \cite{glm-denoise} algorithm, after out-projecting the drift and baseline offsets contributions, each time-series, i.e., 
 each column $\mathbf{y}_j$ in $\widetilde{\mathbf{Y}}_{\mathrm{noise}} = \begin{bmatrix}\mathbf{y}_1 & \ldots &  \mathbf{y}_M\end{bmatrix}$ 
 is normalized to unit length, such that
@@ -1404,7 +1400,6 @@ and $\boldsymbol{\eta}_i$ denotes additive Gaussian observational noise. Followi
     \qquad \operatorname{Cov} (\boldsymbol{\eta}_i) = \sigma^2\boldsymbol{\Sigma}_i
 \end{equation}
 
-% ZMIANA: Dodałem, że wyprowadzenie macierzy kowariancji było już wprowadzone i ze przyjmujemy zalozenie, ze jest jedna macierz kowariancji per run, a nie jedna dla kazdego voxela
 The covariance structure of the noise is unknown and must therefore be estimated from the data. Beckmann and Smith \cite{pica} propose constraining the temporal noise covariance to an autoregressive form and re-estimating it from model residuals, following the approach of Woolrich et al. \cite{woolrich-temporal-autocorrelation}. The estimation of an autoregressive temporal covariance model from residuals was introduced earlier in Section~\ref{section:ar-noise-model} as $\mathbf{V}$ in Equation~\eqref{eq:estimated-ar1-covariance}.
 
 Before dimensionality reduction, the data can be temporally prewhitened with respect to this covariance structure. The following derivations are mirroring the derivations from~\cite{pica}. Since the estimated covariance matrix is utilized, in this thesis a single covariance matrix $\mathbf{V}$ is used, instead of a covariance matrix $\boldsymbol{\Sigma}_i$ for an individual voxel. This ovariance matrix and therefore symmetric and positive definite matrix, let
@@ -2226,7 +2221,6 @@ The structured part of the ICA representation can then be decomposed as
     + \widehat{\mathbf{A}}_{\mathcal{N}} \widehat{\mathbf{S}}_{\mathcal{N}}.
 \end{equation}
 
-% ZMIANA: wyjasnilem dlaczego mozemy zapisac sume macierzy
 The first term represents the contribution of components classified as task-related, whereas the second term represents the contribution of components classified as nuisance. To understand why the representation can be presented in this way consider a a 3-component example, where
 
 \begin{equation}
@@ -2561,14 +2555,14 @@ Outer-CV runtime should therefore not be interpreted as the runtime required for
 \begin{figure}[ht]
     \centering
     \includegraphics[scale=0.5]{fig/delta_r2_distribution_glm_pca.pdf}
-    \caption{Distributions of voxelwise change in outer-CV prediction accuracy of PCA-assisted GLM denoising against the Standard GLM denoising for each subject.}
+    \caption{Distributions of voxelwise changes in outer-CV prediction accuracy for PCA-assisted GLM denoising relative to the Standard GLM for each subject.}
     \label{fig:r2-distribution-glm-pca}
 \end{figure}
 
 \begin{figure}[ht]
     \centering
     \includegraphics[scale=0.5]{fig/delta_r2_distribution_ica.pdf}
-    \caption{Distributions of voxelwise change in outer-CV prediction accuracy of ICA-based denoising against the Standard GLM denoising for each subject.}
+    \caption{Distributions of voxelwise changes in outer-CV prediction accuracy for ICA-based denoising relative to the Standard GLM for each subject.}
     \label{fig:r2-distribution-ica}
 \end{figure}
 
@@ -2589,22 +2583,51 @@ Overall, these plots show the poorer predictive performance of ICA-based denoisi
 \begin{figure}[ht]
     \centering
     \includegraphics[scale=0.5]{fig/r2_scatter_glm_pca.pdf}
-    \caption{Scatter plots of outer-CV voxelwise prediction accuracy of PCA-assisted GLM denoising against the Standard GLM denoising for each subject.}
+    \caption{Scatter plots of voxelwise outer-CV prediction accuracy for PCA-assisted GLM denoising relative to the Standard GLM for each subject.}
     \label{fig:r2-voxelwise-glm-pca}
 \end{figure}
 
 \begin{figure}[ht]
     \centering
     \includegraphics[scale=0.5]{fig/r2_scatter_ica.pdf}
-    \caption{Scatter plots of outer-CV voxelwise prediction accuracy of ICA-based denoising against the Standard GLM denoising for each subject.}
+    \caption{Scatter plots of voxelwise outer-CV prediction accuracy for ICA-based denoising relative to the Standard GLM for each subject.}
     \label{fig:r2-voxelwise-ica}
 \end{figure}
 
 Figures~\ref{fig:r2-voxelwise-glm-pca}~and~\ref{fig:r2-voxelwise-ica} present voxelwise outer-CV prediction accuracy relative to the Standard GLM nd are analogous to Figure 4A in \cite{glm-denoise}. The plots show pairs of $R^2$ values expressed as percentages. For each voxel, the $x$-coordinate corresponds to the prediction accuracy obtained with the Standard GLM, while the $y$-coordinate corresponds to the prediction accuracy obtained with PCA-assisted GLM denoising or ICA-based denoising in Figures~\ref{fig:r2-voxelwise-glm-pca}~and~\ref{fig:r2-voxelwise-ica}, respectively. The identity line represents equal prediction accuracy for the two compared methods. Points below the line indicate lower outer-CV $R^2$ relative to the Standard GLM, whereas points above the line indicate an improvement. These plots provide a complementary representation of the results shown by the distributions in Figures~\ref{fig:r2-distribution-glm-pca}~and~\ref{fig:r2-distribution-ica}.
 
-The pattern of poorer predictive performance of ICA-based denoising can again be observed in Figure~\ref{fig:r2-voxelwise-ica}. For subjects 1--4, a substantial proportion of voxels lies below the identity line, indicating lower outer-CV $R^2$ values than those obtained with the Standard GLM. This effect is most pronounced for subject 1, where a wide downward deviation from the identity line is visible for voxels with low and moderate baseline prediction accuracy. For these subjects, the discrepancy between ICA and the Standard GLM decreases for voxels with higher baseline $R^2$, whose values remain closer to the identity line. In contrast, subjects 5 and 6 exhibit points concentrated almost entirely around the identity line, indicating that ICA-based denoising produces little change in prediction accuracy for these participants.
+The pattern of poorer predictive performance of ICA-based denoising can again be observed in Figure~\ref{fig:r2-voxelwise-ica}. For subjects 1-4, a substantial proportion of voxels lies below the identity line, indicating lower outer-CV $R^2$ values than those obtained with the Standard GLM. This effect is most pronounced for subject 1, where a wide downward deviation from the identity line is visible for voxels with low and moderate baseline prediction accuracy. For these subjects, the discrepancy between ICA and the Standard GLM decreases for voxels with higher baseline $R^2$, whose values remain closer to the identity line. In contrast, subjects 5 and 6 exhibit points concentrated almost entirely around the identity line, indicating that ICA-based denoising produces little change in prediction accuracy for these participants.
 
 Therefore, the scatter plots support the conclusions obtained from the voxelwise $\Delta R^2$ distributions: PCA-assisted GLM denoising produces small but relatively consistent changes across subjects, whereas the effect of ICA-based denoising is substantially more subject-dependent and can lead to considerable deterioration in voxelwise prediction accuracy.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.5]{fig/r2_improvement_binned_glm_pca.pdf}
+    \caption{Voxelwise change in outer-CV prediction accuracy for PCA-assisted GLM relative to the Standard GLM, summarized within 10-percentage-point baseline $R^2$ bins by the $95\%$ range for each subject.}
+    \label{fig:r2-binned-glm-pca}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.5]{fig/r2_improvement_binned_ica.pdf}
+    \caption{Voxelwise change in outer-CV prediction accuracy for ICA relative to the Standard GLM, summarized within 10-percentage-point baseline $R^2$ bins by the $95\%$ range for each subject.}
+    \label{fig:r2-binned-ica}
+\end{figure}
+
+To conclude the prediction accuracy analysis, Figures~\ref{fig:r2-binned-glm-pca}~and~\ref{fig:r2-binned-ica} were produced. These figures present voxelwise changes in outer-CV prediction accuracy as a function of the prediction accuracy obtained with the Standard GLM. Voxels are grouped into bins of width 10 percentage points according to their Standard GLM outer-CV $R^2$. For each subject and each bin, the $95\%$ range of voxelwise $\Delta R^2$ values is presented. These plots are analogous to Figure 4B in \cite{glm-denoise}. They therefore show how the effect of each denoising method depends on the baseline prediction accuracy of the corresponding voxels.
+
+For PCA-assisted GLM denoising, the largest positive changes can be observed among voxels for which the Standard GLM obtains negative or low outer-CV $R^2$ values. Across subjects, the distributions within these bins generally extend further into the positive range. As the Standard GLM $R^2$ increases, the ranges of $\Delta R^2$ values become narrower and increasingly concentrated around zero, indicating that PCA-assisted denoising has less influence on voxels that are already predicted relatively well by the Standard GLM. This pattern is visible across approximately the $[-10\%,50\%)$ range of baseline $R^2$. Above this range bins are present only for a subset of subjects, most notably subject 4. Subjects 1 and 2 additionally exhibit wider and more negative lower ranges than the remaining subjects for several bins above $10\%$ baseline $R^2$, and their $[40\%,50\%)$ ranges lie mostly below zero. Overall, however, the changes remain relatively small and centered close to zero for voxels with moderate or high baseline prediction accuracy.
+
+ICA-based denoising again reflects poorer prediction accuracy in comparison with the Standard GLM. For subjects 1-4, the $95\%$ ranges within most baseline-$R^2$ bins extend predominantly below zero, indicating that ICA frequently reduces voxelwise prediction accuracy. The strongest deterioration is observed for subject 1, particularly among voxels with negative or low Standard GLM $R^2$, where the lower end of the range reaches approximately $-10$ percentage points. As baseline prediction accuracy increases, the magnitude and spread of these negative changes generally decrease, and the ranges approach zero. In contrast, subjects 5 and 6 show much smaller changes, with ranges located close to zero and extending into positive values across most bins. This behavior is consistent with the previous analyses, in which ICA-based denoising substantially degraded prediction accuracy for subjects 1-4 while producing approximately neutral results for subjects 5 and 6.
+
+A general pattern of prediction accuracy deterioration using ICA-based denoising relative to the Standard GLM can be observed across the presented analyses, particularly for subjects 1-4. These results indicate that, for the considered dataset and implementation, ICA-based denoising generally performs worse than the Standard GLM. 
+
+PCA-assisted GLM denoising, in contrast, shows an overall improvement in prediction accuracy relative to the Standard GLM, although the magnitude of this improvement remains small. 
+
+The potential reasons for these results are discussed in detail in Section~\ref{section:results-remarks}.
+
+\section{Remarks about results}
+\label{section:results-remarks}
 
 % NOTE: dodac o tym, ze czasy sie roznia, bo komputer sie przegrzewa, wiec model time-complexity nie uwzglednil low-frequency driftu i te dane nie powinny byc tak analizowane jednoznacznie - more thorough analysis should include out-projecting machine drift, due to the heating up of the device
 
