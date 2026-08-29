@@ -1,3 +1,4 @@
+import itertools
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -23,7 +24,7 @@ def _save_figure(fig, output_path):
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    fig.savefig(output_path, dpi=200, bbox_inches="tight", facecolor=fig.get_facecolor())
+    fig.savefig(output_path, dpi=300, bbox_inches="tight", facecolor=fig.get_facecolor())
 
 def _finite_pair(x, y, mask=None):
     x = np.asarray(x)
@@ -51,45 +52,55 @@ def _square_limits(arrays, padding=0.05):
 
     return lower - padding * span, upper + padding * span,
 
-def plot_r2_scatter(r2_per_voxel, candidate_mask, output_path=None):
-    """
-    Standard GLM vs denoising methods.
+def plot_r2_scatter(r2_per_voxel_sub, candidate_mask_sub, method, output_path=None):
+    subjects = list(r2_per_voxel_sub.keys())
 
-    R2 is displayed in percent, so differences
-    are percentage points.
-    """
+    fig, axes = plt.subplots(2, 3, figsize=(10, 7), constrained_layout=True)
+    axes = axes.ravel()
 
-    standard = r2_per_voxel["standard_glm"] * 100.0
-    methods = ("glm_pca", "ica")
-    
-    compared_arrays = [standard]
-    for method in methods:
-        compared_arrays.append(r2_per_voxel[method] * 100.0)
+    compared_arrays = []
+
+    for subject in subjects:
+        standard = r2_per_voxel_sub[subject]["standard_glm"] * 100.0
+        method_r2 = r2_per_voxel_sub[subject][method] * 100.0
+
+        mask = candidate_mask_sub[subject]
+        x, y = _finite_pair(standard, method_r2, mask)
+        compared_arrays.extend([x, y])
+
     lower, upper = _square_limits(compared_arrays)
 
-    fig, axes = plt.subplots(1, 2, figsize=(11, 5), constrained_layout=True)
+    for ax, subject in zip(axes, subjects):
+        standard = r2_per_voxel_sub[subject]["standard_glm"] * 100.0
+        method_r2 = r2_per_voxel_sub[subject][method] * 100.0
 
-    for ax, method in zip(axes, methods):
-        method_r2 = (r2_per_voxel[method] * 100.0)
-        x, y = _finite_pair(standard, method_r2, candidate_mask)
-        
+        x, y = _finite_pair(standard, method_r2, candidate_mask_sub[subject])
+
         ax.scatter(x, y, s=7, alpha=0.25)
         ax.plot([lower, upper], [lower, upper], linestyle="--", linewidth=1)
         ax.set_xlim(lower, upper)
         ax.set_ylim(lower, upper)
-        ax.set_xlabel("Standard GLM outer-CV $R^2$ (%)")
-
-        ax.set_ylabel(f"{METHOD_LABELS[method]} " "outer-CV $R^2$ (%)")
-        ax.set_title(METHOD_LABELS[method])
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_title(subject)
         ax.grid(alpha=0.2)
 
-    fig.suptitle("Outer-CV prediction accuracy")
+    # Hide unused panels if ever needed.
+    for ax in axes[len(subjects):]:
+        ax.set_visible(False)
+    for ax in axes[3:]:
+        ax.set_xlabel(r"Standard GLM outer-CV $R^2$ $(\%)$")
+    for ax in axes[::3]:
+        ax.set_ylabel(rf"{METHOD_LABELS[method]} outer-CV $R^2$ $(\%)$")
+
+    fig.suptitle(f"Outer-CV prediction accuracy: {METHOD_LABELS[method]}")
     _save_figure(fig, output_path)
     return fig
 
 def plot_delta_r2_distribution(delta_r2_vs_standard_sub, candidate_mask_sub, method, output_path=None):
     subjects = list(delta_r2_vs_standard_sub.keys())
-    fig, axes = plt.subplots(1, len(subjects), figsize=(3.2 * len(subjects), 4.5), constrained_layout=True, sharey=True)
+
+    fig, axes = plt.subplots(2, 3, figsize=(10, 7), constrained_layout=True, sharey=True)
+    axes = axes.ravel()
 
     for ax, subject in zip(axes, subjects):
         delta = delta_r2_vs_standard_sub[subject][method][candidate_mask_sub[subject]] * 100.0
@@ -97,7 +108,7 @@ def plot_delta_r2_distribution(delta_r2_vs_standard_sub, candidate_mask_sub, met
         delta = delta[np.isfinite(delta)]
         median = np.median(delta)
 
-        ax.hist(delta, bins="sqrt", color="C0", alpha=0.85, edgecolor="white")
+        ax.hist(delta, bins="sqrt", color="C0", alpha=0.85)
         ax.axvline(0.0, linestyle="--", linewidth=1, color="black")
         ax.axvline(median, linestyle=":", linewidth=1.5, color="C0", label=f"median = {median:.4f} pp")
 
@@ -105,10 +116,14 @@ def plot_delta_r2_distribution(delta_r2_vs_standard_sub, candidate_mask_sub, met
         ax.grid(alpha=0.2)
         ax.legend()
 
-    axes[0].set_ylabel("Number of voxels")
-
-    for ax in axes:
+    for ax in axes[::3]:
+        ax.set_ylabel("Number of voxels")
+    for ax in axes[3:]:
         ax.set_xlabel(r"$\Delta R^2$ vs Standard GLM (pp)")
+
+    y_max = max(ax.get_ylim()[1] for ax in axes)    
+    for ax in axes:
+        ax.set_ylim(0, y_max)
 
     fig.suptitle(f"Voxelwise change in prediction accuracy: {METHOD_LABELS[method]}")
     _save_figure(fig, output_path)
@@ -151,7 +166,7 @@ def plot_binned_r2_improvement(r2_per_voxel_sub, candidate_mask_sub, method, bin
         improvement = denoised - baseline
         plotted_label = False
 
-        for bin_index, (left, right) in enumerate(zip(bins[:-1], bins[1:])):
+        for bin_index, (left, right) in enumerate(itertools.pairwise(bins)):
             mask = (baseline >= left) & (baseline < right)
 
             if np.sum(mask) < 5:
