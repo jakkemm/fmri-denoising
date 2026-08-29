@@ -953,7 +953,7 @@ Let $n$ denote the number of time points in a run. A DCT-II basis function \cite
     d_k(i) = \cos \left(\frac{\pi k(2i+1)}{2n}\right), \qquad i=0,\ldots,n-1, \qquad k=0,\ldots,K.
 \end{equation}
 
-Note, that the constant component corresponding to $k=0$ produces an intercept column.
+Note that the constant component corresponding to $k=0$ produces an intercept column.
 
 The number of DCT regressors should depend on the duration of the run and the selected high-pass cutoff \cite{spm-filter}. If $T$ denotes the run duration and $\tau_c$ denotes the cutoff period, an approximate rule is
 
@@ -2555,6 +2555,56 @@ The latter includes fitting a new instance of a method in every outer fold. Cons
 Outer-CV runtime should therefore not be interpreted as the runtime required for a single practical application of the fitted procedure. Instead, it measures the computational cost of rigorously evaluating the complete method under the adopted cross-validation framework.
 
 
+\section{Prediction-accuracy results}
+\label{section:prediction-results}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.5]{fig/delta_r2_distribution_glm_pca.pdf}
+    \caption{Distributions of voxelwise change in outer-CV prediction accuracy of PCA-assisted GLM denoising against the Standard GLM denoising for each subject.}
+    \label{fig:r2-distribution-glm-pca}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.5]{fig/delta_r2_distribution_ica.pdf}
+    \caption{Distributions of voxelwise change in outer-CV prediction accuracy of ICA-based denoising against the Standard GLM denoising for each subject.}
+    \label{fig:r2-distribution-ica}
+\end{figure}
+
+Figures~\ref{fig:r2-distribution-glm-pca}~and~\ref{fig:r2-distribution-ica} compare voxelwise outer-CV prediction accuracy of the PCA-assisted GLM denoising and ICA-based denoising respectively against the Standard GLM for all participants. On each plot, the median is presented alongside a reference line corresponding to a difference of 0 percentage points. 
+These distributions show how the voxelwise $\Delta R^2$ values described in Equation~\eqref{eq:delta-r2-standard} are distributed. Note that the horizontal axis is scaled independently for each subject to improve visualization of the distributional shape. 
+
+The most visible difference can be seen in the shape of these distributions. For PCA-assisted GLM denoising, the values are distributed on both sides of the $x=0$ line, with a slight shift towards positive values. Additionally, each median lies to the right of said line. Most of the plots have similar horizontal scales, approximately spanning $[-2, 2]$. Distributions for some subjects slightly exceed this range.
+Conversely, for ICA-based denoising the majority of the distribution mass is located to the left of the $x=0$ line, except for distributions for subjects 5 and 6, which more resemble the distributional shapes of the PCA-assisted GLM denoising, having values distributed on both sides of the $x=0$ line. Additionally, these two subjects have positive median $\Delta R^2$ values and a similar horizontal axis scale in the range of $[-1, 1]$. For the remaining subjects (subjects~1~through~4), these scales differ considerably, most notably for the first subject, whose distribution spans approximately $[-20, 2]$. Median lines of these distributions also lie in the negative part of the plot, with the lowest median of approximately $-2$ percentage points belonging to the first subject.
+
+These results show a small overall improvement in prediction accuracy for PCA-assisted GLM denoising relative to the Standard GLM, as indicated by positive median $\Delta R^2$ values for all subjects. Some distributions are placed more to the right of the $x=0$ line (subjects~3,~5~and~6), indicating that the majority of the voxelwise $\Delta R^2$ values are positive, although the magnitude of the improvement remains small. All of the distributions show a strong concentration around their central values, while also containing relatively short tails. The best results can be seen for subject 6, where both the distribution, as well as the median, are moved to the right, suggesting the largest overall improvement in comparison with the Standard GLM.
+
+For ICA-based denoising the distributions mostly show a decline in prediction accuracy. Subjects 1-4 have a large majority of voxels to the left of the $x=0$ line, indicating that most of the voxelwise prediction accuracy differences are negative, meaning worse out-of-sample prediction accuracy than the Standard GLM. The median values additionally reflect this conclusion, with the worst result appearing for the first participant. These distributions are also considerably more asymmetric than those obtained for PCA-assisted GLM denoising, with pronounced negative tails for subjects 1–4 and the most extreme negative tail observed for subject 1. The best results are for subjects 5 and 6, where the median lies to the right of the $x=0$ line, and the distributions are more symmetric around zero.
+
+The results additionally indicate substantially greater between-subject variability for ICA-based denoising. While PCA-assisted GLM denoising produces small positive median changes for all participants, the effect of ICA-based denoising ranges from a considerable deterioration for subject 1 to approximately neutral or slightly positive changes for subjects 5 and 6.
+
+Overall, these plots show the poorer predictive performance of ICA-based denoising in comparison with PCA-assisted GLM denoising and the Standard GLM. This pattern is examined further in the subsequent analyses.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.5]{fig/r2_scatter_glm_pca.pdf}
+    \caption{Scatter plots of outer-CV voxelwise prediction accuracy of PCA-assisted GLM denoising against the Standard GLM denoising for each subject.}
+    \label{fig:r2-voxelwise-glm-pca}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.5]{fig/r2_scatter_ica.pdf}
+    \caption{Scatter plots of outer-CV voxelwise prediction accuracy of ICA-based denoising against the Standard GLM denoising for each subject.}
+    \label{fig:r2-voxelwise-ica}
+\end{figure}
+
+Figures~\ref{fig:r2-voxelwise-glm-pca}~and~\ref{fig:r2-voxelwise-ica} present voxelwise outer-CV prediction accuracy relative to the Standard GLM nd are analogous to Figure 4A in \cite{glm-denoise}. The plots show pairs of $R^2$ values expressed as percentages. For each voxel, the $x$-coordinate corresponds to the prediction accuracy obtained with the Standard GLM, while the $y$-coordinate corresponds to the prediction accuracy obtained with PCA-assisted GLM denoising or ICA-based denoising in Figures~\ref{fig:r2-voxelwise-glm-pca}~and~\ref{fig:r2-voxelwise-ica}, respectively. The identity line represents equal prediction accuracy for the two compared methods. Points below the line indicate lower outer-CV $R^2$ relative to the Standard GLM, whereas points above the line indicate an improvement. These plots provide a complementary representation of the results shown by the distributions in Figures~\ref{fig:r2-distribution-glm-pca}~and~\ref{fig:r2-distribution-ica}.
+
+The pattern of poorer predictive performance of ICA-based denoising can again be observed in Figure~\ref{fig:r2-voxelwise-ica}. For subjects 1--4, a substantial proportion of voxels lies below the identity line, indicating lower outer-CV $R^2$ values than those obtained with the Standard GLM. This effect is most pronounced for subject 1, where a wide downward deviation from the identity line is visible for voxels with low and moderate baseline prediction accuracy. For these subjects, the discrepancy between ICA and the Standard GLM decreases for voxels with higher baseline $R^2$, whose values remain closer to the identity line. In contrast, subjects 5 and 6 exhibit points concentrated almost entirely around the identity line, indicating that ICA-based denoising produces little change in prediction accuracy for these participants.
+
+Therefore, the scatter plots support the conclusions obtained from the voxelwise $\Delta R^2$ distributions: PCA-assisted GLM denoising produces small but relatively consistent changes across subjects, whereas the effect of ICA-based denoising is substantially more subject-dependent and can lead to considerable deterioration in voxelwise prediction accuracy.
 
 % NOTE: dodac o tym, ze czasy sie roznia, bo komputer sie przegrzewa, wiec model time-complexity nie uwzglednil low-frequency driftu i te dane nie powinny byc tak analizowane jednoznacznie - more thorough analysis should include out-projecting machine drift, due to the heating up of the device
 
