@@ -221,7 +221,7 @@ def plot_component_comparison():
         q_by_run_sub=ica_model_order,
         n_task_by_run_sub=ica_n_task,
         n_nuisance_by_run_sub=ica_n_nuis,
-        output_path=output_dir / "ica_component_comparison.pdf"
+        output_path=output_dir / "ica_component_comparison.png"
     )
     _close(fig)
     
