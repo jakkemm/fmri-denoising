@@ -249,34 +249,52 @@ def plot_median_r2(median_r2_sub, output_path=None):
     _save_figure(fig, output_path)
     return fig
 
-def plot_snr_scatter(snr_by_method, candidate_mask, output_path=None):
-    standard = snr_by_method["standard_glm"]
-    methods = ("glm_pca", "ica")
+def plot_snr_scatter(snr_by_method_sub, candidate_mask_sub, method, output_path=None):
+    subjects = list(snr_by_method_sub.keys())
 
-    finite_arrays = [standard[np.isfinite(standard) & candidate_mask]]
+    fig, axes = plt.subplots(2, 3, figsize=(10, 7), constrained_layout=True, sharex=True, sharey=True)
+    axes = axes.ravel()
 
-    for method in methods:
-        values = snr_by_method[method]
-        finite_arrays.append(values[np.isfinite(values) & candidate_mask])
+    finite_arrays = []
 
-    upper = max(np.max(values) for values in finite_arrays if values.size > 0)
+    for subject in subjects:
+        standard = snr_by_method_sub[subject]["standard_glm"]
+        method_snr = snr_by_method_sub[subject][method]
+        candidate_mask = candidate_mask_sub[subject]
+
+        x, y = _finite_pair(standard, method_snr, candidate_mask)
+        finite_arrays.extend([x, y])
+
+    upper = max(
+        np.max(values)
+        for values in finite_arrays if values.size > 0
+    )
+
     upper *= 1.05
 
-    fig, axes = plt.subplots(1, 2, figsize=(11, 5), constrained_layout=True)
+    for ax, subject in zip(axes, subjects):
+        standard = snr_by_method_sub[subject]["standard_glm"]
+        method_snr = snr_by_method_sub[subject][method]
+        candidate_mask = candidate_mask_sub[subject]
 
-    for ax, method in zip(axes, methods):
-        x, y = _finite_pair(standard, snr_by_method[method], candidate_mask)
-        
+        x, y = _finite_pair(standard, method_snr, candidate_mask)
+
         ax.scatter(x, y, s=7, alpha=0.25)
         ax.plot([0, upper], [0, upper], linestyle="--", linewidth=1)
         ax.set_xlim(0, upper)
         ax.set_ylim(0, upper)
-        ax.set_xlabel("Standard GLM jackknife SNR")
-        ax.set_ylabel(f"{METHOD_LABELS[method]} jackknife SNR")
-        ax.set_title(METHOD_LABELS[method])
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_title(subject)
         ax.grid(alpha=0.2)
 
-    fig.suptitle("Stability of task beta estimates")
+    for ax in axes[len(subjects):]:
+        ax.set_visible(False)
+    for ax in axes[3:]:
+        ax.set_xlabel("Standard GLM jackknife SNR")
+    for ax in axes[::3]:
+        ax.set_ylabel(f"{METHOD_LABELS[method]} jackknife SNR")
+
+    fig.suptitle(f"Stability of task beta estimates: {METHOD_LABELS[method]}")
     _save_figure(fig, output_path)
     return fig
 

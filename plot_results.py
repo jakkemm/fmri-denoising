@@ -41,14 +41,6 @@ def plot_subject(subject, beta_category="face", positive_contrast="face", negati
     output_dir = RESULTS_PATH / "plots" / subject
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Jackknife SNR
-    fig = plot_snr_scatter(
-        snr_by_method=result.jackknife_snr,
-        candidate_mask=result.candidate_mask,
-        output_path=output_dir / "snr_scatter.pdf"
-    )
-    _close(fig)
-
     # beta map
     fig = plot_beta_map_comparison(
         result=result,
@@ -90,6 +82,7 @@ def plot_groups_statistics():
     candidate_mask_sub = {}
     r2_per_voxel_sub = {}
     delta_r2_vs_standard_sub = {}
+    jackknife_snr_sub = {}
     
     for subject in SUBJECTS:
         result = load_evaluation_result(subject)
@@ -100,6 +93,7 @@ def plot_groups_statistics():
         candidate_mask_sub[subject] = result.candidate_mask
         r2_per_voxel_sub[subject] = result.r2_per_voxel
         delta_r2_vs_standard_sub[subject] = result.delta_r2_vs_standard
+        jackknife_snr_sub[subject] = result.jackknife_snr
     
     output_dir = RESULTS_PATH / "plots" / "group"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -166,6 +160,23 @@ def plot_groups_statistics():
         candidate_mask_sub=candidate_mask_sub,
         method="ica",
         output_path=output_dir / "r2_scatter_ica.pdf"
+    )
+    _close(fig)
+
+
+    # JACKKNIFE SNR
+    fig = plot_snr_scatter(
+        snr_by_method_sub=jackknife_snr_sub,
+        candidate_mask_sub=candidate_mask_sub,
+        method="glm_pca",
+        output_path=output_dir / "snr_scatter_glm_pca.pdf"
+    )
+    _close(fig)
+    fig = plot_snr_scatter(
+        snr_by_method_sub=jackknife_snr_sub,
+        candidate_mask_sub=candidate_mask_sub,
+        method="ica",
+        output_path=output_dir / "snr_scatter_ica.pdf"
     )
     _close(fig)
 
