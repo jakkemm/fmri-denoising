@@ -5,8 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from matplotlib import colormaps
-from matplotlib.colors import ListedColormap
-from matplotlib.patches import Patch
+from matplotlib.colors import ListedColormap, Normalize
 from nilearn.plotting import find_cut_slices, plot_stat_map
 
 from evaluation.maps import beta_to_img, contrast_t_to_img
@@ -50,7 +49,25 @@ def _square_limits(arrays, padding=0.05):
 
     span = upper - lower
 
-    return lower - padding * span, upper + padding * span,
+    return lower - padding * span, upper + padding * span
+
+
+
+def _annotate_heatmap(ax, matrix, cmap, norm, formatter):
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            value = matrix[i, j]
+
+            if not np.isfinite(value):
+                continue
+
+            rgba = cmap(norm(value))
+
+            # Relative luminance of the cell color.
+            luminance = 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]
+            text_color = "black" if luminance > 0.55 else "white"
+
+            ax.text(j, i, formatter(value), ha="center", va="center", fontsize=9, color=text_color)
 
 def plot_r2_scatter(r2_per_voxel_sub, candidate_mask_sub, method, output_path=None):
     subjects = list(r2_per_voxel_sub.keys())
@@ -271,16 +288,33 @@ def plot_runtime(fit_runtime_sub, outer_cv_runtime_sub, output_path=None):
     group_width = 0.8
     bar_width = group_width / len(METHOD_ORDER)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5), constrained_layout=True)
+    fig, axes = plt.subplots(
+        1,
+        2,
+        figsize=(12, 4.5),
+        constrained_layout=True,
+    )
+
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
     for method_index, method in enumerate(METHOD_ORDER):
-        positions = x - group_width / 2 + (method_index + 0.5) * bar_width
+        color = colors[method_index]
 
+        positions = x - group_width / 2 + (method_index + 0.5) * bar_width
         fit_values = np.asarray([fit_runtime_sub[subject][method] for subject in subjects])
         outer_values = np.asarray([outer_cv_runtime_sub[subject][method] for subject in subjects])
 
-        axes[0].bar(positions, fit_values, width=bar_width, label=METHOD_LABELS[method])
-        axes[1].bar(positions, outer_values, width=bar_width, label=METHOD_LABELS[method])
+        fit_mean = np.mean(fit_values)
+        outer_mean = np.mean(outer_values)
+
+        axes[0].bar(positions, fit_values, width=bar_width, color=color, label=METHOD_LABELS[method])
+        axes[1].bar(positions, outer_values, width=bar_width, color=color, label=METHOD_LABELS[method])
+
+        axes[0].axhline(fit_mean, color=color, linestyle="--", linewidth=1.5)
+        axes[1].axhline(outer_mean, color=color, linestyle="--", linewidth=1.5)
+
+        axes[0].text(1.01, fit_mean, f"{fit_mean:.1f} s", transform=axes[0].get_yaxis_transform(), color=color, va="center", ha="left", fontsize=9)
+        axes[1].text(1.01, outer_mean, f"{outer_mean:.1f} s", transform=axes[1].get_yaxis_transform(), color=color, va="center", ha="left", fontsize=9)
 
     for ax in axes:
         ax.set_xticks(x)
@@ -461,45 +495,59 @@ def plot_ica_selected_components(q_by_run_sub, n_task_by_run_sub, n_nuisance_by_
     subjects = list(q_by_run_sub.keys())
     n_subjects = len(subjects)
 
-    group_centers = np.arange(n_subjects)
-    group_width = 0.8
-
-    # Dark = task, light = nuisance
-    task_color = "#2F5D8A"
-    nuisance_color = "#A9C5E8"
-
-    fig, ax = plt.subplots(
-        figsize=(10, 5),
-        constrained_layout=True,
-    )
+    max_runs = max(len(q_by_run_sub[subject]) for subject in subjects)
+    q_matrix = np.full((n_subjects, max_runs), np.nan)
+    nuisance_fraction_matrix = np.full((n_subjects, max_runs), np.nan)
 
     for subject_index, subject in enumerate(subjects):
-        task_runs = np.asarray(n_task_by_run_sub[subject])
-        nuisance_runs = np.asarray(n_nuisance_by_run_sub[subject])
+        q = np.asarray(q_by_run_sub[subject], dtype=float)
+        nuisance = np.asarray(n_nuisance_by_run_sub[subject], dtype=float)
 
-        n_runs = len(task_runs)
-        bar_width = group_width / n_runs
-        run_positions = group_centers[subject_index] - group_width / 2 + (np.arange(n_runs) + 0.5) * bar_width
+        n_runs = len(q)
+        q_matrix[subject_index, :n_runs] = q
 
-        ax.bar(run_positions, task_runs, width=bar_width * 0.95, color=task_color, edgecolor="black", linewidth=0.3)
-        ax.bar(run_positions, nuisance_runs, width=bar_width * 0.95, bottom=task_runs, color=nuisance_color, edgecolor="black", linewidth=0.3)
+        nuisance_fraction_matrix[subject_index, :n_runs] = 100.0 * nuisance / q
 
-    ax.set_xticks(group_centers)
-    ax.set_xticklabels(subjects)
+    q_cmap = colormaps["viridis"].copy()
+    nuisance_cmap = colormaps["magma"].copy()
 
-    for i in range(n_subjects - 1):
-        ax.axvline(i + 0.5, linestyle="--", linewidth=0.8, alpha=0.3)
+    # Missing run is shown clearly but neutrally.
+    q_cmap.set_bad("#d9d9d9")
+    nuisance_cmap.set_bad("#d9d9d9")
 
-    legend_handles = [
-        Patch(facecolor=task_color, edgecolor="black", label="Task-related"),
-        Patch(facecolor=nuisance_color, edgecolor="black", label="Nuisance"),
-    ]
-    ax.legend(handles=legend_handles, title="Component type", loc="lower right")
-    ax.set_xlabel("Subject")
-    ax.set_ylabel("Number of ICA components")
-    ax.set_title("ICA component classification across runs and subjects")
-    ax.grid(axis="y", alpha=0.2)
+    q_norm = Normalize(vmin=np.nanmin(q_matrix), vmax=np.nanmax(q_matrix))
 
+    nuisance_norm = Normalize(vmin=0, vmax=100)
+
+    fig, axes = plt.subplots(2, 1, figsize=(12, 6), constrained_layout=True)
+
+    im_q = axes[0].imshow(q_matrix, aspect="auto", interpolation="none", cmap=q_cmap, norm=q_norm)
+    _annotate_heatmap(axes[0], q_matrix, q_cmap, q_norm, formatter=lambda value: f"{value:.0f}")
+
+    axes[0].set_title("Selected ICA model order")
+    cbar_q = fig.colorbar(im_q, ax=axes[0], pad=0.01)
+    cbar_q.set_label(r"Model order $\widehat{q}$")
+
+    im_nuisance = axes[1].imshow(nuisance_fraction_matrix, aspect="auto", interpolation="none", cmap=nuisance_cmap, norm=nuisance_norm)
+    _annotate_heatmap(axes[1], nuisance_fraction_matrix, nuisance_cmap, nuisance_norm, formatter=lambda value: f"{value:.0f}%")
+
+    axes[1].set_title("Proportion of ICA components classified as nuisance")
+    cbar_nuisance = fig.colorbar(im_nuisance, ax=axes[1], pad=0.01)
+    cbar_nuisance.set_label("Nuisance components (%)")
+
+    for ax in axes:
+        ax.set_yticks(np.arange(n_subjects))
+        ax.set_yticklabels(subjects)
+        ax.set_xticks(np.arange(max_runs))
+        ax.set_xticklabels(np.arange(1, max_runs + 1))
+        
+        ax.set_ylabel("Subject")
+        ax.grid(False, which="both")
+        ax.tick_params(which="both", length=0)
+
+    axes[1].set_xlabel("Run")
+    
+    fig.suptitle("ICA model order and component classification")
     _save_figure(fig, output_path)
     return fig
 

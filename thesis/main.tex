@@ -2172,10 +2172,12 @@ Component $j$ is classified as task-related when
 
 \begin{equation}
     z_j > c,
+    \label{eq:classification-criterion}
 \end{equation}
 
 and is otherwise classified as task-unrelated and treated as a nuisance component.
 
+% NOTE: uwaga! ja wybieram tylko c=0, wiec to opisac
 Two thresholds are considered in \cite{glm-denoise}. For the conservative variant, $c=0$ so a component is retained whenever its actual task-related variance exceeds the mean obtained from the shuffled time courses. This criterion is conservative with respect to component removal, since ambiguous components tend to remain in the data.
 
 For the liberal variant, $c=3$, a component must explain substantially more task-related variance than the shuffled time courses in order to be retained. Consequently, more components are classified as nuisance and removed from the data.
@@ -2552,14 +2554,14 @@ Outer-CV runtime should therefore not be interpreted as the runtime required for
 \section{Prediction-accuracy results}
 \label{section:prediction-results}
 
-\begin{figure}[ht]
+\begin{figure}[!htbp]
     \centering
     \includegraphics[scale=0.5]{fig/delta_r2_distribution_glm_pca.pdf}
     \caption{Distributions of voxelwise changes in outer-CV prediction accuracy for PCA-assisted GLM denoising relative to the Standard GLM for each subject.}
     \label{fig:r2-distribution-glm-pca}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[!htbp]
     \centering
     \includegraphics[scale=0.5]{fig/delta_r2_distribution_ica.pdf}
     \caption{Distributions of voxelwise changes in outer-CV prediction accuracy for ICA-based denoising relative to the Standard GLM for each subject.}
@@ -2580,14 +2582,14 @@ The results additionally indicate substantially greater between-subject variabil
 
 Overall, these plots show the poorer predictive performance of ICA-based denoising in comparison with PCA-assisted GLM denoising and the Standard GLM. This pattern is examined further in the subsequent analyses.
 
-\begin{figure}[ht]
+\begin{figure}[!htbp]
     \centering
     \includegraphics[scale=0.5]{fig/r2_scatter_glm_pca.pdf}
     \caption{Scatter plots of voxelwise outer-CV prediction accuracy for PCA-assisted GLM denoising relative to the Standard GLM for each subject.}
     \label{fig:r2-voxelwise-glm-pca}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[!htbp]
     \centering
     \includegraphics[scale=0.5]{fig/r2_scatter_ica.pdf}
     \caption{Scatter plots of voxelwise outer-CV prediction accuracy for ICA-based denoising relative to the Standard GLM for each subject.}
@@ -2600,31 +2602,132 @@ The pattern of poorer predictive performance of ICA-based denoising can again be
 
 Therefore, the scatter plots support the conclusions obtained from the voxelwise $\Delta R^2$ distributions: PCA-assisted GLM denoising produces small but relatively consistent changes across subjects, whereas the effect of ICA-based denoising is substantially more subject-dependent and can lead to considerable deterioration in voxelwise prediction accuracy.
 
-\begin{figure}[ht]
+\begin{figure}[!htbp]
     \centering
     \includegraphics[scale=0.5]{fig/r2_improvement_binned_glm_pca.pdf}
     \caption{Voxelwise change in outer-CV prediction accuracy for PCA-assisted GLM relative to the Standard GLM, summarized within 10-percentage-point baseline $R^2$ bins by the $95\%$ range for each subject.}
     \label{fig:r2-binned-glm-pca}
 \end{figure}
-
-\begin{figure}[ht]
+\begin{figure}[!htbp]
     \centering
     \includegraphics[scale=0.5]{fig/r2_improvement_binned_ica.pdf}
     \caption{Voxelwise change in outer-CV prediction accuracy for ICA relative to the Standard GLM, summarized within 10-percentage-point baseline $R^2$ bins by the $95\%$ range for each subject.}
     \label{fig:r2-binned-ica}
 \end{figure}
 
-To conclude the prediction accuracy analysis, Figures~\ref{fig:r2-binned-glm-pca}~and~\ref{fig:r2-binned-ica} were produced. These figures present voxelwise changes in outer-CV prediction accuracy as a function of the prediction accuracy obtained with the Standard GLM. Voxels are grouped into bins of width 10 percentage points according to their Standard GLM outer-CV $R^2$. For each subject and each bin, the $95\%$ range of voxelwise $\Delta R^2$ values is presented. These plots are analogous to Figure 4B in \cite{glm-denoise}. They therefore show how the effect of each denoising method depends on the baseline prediction accuracy of the corresponding voxels.
+For further analysis of improvement of prediction accuracy relative to Standard GLM denoising, Figures~\ref{fig:r2-binned-glm-pca}~and~\ref{fig:r2-binned-ica} were produced. These figures present voxelwise changes in outer-CV prediction accuracy as a function of the prediction accuracy obtained with the Standard GLM. Voxels are grouped into bins of width 10 percentage points according to their Standard GLM outer-CV $R^2$. For each subject and each bin, the $95\%$ range of voxelwise $\Delta R^2$ values is presented. These plots are analogous to Figure 4B in \cite{glm-denoise}. They therefore show how the effect of each denoising method depends on the baseline prediction accuracy of the corresponding voxels.
 
 For PCA-assisted GLM denoising, the largest positive changes can be observed among voxels for which the Standard GLM obtains negative or low outer-CV $R^2$ values. Across subjects, the distributions within these bins generally extend further into the positive range. As the Standard GLM $R^2$ increases, the ranges of $\Delta R^2$ values become narrower and increasingly concentrated around zero, indicating that PCA-assisted denoising has less influence on voxels that are already predicted relatively well by the Standard GLM. This pattern is visible across approximately the $[-10\%,50\%)$ range of baseline $R^2$. Above this range bins are present only for a subset of subjects, most notably subject 4. Subjects 1 and 2 additionally exhibit wider and more negative lower ranges than the remaining subjects for several bins above $10\%$ baseline $R^2$, and their $[40\%,50\%)$ ranges lie mostly below zero. Overall, however, the changes remain relatively small and centered close to zero for voxels with moderate or high baseline prediction accuracy.
 
 ICA-based denoising again reflects poorer prediction accuracy in comparison with the Standard GLM. For subjects 1-4, the $95\%$ ranges within most baseline-$R^2$ bins extend predominantly below zero, indicating that ICA frequently reduces voxelwise prediction accuracy. The strongest deterioration is observed for subject 1, particularly among voxels with negative or low Standard GLM $R^2$, where the lower end of the range reaches approximately $-10$ percentage points. As baseline prediction accuracy increases, the magnitude and spread of these negative changes generally decrease, and the ranges approach zero. In contrast, subjects 5 and 6 show much smaller changes, with ranges located close to zero and extending into positive values across most bins. This behavior is consistent with the previous analyses, in which ICA-based denoising substantially degraded prediction accuracy for subjects 1-4 while producing approximately neutral results for subjects 5 and 6.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=\textwidth]{fig/median_r2.pdf}
+    \caption{Median voxelwise outer-CV prediction accuracy for the Standard GLM, PCA-assisted GLM denoising, and ICA-based denoising across subjects.}
+    \label{fig:median-r2}
+\end{figure}
+
+To conclude the prediction accuracy analysis, Figure~\ref{fig:median-r2} focuses on the overall median outer-CV $R^2$ for the analyzed methods across subjects. Each subject is represented by three bars corresponding to the Standard GLM, PCA-assisted GLM and ICA-based denoising. The medians are calculated across the candidate voxels included in the prediction accuracy analysis.
+
+PCA-assisted GLM denoising achieves the highest median prediction accuracy for all subjects. All median $R^2$ values are positive, with the highest value of $3.03 \%$ obtained for subject 4 and the lowest value of $0.91 \%$ for subject 5. However improvement relative to the Standard GLM remains small for every subject.
+
+The lowest values are mostly obtained for ICA-based denoising. For subjects 1-4, ICA has the lowest median $R^2$ among the three methods, with the poorest result of $-0.54\%$ observed for subject 1. For subjects 2-4, the median is also considerably lower that the corresponding values obtained with the Standard GLM and PCA-assisted GLM denoising. In contrast, ICA slightly outperforms the Standard GLM for subjects 5 and 6, but approximately $0.09$ and $0.02$ precentage points, respectively.
+
+The Standard GLM generally provides the second-highest prediction accuracy. It is outperformed by PCA-assisted GLM denoising by a relatively small margin for every subject, while ICA additionally exceeds it slightly for subjects 5 and 6. This further illustrates that the Standard GLM provides a strong baseline, with additional denoising producing either modest improvements in the case of PCA or strongly subject-dependent changes in the case of ICA.
+
+Overall, the median outer-C $R^2$ values are relatively small, ranging from $-0.54\%$ to $3.03\%$, which is consistent with the relatively low voxelwise prediction accuracy observed throughout the preceding analysis.
 
 A general pattern of prediction accuracy deterioration using ICA-based denoising relative to the Standard GLM can be observed across the presented analyses, particularly for subjects 1-4. These results indicate that, for the considered dataset and implementation, ICA-based denoising generally performs worse than the Standard GLM. 
 
 PCA-assisted GLM denoising, in contrast, shows an overall improvement in prediction accuracy relative to the Standard GLM, although the magnitude of this improvement remains small. 
 
 The potential reasons for these results are discussed in detail in Section~\ref{section:results-remarks}.
+
+
+\section{Method-specific component analysis}
+
+Out of the selected methods, PCA-assisted GLM and ICA-based denoising both utilize principal component analysis, although for different purposes. The choice of the number of components is crucial, since it controls the amount of information retained or introduced by the respective procedures. However both of the analyzed methods perform the PCA for a different reason and on a different sets. The PCA-assisted GLM method uses PCA to construct additional nuisance regressors for the design matrix, while PCA in ICA-based denoising is used to reduce the data to a selected lower-dimensional subspace prior to ICA estimation. Additionally the PCA-assisted GLM method uses an internal cross-validation scheme, which chooses the optimal number of components based on the prediction accuracy obtained for each number of components introduced. In ICA-based denoising, the dimensionality is instead determined using a model-order selection information criterion, and therefore cross-validation is not used for selecting the number of retained dimensions.
+
+ICA-based denoising, apart from selecting the number of components, classifies them into two groups: task-related components and nuisance components. The exact procedure used to classify these components was described in Section~\ref{section:ica-denoising}. The analysis will additionally focus on the component-classification criterion adopted from \cite{glm-denoise}.
+
+The analysis of the components will provide additional information, regarding the denoising results discussed in this chapter and can point to direction of how these methods behave.
+
+\subsection{PCA-assisted GLM components}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=\textwidth]{fig/pca_component_comparison.pdf}
+    \caption{Prediction accuracy as a function of the number of PCA noise regressors with the chosen final number of components for each subject in PCA-assisted GLM denoising.}
+    \label{fig:pca-components}
+\end{figure}
+
+Figure~\ref{fig:pca-components} shows plots of prediction accuracy values for each of the number of PCA noise regressors for each subject. Additionally the dots indicate the number of PCA noise regressors selected by maximizing the internal cross-validated $R^2$ The exact procedure of creating the principal components and evaluating the optimal number of components is described in Section~\ref{section:pca-regressors}. This figure mirrors the Figure 2C in \cite{glm-denoise}.
+
+The performance curves generally increase initially, reach a maximum, and subsequently decrease as additional PCA noise regressors are introduced. A particularly pronounced pattern can be observed for subject 4, which also obtains the highest cross-validated $R^2$ values, and for subject 2, whose prediction accuracy decreases relatively rapidly after approximately three to five components. The curves for the remaining subjects are flatter, although a similar tendency can still be observed. These results also indicate that setting the maximum number of candidate noise regressors to $k_{\max}=20$ was sufficient, since the selected numbers occur well below this boundary and the cross-validated $R^2$ generally decreases for larger numbers of regressors.
+
+The chosen number of components is in range $[2, 7]$, never reaching a double-digit number. For every subject, the selected number of PCA noise regressors is greater than zero. Selecting zero PCA noise regressors would reduce the procedure to the Standard GLM. As a result, the added noise regressors seem to show an improvement in overall model prediction accuracy. The selected number of regressors varies between subjects, supporting the use of data-driven component selection rather than a single fixed number of nuisance regressors for all participants.
+
+\subsection{ICA-based denoising components}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=\textwidth]{fig/ica_component_comparison.pdf}
+    \caption{Two heatmaps representing the selected model order $\widehat{q}$ and the proportion of ICA components classified as nuisance, respectively.}
+    \label{fig:ica-components}
+\end{figure}
+
+After selecting the model order and estimating the independent components, the criterion presented in Equation~\eqref{eq:classification-criterion} classifies each component as either task-related or nuisance. If $z_j > c$, component $j$ is classified as task-related; otherwise, it is classified as nuisance. Figure~\ref{fig:ica-components} presents two heatmaps. The upper heatmap shows the selected model order $\widehat{q}$, i.e. the number of dimensions retained prior to ICA estimation. The lower heatmap presents the proportion of the resulting ICA components classified as nuisance. This proportion and the resulting task-related component classification proportion can be expressed as 
+
+\begin{equation}
+    \pi_{\mathrm{nuis}} = \frac{n_{\mathrm{nuis}}}{\widehat{q}}, \qquad 
+    \pi_{\mathrm{task}} = \frac{n_{\mathrm{task}}}{\widehat{q}} = 1 - \frac{n_{\mathrm{nuis}}}{\widehat{q}}, \qquad
+    \pi_{\mathrm{task}}+\pi_{\mathrm{nuis}}=1.
+\end{equation}
+
+The selected model order $\widehat{q}$ varies considerably both between subjects and between runs. The smallest value is $\widehat{q}=36$, obtained for subject 5 in run 3, whereas the largest is $\widehat{q}=119$, obtained for subject 6 in run 6. No clear common pattern across subjects is apparent. Subject 5 is a notable exception, with model orders mostly concentrated in the range $[36,61]$, apart from run 9, for which $\widehat{q}=117$.
+
+The proportion of ICA components classified as nuisance ranges approximately from $17\%$ to $62\%$, with most values remaining below $50\%$. Similarly to the selected model order, the nuisance-component proportion varies considerably across runs and subjects. No clear monotonic relationship between the selected model order and the proportion of components classified as nuisance is apparent from the heatmaps.
+
+The substantial run-to-run variability in both the selected model order and the nuisance-component proportion, together with the poor prediction accuracy of ICA-based denoising presented in Section~\ref{section:prediction-results}, motivates a closer examination of the component-classification criterion.
+
+To examine the classification criterion more closely, Figure~\ref{fig:ica-z-scores} presents the task-association $z$-scores for individual ICA components across runs and subjects. The dashed line indicates the classification threshold $c=0$ adopted from \cite{glm-denoise}, while the shaded region indicates scores classified as nuisance. A substantial concentration of component scores can be observed around the classification boundary. In particular, many components have slightly negative $z$-scores and are therefore classified as nuisance, despite lying close to the threshold. Moreover, the distribution does not exhibit an obvious separation into two distinct groups corresponding to task-related and nuisance components. This suggests that the binary classification may be sensitive to relatively small differences in the task-association score.
+
+These results suggest that the task-association $z$-score and the fixed threshold $c=0$ may not provide a sufficiently discriminative criterion for component classification in the analyzed dataset. Components with scores close to zero are assigned to one of the two groups, although the score distributions do not show a clear boundary between them. Consequently, components containing useful task-related information may potentially be classified as nuisance and removed during denoising. Such removal could reduce prediction accuracy by subtracting signal components that contribute to the task-related response.
+
+Moreover, the characteristics of the analyzed dataset may further affect the performance of ICA-based denoising. These limitations and possible explanations are discussed in Section~\ref{section:results-remarks}.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=\textwidth]{fig/ica_z_scores_comparison.pdf}
+    \caption{Task-association $z$-scores of ICA components across runs and subjects, with the classification threshold $c=0$ and the region corresponding to nuisance-component classification.}
+    \label{fig:ica-z-scores}
+\end{figure}
+
+
+\section{Runtime analysis}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=\textwidth]{fig/runtime.pdf}
+    \caption{Bar plot of runtime of each method for the full-data fit (left) and for the outer-CV benchmark (right) for each method and subject, represented on a $\log_{10}$ time scale, along with mean runtime values for each method.}
+    \label{fig:runtime}
+\end{figure}
+
+Lastly, the computational runtime of the analyzed methods was compared. Figure~\ref{fig:runtime} presents two bar plots showing the runtime in seconds for each method and subject on a base-10 logarithmic scale. The left subplot presents the runtime of the full-data fit, whereas the right subplot presents the total runtime of the outer-CV benchmark. Horizontal dashed lines indicate the average runtime of each method across subjects.
+
+The most computationally expensive method is PCA-assisted GLM denoising, with a mean runtime of $356.1$ seconds for the full-data fit and $3137.2$ seconds for the outer-CV benchmark. ICA-based denoising is the second most time-consuming method, with corresponding mean runtimes of $64.3$ and $695.9$ seconds. The fastest method by a substantial margin is the Standard GLM, requiring on average only $1.7$ seconds for the full-data fit and $16.8$ seconds for the outer-CV benchmark.
+
+Runtime is relatively consistent across subjects within each method, although some variability is present. Subject 5 generally requires less computation, particularly during the outer-CV benchmark. This is expected because subject 5 contains only 11 runs rather than the 12 available for the remaining subjects, as described in Section~\ref{section:caveats}.
+
+The substantially lower computational cost of the Standard GLM follows from its simpler estimation procedure. Unlike PCA-assisted GLM denoising, it does not require the construction and cross-validation of additional PCA-derived nuisance regressors. The inner cross-validation procedure used to select the number of PCA noise regressors substantially increases the computational cost of PCA-assisted GLM denoising. ICA-based denoising additionally requires model-order selection, iterative ICA estimation, permutation-based component classification, and subsequent reconstruction of the denoised data, resulting in a considerably longer runtime than the Standard GLM.
+
+The computational efficiency of the Standard GLM is particularly notable in view of its prediction accuracy. As shown in Section~\ref{section:prediction-results}, PCA-assisted GLM denoising generally improves outer-CV prediction accuracy only by a relatively small amount despite its substantially greater computational cost.
+
+The poor prediction accuracy of ICA-based denoising is similarly accompanied by considerably greater computational cost. On average, ICA requires approximately $38$ times the runtime of the Standard GLM for the full-data fit and approximately $41$ times the runtime for the outer-CV benchmark, while producing lower prediction accuracy for several subjects.
+
+Overall, the Standard GLM provides the most favorable trade-off between computational cost and prediction accuracy among the analyzed methods. PCA-assisted GLM denoising provides small improvements in prediction accuracy at a substantial computational cost, whereas the considered ICA-based denoising procedure is both computationally more expensive and, for several subjects, less accurate than the Standard GLM.
+
 
 \section{Remarks about results}
 \label{section:results-remarks}
