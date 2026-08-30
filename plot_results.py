@@ -38,7 +38,7 @@ def plot_subject(subject, beta_category="face", positive_contrast="face", negati
     result = load_evaluation_result(subject)
     _, mask_img, t1_img = load_data(base_path=BASE_PATH, subject=subject)
 
-    output_dir = RESULTS_PATH / "plots" / subject
+    output_dir = RESULTS_PATH / "plots" / "individual"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # beta map
@@ -48,7 +48,7 @@ def plot_subject(subject, beta_category="face", positive_contrast="face", negati
         mask_img=mask_img,
         t1_img=t1_img,
         cut_coords=cut_coords,
-        output_path=output_dir / f"beta_{beta_category}.pdf"
+        output_path=output_dir / f"{subject}_beta_{beta_category}.pdf"
     )
     _close(fig)
 
@@ -69,7 +69,7 @@ def plot_subject(subject, beta_category="face", positive_contrast="face", negati
         # in GLMdenoise.
         threshold=3.0,  # Same threshold as Figure 5 in GLMdenoise
         cut_coords=cut_coords,
-        output_path=output_dir / f"t_{positive_contrast}_vs_{negative_contrast}.pdf"
+        output_path=output_dir / f"{subject}_t_{positive_contrast}_vs_{negative_contrast}.pdf"
     )
     _close(fig)
     

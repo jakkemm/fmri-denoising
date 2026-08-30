@@ -94,7 +94,7 @@ def plot_r2_scatter(r2_per_voxel_sub, candidate_mask_sub, method, output_path=No
         x, y = _finite_pair(standard, method_r2, candidate_mask_sub[subject])
 
         ax.scatter(x, y, s=7, alpha=0.25)
-        ax.plot([lower, upper], [lower, upper], linestyle="--", linewidth=1)
+        ax.plot([lower, upper], [lower, upper], linestyle="--", linewidth=1, color="red")
         ax.set_xlim(lower, upper)
         ax.set_ylim(lower, upper)
         ax.set_aspect("equal", adjustable="box")
@@ -127,7 +127,7 @@ def plot_delta_r2_distribution(delta_r2_vs_standard_sub, candidate_mask_sub, met
 
         ax.hist(delta, bins="sqrt", color="C0", alpha=0.85)
         ax.axvline(0.0, linestyle="--", linewidth=1, color="black")
-        ax.axvline(median, linestyle=":", linewidth=1.5, color="C0", label=f"median = {median:.4f} pp")
+        ax.axvline(median, linestyle=":", linewidth=1.5, color="red", label=f"median = {median:.4f} pp")
 
         ax.set_title(subject)
         ax.grid(alpha=0.2)
@@ -280,7 +280,7 @@ def plot_snr_scatter(snr_by_method_sub, candidate_mask_sub, method, output_path=
         x, y = _finite_pair(standard, method_snr, candidate_mask)
 
         ax.scatter(x, y, s=7, alpha=0.25)
-        ax.plot([0, upper], [0, upper], linestyle="--", linewidth=1)
+        ax.plot([0, upper], [0, upper], linestyle="--", linewidth=1, color="red")
         ax.set_xlim(0, upper)
         ax.set_ylim(0, upper)
         ax.set_aspect("equal", adjustable="box")

@@ -261,7 +261,7 @@ The experimental conditions were repeated across 12 runs. This makes leave-one-r
     \item training dataset, consisting of 11 runs,
     \item test dataset, consisting of the left-out run.
 \end{enumerate}
-For each fold data from one run is used as a test dataset, until data from all 12 runs are used as a test dataset, i.e. left-out run. 12 runs means 12 cross-validation folds. This allows the predictive performance of the fitted model to be evaluated on data not used during estimation \cite{glm-denoise}. The multiple-run structure may also help identify run-specific noise effects. The detailed description and implementation of this framework will be explained in the later chapters.
+For each fold data from one run is used as a test dataset, until data from all 12 runs are used as a test dataset, i.e., left-out run. 12 runs means 12 cross-validation folds. This allows the predictive performance of the fitted model to be evaluated on data not used during estimation \cite{glm-denoise}. The multiple-run structure may also help identify run-specific noise effects. The detailed description and implementation of this framework will be explained in the later chapters.
 
 The dataset does not provide a noise-free reference image or a known true BOLD signal. The quality of denoising must therefore be evaluated indirectly using criteria such as: \ts{(dodac zrodla po ewaluacji)}
 
@@ -306,7 +306,7 @@ The selected methods describe the data in the two-dimensional matrix form. Since
     \mathbf{Y} \in \mathbb{R}^{t \times v}, \qquad t = n_T, \qquad v = n_X \cdot n_Y \cdot n_Z,
 \end{equation}
 
-where $t=n_T$ denotes the number of time points, $v$ denotes the number of units of brain tissue and $n_X, n_Y, n_Z$ are the numbers of voxels along the $X$, $Y$, and $Z$ spatial axes respectively, as introduced in \eqref{eq:init-data-shape}. These elements stem from functional MRI acquisition, further described in Section~\ref{section:fmri-acquisition} and in the following thesis will be referred to as \textit{voxels}.
+where $t=n_T$ denotes the number of time points, $v$ denotes the number of units of brain tissue and $n_X, n_Y, n_Z$ are the numbers of voxels along the $X$, $Y$, and $Z$ spatial axes, respectively, as introduced in \eqref{eq:init-data-shape}. These elements stem from functional MRI acquisition, further described in Section~\ref{section:fmri-acquisition} and in the following thesis will be referred to as \textit{voxels}.
 
 The possibility of describing the selected methods within a related mathematical framework is one of the main reasons for their selection. Their comparison allows the following aspects to be studied:
 
@@ -398,7 +398,7 @@ be a design matrix, and let
     \end{bmatrix}
 \end{equation}
 
-be matrix of regression coefficients and matrix of error terms respectively. It is not hard to see, that such a matrix system $\mathbf{Y} = \mathbf{X}\mathbf{B} + \mathbf{E}$ can be written as two separate systems:
+be matrix of regression coefficients and matrix of error terms, respectively. It is not hard to see, that such a matrix system $\mathbf{Y} = \mathbf{X}\mathbf{B} + \mathbf{E}$ can be written as two separate systems:
 
 \begin{equation}
     \begin{aligned}
@@ -863,7 +863,7 @@ where
     \item $\eta$ denotes the noise of the measurement.
 \end{enumerate}
 
-Since the objective is to model the clean BOLD signal in this regressor, the noise measurement will not be present, i.e. $\eta \equiv 0$, and instead will be present in the nuisance regressors and residuals.
+Since the objective is to model the clean BOLD signal in this regressor, the noise measurement will not be present, i.e., $\eta \equiv 0$, and instead will be present in the nuisance regressors and residuals.
 
 The HRF describes the expected haemodynamic response following a short neural event. Its shape can be characterized by quantities such as its peak amplitude, time-to-peak, and full width at half maximum. Correctly modeled HRF should have its parameters reflect these key components of the haemodynamic response \cite{hrf-problems}:
 \begin{itemize}
@@ -1336,7 +1336,7 @@ These ambiguities concern the representation of a fixed number of independent co
 \section{Dimensionality reduction and model order selection}
 \label{section:pica}
 
-ICA can be analyzed both in the context of spatial or temporal independent components~\cite{spatial-temporal-ica}. The spatial ICA focuses on finding spatially independent maps, i.e. maps, that connect the data from multiple voxels into independent response. An example of such map can be a joint response of left and right hemisphere to a flashing light stimuli. The temporal ICA focuses on finding temporally independent time courses. As an example of such a time course could be a cyclical response seen after each block of flashing lights.
+ICA can be analyzed both in the context of spatial or temporal independent components~\cite{spatial-temporal-ica}. The spatial ICA focuses on finding spatially independent maps, i.e., maps, that connect the data from multiple voxels into independent response. An example of such map can be a joint response of left and right hemisphere to a flashing light stimuli. The temporal ICA focuses on finding temporally independent time courses. As an example of such a time course could be a cyclical response seen after each block of flashing lights.
 
 Generally, the neuroimaging literature focuses on spatial ICA, because $V >> T$, meaning the number of voxel samples is generally greater than the number of time points. The temporal ICA under small number of time points is statistically and computationally more complex, while the sparse nature of the typical spatial activation response is said to be working well with spatial ICA \cite{spatial-temporal-ica}. Hence for this thesis the spatial ICA was chosen.
 
@@ -1408,7 +1408,7 @@ Before dimensionality reduction, the data can be temporally prewhitened with res
     \boldsymbol{\Sigma}_i = \mathbf{L}_i\mathbf{L}_i^T
 \end{equation}
 
-be a decomposition of $\boldsymbol{\Sigma}_i$ into an $\mathbf{L}$ lower triangular matrix and its transpose $\mathbf{L}^T$, i.e. Cholesky decomposition \cite{cholesky}. Left multiplication of \eqref{eq:pica-not-whitened} by $\mathbf{L}_i^{-1}$ gives
+be a decomposition of $\boldsymbol{\Sigma}_i$ into an $\mathbf{L}$ lower triangular matrix and its transpose $\mathbf{L}^T$, i.e., Cholesky decomposition \cite{cholesky}. Left multiplication of \eqref{eq:pica-not-whitened} by $\mathbf{L}_i^{-1}$ gives
 
 \begin{equation}
     \begin{aligned}
@@ -1564,7 +1564,7 @@ Following \cite{pica}, the predicted Gaussian-noise eigenspectrum is then used t
     \widehat{q} = \arg\max_q p(\mathbf{X}\mid q).
 \end{equation}
 
-Once the model order $\widehat{q}$ has been selected, the first $\widehat{q}$ eigenvectors of $\widehat{\mathbf{C}}$, i.e. the first $\widehat{q}$ columns of $\widehat{\mathbf{U}}$ define the estimated PPCA source subspace. Let
+Once the model order $\widehat{q}$ has been selected, the first $\widehat{q}$ eigenvectors of $\widehat{\mathbf{C}}$, i.e., the first $\widehat{q}$ columns of $\widehat{\mathbf{U}}$ define the estimated PPCA source subspace. Let
 
 \begin{equation}
     \widehat{\mathbf{U}}_{\widehat{q}} \in \mathbb{R}^{t\times\widehat{q}}
@@ -1938,7 +1938,7 @@ In pratice this means, that both the old and the new vector, representing the di
 
 where $\theta$ is the angle between $\mathbf{q}_{\mathrm{new}}$ and $\mathbf{q}_{\mathrm{old}}$.
 
-If the dot product is equal to 1 (-1), these vectors point in the same direction (opposite direction respectively). The full convergence criterion can therefore be stated as
+If the dot product is equal to 1 (-1), these vectors point in the same direction (opposite direction, respectively). The full convergence criterion can therefore be stated as
 
 \begin{equation}
     \max_i \left(1 - |\mathbf{q}_i^T\mathbf{q}_{i,\mathrm{old}}| \right) < \varepsilon.
@@ -2200,7 +2200,7 @@ denote the set of task-related components and let
 
 denote the set of components treated as nuisance.
 
-The corresponding columns of the mixing matrix and rows of the source matrix are collected respectively into
+The corresponding columns of the mixing matrix and rows of the source matrix are collected, respectively, into
 
 \begin{equation}
     \widehat{A} = 
@@ -2475,7 +2475,7 @@ To compare responses between two experimental categories, a linear contrast is c
     \mathbf{c} = \mathbf{e}_k - \mathbf{e}_l,
 \end{equation}
 
-where $\mathbf{e}_k$ and $\mathbf{e}_l$ denotes the basis vector corresponding to $k$-th and $l$-th category respectively.
+where $\mathbf{e}_k$ and $\mathbf{e}_l$ denotes the basis vector corresponding to $k$-th and $l$-th category, respectively.
 
 For example, the comparison
 
@@ -2568,7 +2568,7 @@ Outer-CV runtime should therefore not be interpreted as the runtime required for
     \label{fig:r2-distribution-ica}
 \end{figure}
 
-Figures~\ref{fig:r2-distribution-glm-pca}~and~\ref{fig:r2-distribution-ica} compare voxelwise outer-CV prediction accuracy of the PCA-assisted GLM denoising and ICA-based denoising respectively against the Standard GLM for all participants. On each plot, the median is presented alongside a reference line corresponding to a difference of 0 percentage points. 
+Figures~\ref{fig:r2-distribution-glm-pca}~and~\ref{fig:r2-distribution-ica} compare voxelwise outer-CV prediction accuracy of the PCA-assisted GLM denoising and ICA-based denoising, respectively, against the Standard GLM for all participants. On each plot, the median is presented alongside a reference line corresponding to a difference of 0 percentage points. 
 These distributions show how the voxelwise $\Delta R^2$ values described in Equation~\eqref{eq:delta-r2-standard} are distributed. Note that the horizontal axis is scaled independently for each subject to improve visualization of the distributional shape. 
 
 The most visible difference can be seen in the shape of these distributions. For PCA-assisted GLM denoising, the values are distributed on both sides of the $x=0$ line, with a slight shift towards positive values. Additionally, each median lies to the right of said line. Most of the plots have similar horizontal scales, approximately spanning $[-2, 2]$. Distributions for some subjects slightly exceed this range.
@@ -2677,7 +2677,7 @@ The chosen number of components is in range $[2, 7]$, never reaching a double-di
     \label{fig:ica-components}
 \end{figure}
 
-After selecting the model order and estimating the independent components, the criterion presented in Equation~\eqref{eq:classification-criterion} classifies each component as either task-related or nuisance. If $z_j > c$, component $j$ is classified as task-related; otherwise, it is classified as nuisance. Figure~\ref{fig:ica-components} presents two heatmaps. The upper heatmap shows the selected model order $\widehat{q}$, i.e. the number of dimensions retained prior to ICA estimation. The lower heatmap presents the proportion of the resulting ICA components classified as nuisance. This proportion and the resulting task-related component classification proportion can be expressed as 
+After selecting the model order and estimating the independent components, the criterion presented in Equation~\eqref{eq:classification-criterion} classifies each component as either task-related or nuisance. If $z_j > c$, component $j$ is classified as task-related; otherwise, it is classified as nuisance. Figure~\ref{fig:ica-components} presents two heatmaps. The upper heatmap shows the selected model order $\widehat{q}$, i.e., the number of dimensions retained prior to ICA estimation. The lower heatmap presents the proportion of the resulting ICA components classified as nuisance. This proportion and the resulting task-related component classification proportion can be expressed as 
 
 \begin{equation}
     \pi_{\mathrm{nuis}} = \frac{n_{\mathrm{nuis}}}{\widehat{q}}, \qquad 
@@ -2704,13 +2704,46 @@ Moreover, the characteristics of the analyzed dataset may further affect the per
     \label{fig:ica-z-scores}
 \end{figure}
 
+\section{Task-related coefficients stability analysis}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[scale=0.5]{fig/snr_scatter_glm_pca.pdf}
+    \caption{Scatter plots comparing voxelwise jackknife SNR of task-related coefficient estimates obtained with PCA-assisted GLM denoising and the Standard GLM for each subject.}
+    \label{fig:snr-glm-pca}
+\end{figure}
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[scale=0.5]{fig/snr_scatter_ica.pdf}
+    \caption{Scatter plots comparing voxelwise jackknife SNR of task-related coefficient estimates obtained with ICA-based denoising and the Standard GLM for each subject.}
+    \label{fig:snr-ica}
+\end{figure}
+
+Figures~\ref{fig:snr-glm-pca}~and~\ref{fig:snr-ica} compare the jackknife signal-to-noise ratio of voxelwise task-related coefficient estimates obtained with PCA-assisted GLM and ICA-based denoising, respectively, against the Standard GLM. For each point, corresponding to a voxel from the common evaluation voxel set, the $x$-coordinate represents the SNR obtained with the Standard GLM, while the $y$-coordinate represents the SNR obtained with the analyzed denoising method. Because the numerator of the metric described in Equation~\eqref{eq:jackknife-snr} is shared across methods for a given voxel, differences in SNR arise from differences in the jackknife standard error. Therefore, the comparison primarily reflects differences in the stability of the estimated task-related coefficients rather than differences in their magnitude.
+
+The identity line $y=x$ represents equal jackknife SNR for the two compared methods. Since the signal term is shared, a point above this line corresponds to a smaller jackknife standard error and therefore a more stable task-related coefficient estimate for the denoising method. Conversely, a point below the line indicates greater jackknife variability relative to the Standard GLM. These figures are analogous to the SNR comparison presented in Figure 4C of \cite{glm-denoise}.
+
+For PCA-assisted GLM denoising, shown in Figure~\ref{fig:snr-glm-pca}, the voxel clouds for subjects 1, 2, and 4 are predominantly located below the identity line. The difference becomes particularly visible for voxels with moderate and high Standard GLM SNR, indicating that the PCA-assisted estimates tend to have greater jackknife variability for these subjects. Subject 3 exhibits a weaker displacement, with the voxel cloud remaining closer to the identity line. For subjects 5 and 6, the points are also distributed more closely around the identity line, with a portion of the voxels lying above it. Subject 6 in particular shows positive deviations for some voxels with larger Standard GLM SNR. Overall, however, no consistent upward displacement is observed across all subjects.
+
+These results indicate that the small improvement in prediction accuracy obtained with PCA-assisted GLM denoising does not translate directly into improved stability of the task-related coefficient estimates. For subjects 1, 2, and 4, the jackknife SNR is generally reduced relative to the Standard GLM, while for the remaining subjects the differences are smaller and vary across voxels. This contrasts with the results reported for the original GLMdenoise method in \cite{glm-denoise}, where an overall increase in beta-weight SNR relative to the Standard GLM was observed.
+
+This result can be compared with the prediction accuracy analysis presented in Section~\ref{section:prediction-results}. PCA-assisted GLM denoising produced a small positive improvement in outer-CV $R^2$, while its task-related coefficient estimates are not consistently more stable than those obtained with the Standard GLM. The two results are not contradictory, since outer-CV $R^2$ measures predictive generalization to held-out data, whereas jackknife SNR quantifies the stability of coefficient estimates across training sets. One possible explanation is that the additional data-driven model-selection procedure provides a small predictive benefit while simultaneously making the resulting estimates more sensitive to the particular set of runs used for training.
+
+The ICA-based results in Figure~\ref{fig:snr-ica} are broadly consistent with the previous prediction accuracy analysis. Subjects 1, 2, and 4 exhibit a clear downward displacement relative to the identity line, indicating lower stability of the task-related coefficient estimates than for the Standard GLM. The effect is most pronounced for subject 1, particularly for voxels with moderate and high Standard GLM SNR. Subject 3 also exhibits a tendency towards lower ICA SNR, although the difference is less pronounced. In contrast, subjects 5 and 6 show voxel clouds located considerably closer to the identity line, indicating smaller differences in coefficient stability between ICA-based denoising and the Standard GLM.
+
+The subject-specific pattern is similar to that observed for outer-CV prediction accuracy. Subjects for which ICA-based denoising produced the strongest deterioration in prediction accuracy also tend to exhibit lower jackknife SNR, whereas subjects 5 and 6 show relatively small differences from the Standard GLM under both evaluation criteria. This suggests that the poorer ICA results are not restricted to the prediction-accuracy metric, but are also reflected in the stability of the estimated task-related coefficients.
+
+Another visible feature of both figures is that the absolute differences between methods become more apparent for voxels with larger Standard GLM SNR. Near the origin, all methods produce low SNR values and the voxel clouds are tightly concentrated. At larger SNR values, deviations from the identity line become easier to distinguish.
+
+From the perspective of denoising, this behavior is generally undesirable. A successful nuisance-removal procedure would ideally preserve or improve the stability of task-related coefficient estimates. Instead, PCA-assisted GLM denoising provides no consistent stability improvement despite its small gain in prediction accuracy, while ICA-based denoising reduces both prediction accuracy and coefficient stability for several subjects. The Standard GLM therefore remains a strong reference method also with respect to the reliability of the estimated task-related coefficients.
+
 
 \section{Runtime analysis}
 
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=\textwidth]{fig/runtime.pdf}
-    \caption{Bar plot of runtime of each method for the full-data fit (left) and for the outer-CV benchmark (right) for each method and subject, represented on a $\log_{10}$ time scale, along with mean runtime values for each method.}
+    \caption{Runtime of the analyzed methods for the full-data fit (left) and outer-CV benchmark (right) across subjects, shown on a logarithmic scale; dashed horizontal lines indicate mean runtime across subjects.}
     \label{fig:runtime}
 \end{figure}
 
