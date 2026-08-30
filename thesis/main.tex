@@ -2624,23 +2624,25 @@ ICA-based denoising again reflects poorer prediction accuracy in comparison with
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=\textwidth]{fig/median_r2.pdf}
-    \caption{Median voxelwise outer-CV prediction accuracy for the Standard GLM, PCA-assisted GLM denoising, and ICA-based denoising across subjects.}
+    \caption{Median voxelwise outer-CV prediction accuracy for the Standard GLM, PCA-assisted GLM denoising, and ICA-based denoising across subjects with mean median line for each method.}
     \label{fig:median-r2}
 \end{figure}
 
-To conclude the prediction accuracy analysis, Figure~\ref{fig:median-r2} focuses on the overall median outer-CV $R^2$ for the analyzed methods across subjects. Each subject is represented by three bars corresponding to the Standard GLM, PCA-assisted GLM and ICA-based denoising. The medians are calculated across the candidate voxels included in the prediction accuracy analysis.
+To conclude the prediction accuracy analysis, Figure~\ref{fig:median-r2} focuses on the overall median outer-CV $R^2$ for the analyzed methods across subjects. Each subject is represented by three bars corresponding to the Standard GLM, PCA-assisted GLM and ICA-based denoising. The medians are calculated across the candidate voxels included in the prediction accuracy analysis. Additionally, three horizontal lines show the mean of the subject-specific median $R^2$ values for each method.
 
-PCA-assisted GLM denoising achieves the highest median prediction accuracy for all subjects. All median $R^2$ values are positive, with the highest value of $3.03 \%$ obtained for subject 4 and the lowest value of $0.91 \%$ for subject 5. However improvement relative to the Standard GLM remains small for every subject.
+PCA-assisted GLM denoising achieves the highest median prediction accuracy for all subjects. All median $R^2$ values are positive, with the highest value of $3.03 \%$ obtained for subject 4 and the lowest value of $0.91 \%$ for subject 5. However, improvement relative to the Standard GLM remains small for every subject.
+
+Averaging the subject-specific median values further summarizes this pattern. The mean of the median outer-CV $R^2$ values is $1.62\%$ for PCA-assisted GLM denoising, compared with $1.48\%$ for the Standard GLM, corresponding to an average difference of approximately $0.14$ percentage points.
 
 The lowest values are mostly obtained for ICA-based denoising. For subjects 1-4, ICA has the lowest median $R^2$ among the three methods, with the poorest result of $-0.54\%$ observed for subject 1. For subjects 2-4, the median is also considerably lower that the corresponding values obtained with the Standard GLM and PCA-assisted GLM denoising. In contrast, ICA slightly outperforms the Standard GLM for subjects 5 and 6, but approximately $0.09$ and $0.02$ precentage points, respectively.
 
+The mean of the subject-specific median outer-CV $R^2$ values for ICA-based denoising is $0.76\%$, which is approximately $0.72$ percentage points lower than the corresponding Standard GLM value of $1.48\%$. This summarizes the substantially poorer prediction accuracy of ICA-based denoising across subjects, despite the slightly better results observed for subjects 5 and 6.
+
 The Standard GLM generally provides the second-highest prediction accuracy. It is outperformed by PCA-assisted GLM denoising by a relatively small margin for every subject, while ICA additionally exceeds it slightly for subjects 5 and 6. This further illustrates that the Standard GLM provides a strong baseline, with additional denoising producing either modest improvements in the case of PCA or strongly subject-dependent changes in the case of ICA.
 
-Overall, the median outer-C $R^2$ values are relatively small, ranging from $-0.54\%$ to $3.03\%$, which is consistent with the relatively low voxelwise prediction accuracy observed throughout the preceding analysis.
+Consequently, the ordering based on the mean subject-level medians is consistent with the individual-subject results: PCA-assisted GLM denoising achieves the highest prediction accuracy, followed by the Standard GLM and ICA-based denoising.
 
-A general pattern of prediction accuracy deterioration using ICA-based denoising relative to the Standard GLM can be observed across the presented analyses, particularly for subjects 1-4. These results indicate that, for the considered dataset and implementation, ICA-based denoising generally performs worse than the Standard GLM. 
-
-PCA-assisted GLM denoising, in contrast, shows an overall improvement in prediction accuracy relative to the Standard GLM, although the magnitude of this improvement remains small. 
+Overall, the median outer-C $R^2$ values are relatively small, ranging from $-0.54\%$ to $3.03\%$, which is consistent with the relatively low voxelwise prediction accuracy observed throughout the preceding analysis. A general pattern of prediction accuracy deterioration using ICA-based denoising relative to the Standard GLM can be observed across the presented analyses, particularly for subjects 1-4. These results indicate that, for the considered dataset and implementation, ICA-based denoising generally performs worse than the Standard GLM.  PCA-assisted GLM denoising, in contrast, shows an overall improvement in prediction accuracy relative to the Standard GLM, although the magnitude of this improvement remains small. 
 
 The potential reasons for these results are discussed in detail in Section~\ref{section:results-remarks}.
 
@@ -2737,6 +2739,45 @@ Another visible feature of both figures is that the absolute differences between
 
 From the perspective of denoising, this behavior is generally undesirable. A successful nuisance-removal procedure would ideally preserve or improve the stability of task-related coefficient estimates. Instead, PCA-assisted GLM denoising provides no consistent stability improvement despite its small gain in prediction accuracy, while ICA-based denoising reduces both prediction accuracy and coefficient stability for several subjects. The Standard GLM therefore remains a strong reference method also with respect to the reliability of the estimated task-related coefficients.
 
+\section{Beta maps analysis}
+
+Beta maps can be produced separately for each subject and stimulus category. Presenting all possible combinations would result in a large number of figures. Therefore, a single representative subject and a single stimulus category were selected for the spatial analysis.
+
+The subject was selected based on the similarity of its method-specific median outer-CV $R^2$ values to the corresponding across-subject median values. According to the prediction accuracy results presented in Figure~\ref{fig:median-r2}, subject 3 provides a representative performance profile, with the median $R^2$ values obtained for the Standard GLM, PCA-assisted GLM denoising, and ICA-based denoising all remaining close to the central tendency observed across subjects. Importantly, the subject was selected based on the previously obtained prediction results rather than on the appearance of the spatial maps.
+
+The stimulus category was selected with reference to the original analysis of the dataset presented in \cite{dataset-cit1}. Although several visual categories are considered, faces and houses constitute one of the principal category comparisons discussed by the authors. Therefore, the face category was selected for the beta-map analysis, while the subsequent contrast analysis considers the face-versus-house contrast.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[scale=0.5]{fig/sub-3_beta_face.pdf}
+    \caption{$z$-axis slices of the face-category beta estimates for subject 3 obtained with the Standard GLM, PCA-assisted GLM denoising, and ICA-based denoising, shown using a common color scale over the T1-weighted anatomical image.}
+    \label{fig:beta-maps}
+\end{figure}
+
+Figure~\ref{fig:beta-maps} presents the face-category beta maps for subject 3. Each row corresponds to one of the analyzed methods and contains three slices at the same $z$-coordinates, allowing direct spatial comparison between methods. A symmetric color scale shared across all methods represents the sign and magnitude of the estimated coefficients. Positive and negative colors correspond to positive and negative face-regressor coefficients, respectively. Values close to zero are displayed with reduced opacity, allowing the underlying T1-weighted anatomical image to remain visible. No statistical threshold is applied to the beta estimates.
+
+The Standard GLM and PCA-assisted GLM maps are spatially similar. Across the displayed slices, regions with positive and negative coefficients generally occur in similar locations across the presented slices. PCA changes the magnitude of some local coefficient estimates but largely preserves the spatial structure observed for the Standard GLM. This is consistent with the preceding prediction-accuracy and task-related coefficient-stability analyses, where PCA-assisted denoising produced only modest changes relative to the Standard GLM.
+
+ICA-based denoising produces more visible differences. Its maps contain more spatially spread positive estimates across all three slices, particularly at $z=1$. The positive coefficient estimates are also more spatially spread at intermediate magnitudes, visible as broader orange regions in the displayed maps. Simultaneously, regions containing larger-magnitude positive and negative coefficients remain broadly recognizable relative to the GLM-based methods. Nevertheless the overall spatial pattern departs more strongly from the GLM-based denoising methods. This greater departure from the Standard GLM is consistent with the poorer outer-CV prediction accuracy and lower jackknife stability previously observed for subject 3.
+
+Overall, PCA-assisted GLM denoising largely preserves the spatial organization of the Standard GLM beta estimates, whereas ICA-based denoising produces larger changes in their magnitude and spatial distribution.
+
+\section{Contrast \texorpdfstring{$t$}{t}-maps analysis}
+
+As mentioned in the preceding section, subject 3 is selected for the spatial analysis. The analyzed contrast is $\text{face}-\text{house}$. The resulting contrast $t$-maps are presented in Figure~\ref{fig:t-maps}. As in the beta-map comparison, each row corresponds to one of the analyzed methods and contains the same axial slices as Figure~\ref{fig:beta-maps}. A symmetric color scale shared across all methods represents the sign and magnitude of the $t$-statistic. For visualization, voxels with $t$-statistics in the range $(-3,3)$ are not displayed, reflecting the thresholding in Figure 5 in \cite{glm-denoise}. The statistical maps are overlaid on the corresponding T1-weighted anatomical image.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[scale=0.5]{fig/sub-3_t_face_vs_house.pdf}
+    \caption{Slices along the $z$ axis of the $\text{face}-\text{house}$ contrast $t$-maps for subject 3 obtained with the Standard GLM, PCA-assisted GLM denoising, and ICA-based denoising, shown using a common symmetric color scale over the T1-weighted anatomical image. Values with $|t|<3$ are not displayed.}
+    \label{fig:t-maps}
+\end{figure}
+
+Positive $t$-values on the contrast maps indicate evidence in the direction of a stronger face response, whereas negative $t$-values indicate evidence in the direction of a stronger house response. Across the displayed slices, negative values appear more spatially common than positive values for the Standard GLM and PCA-assisted GLM. An exception can be observed at $z=31$, where both positive and negative regions are present, particularly for PCA-assisted GLM denoising. For ICA-based denoising, the same slice contains a visibly larger extent of positive regions. Overall, a substantial portion of the displayed standardized contrast effects is therefore directed towards a stronger response to houses than to faces.
+
+The Standard GLM and PCA-assisted GLM maps are again spatially similar. Across all three slices, many positive and negative regions occur in similar locations, with the dominant negative regions being particularly well preserved. At $z=1$, both methods show pronounced negative face-versus-house contrast values in similar regions, although PCA-assisted GLM denoising introduces some differences in the extent and magnitude of both positive and negative values. At $z=31$, both maps contain a mixture of positive and negative regions, with PCA generally showing a somewhat greater spatial extent. At $z=61$, both methods are dominated by negative regions and closely resemble one another.
+
+Interestingly, the ICA contrast maps do not differ as substantially from the GLM-based methods at $z=1$ and $z=61$, where several of the dominant negative regions remain recognizable. The largest difference is observed at $z=31$, where ICA exhibits fewer spatial negative regions and a substantially greater extent of positive values. Moreover, some spatial correspondence is retained, but local patterns differ, particularly visible at $z=1$. Thus, although ICA preserves parts of the broader contrast pattern, its spatial distribution of standardized contrast effects departs more strongly from the two GLM-based methods. This observation is consistent with the poorer prediction accuracy and lower jackknife SNR previously obtained for ICA-based denoising.
 
 \section{Runtime analysis}
 
@@ -2765,7 +2806,6 @@ Overall, the Standard GLM provides the most favorable trade-off between computat
 \section{Remarks about results}
 \label{section:results-remarks}
 
-% NOTE: dodac o tym, ze czasy sie roznia, bo komputer sie przegrzewa, wiec model time-complexity nie uwzglednil low-frequency driftu i te dane nie powinny byc tak analizowane jednoznacznie - more thorough analysis should include out-projecting machine drift, due to the heating up of the device
 
 % styl bibliografii, tutaj unsrt
 \bibliographystyle{plain}

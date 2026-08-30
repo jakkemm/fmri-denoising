@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from evaluation.maps import pairwise_contrast
 from evaluation.pipeline import SubjectEvaluationResult
 from evaluation.plots import (
+    construct_cut_coords,
     plot_beta_map_comparison,
     plot_binned_r2_improvement,
     plot_contrast_t_map_comparison,
@@ -32,7 +33,7 @@ def load_evaluation_result(subject):
 def _close(fig):
     plt.close(fig)
 
-def plot_subject(subject, beta_category="face", positive_contrast="face", negative_contrast="scrambledpix", cut_coords=None):
+def plot_subject(subject, beta_category="face", positive_contrast="face", negative_contrast="house", cut_coords=None):
     print(f"Plotting results for {subject}...")
 
     result = load_evaluation_result(subject)
@@ -41,6 +42,21 @@ def plot_subject(subject, beta_category="face", positive_contrast="face", negati
     output_dir = RESULTS_PATH / "plots" / "individual"
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Contrast t-map
+    contrast = pairwise_contrast(
+        positive_category=positive_contrast,
+        negative_category=negative_contrast,
+    )
+    contrast_name = f"{positive_contrast} > {negative_contrast}"
+    
+    if cut_coords is None:
+        cut_coords = construct_cut_coords(
+            result=result, 
+            contrast=contrast, 
+            mask_img=mask_img, 
+            display_mode="z"
+        )
+
     # beta map
     fig = plot_beta_map_comparison(
         result=result,
@@ -48,16 +64,10 @@ def plot_subject(subject, beta_category="face", positive_contrast="face", negati
         mask_img=mask_img,
         t1_img=t1_img,
         cut_coords=cut_coords,
+        subject_name=subject,
         output_path=output_dir / f"{subject}_beta_{beta_category}.pdf"
     )
     _close(fig)
-
-    # Contrast t-map
-    contrast = pairwise_contrast(
-        positive_category=positive_contrast,
-        negative_category=negative_contrast,
-    )
-    contrast_name = f"{positive_contrast} > {negative_contrast}"
 
     fig = plot_contrast_t_map_comparison(
         result=result,
@@ -65,10 +75,9 @@ def plot_subject(subject, beta_category="face", positive_contrast="face", negati
         contrast_name=contrast_name,
         mask_img=mask_img,
         t1_img=t1_img,
-        # Same threshold as Figure 5
-        # in GLMdenoise.
-        threshold=3.0,  # Same threshold as Figure 5 in GLMdenoise
+        threshold=3.0,
         cut_coords=cut_coords,
+        subject_name=subject,
         output_path=output_dir / f"{subject}_t_{positive_contrast}_vs_{negative_contrast}.pdf"
     )
     _close(fig)
@@ -227,12 +236,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--beta_category", type=str, default="face")
-    parser.add_argument("--contrast", nargs=2, default=["face", "scrambledpix"], metavar=("POSITIVE", "NEGATIVE"))
+    parser.add_argument("--contrast", nargs=2, default=["face", "house"], metavar=("POSITIVE", "NEGATIVE"))
     parser.add_argument("--cuts", nargs="+", type=float, default=None)
     
     parser.add_argument("--individual", action="store_true")
     parser.add_argument("--group", action="store_true")
     parser.add_argument("--components", action="store_true")
+    parser.add_argument("--subject", type=str, default=None)
 
     args = parser.parse_args()
 
@@ -245,6 +255,14 @@ if __name__ == "__main__":
                 negative_contrast=args.contrast[1],
                 cut_coords=args.cuts
             )
+    if args.subject is not None:
+        plot_subject(
+            subject=args.subject,
+            beta_category=args.beta_category,
+            positive_contrast=args.contrast[0],
+            negative_contrast=args.contrast[1],
+            cut_coords=args.cuts
+        )
 
     if args.group:
         plot_groups_statistics()

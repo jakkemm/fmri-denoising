@@ -2,11 +2,13 @@ import itertools
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import nibabel as nib
 import numpy as np
 import seaborn as sns
 from matplotlib import colormaps
+from matplotlib.cm import ScalarMappable
 from matplotlib.colors import ListedColormap, Normalize
-from nilearn.plotting import find_cut_slices, plot_stat_map
+from nilearn.plotting import plot_stat_map
 
 from evaluation.maps import beta_to_img, contrast_t_to_img
 
@@ -19,11 +21,14 @@ METHOD_LABELS = {
 
 sns.set_theme()
 
-def _save_figure(fig, output_path):
+def _save_figure(fig, output_path, is_map=False):
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    fig.savefig(output_path, dpi=300, bbox_inches="tight", facecolor=fig.get_facecolor())
+    if is_map:
+        fig.savefig(output_path, dpi=300, facecolor=fig.get_facecolor())
+    else:
+        fig.savefig(output_path, dpi=300, bbox_inches="tight", facecolor=fig.get_facecolor())
 
 def _finite_pair(x, y, mask=None):
     x = np.asarray(x)
@@ -50,8 +55,6 @@ def _square_limits(arrays, padding=0.05):
     span = upper - lower
 
     return lower - padding * span, upper + padding * span
-
-
 
 def _annotate_heatmap(ax, matrix, cmap, norm, formatter):
     for i in range(matrix.shape[0]):
@@ -220,9 +223,13 @@ def plot_median_r2(median_r2_sub, output_path=None):
     bar_width = group_width / len(METHOD_ORDER)
 
     fig, ax = plt.subplots(figsize=(10, 5), constrained_layout=True)
+    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
     for method_index, method in enumerate(METHOD_ORDER):
+        color = colors[method_index]
+        
         values = np.asarray([median_r2_sub[subject][method] * 100.0 for subject in subjects])
+        mean_median_r2 = np.mean(values)
         
         positions = x - group_width / 2 + (method_index + 0.5) * bar_width
         bars = ax.bar(positions, values, width=bar_width * 0.9, label=METHOD_LABELS[method])
@@ -235,7 +242,11 @@ def plot_median_r2(median_r2_sub, output_path=None):
                 ha="center",
                 va="bottom" if value >= 0 else "top",
                 fontsize=8,
+                color="black"
             )
+            
+        ax.text(1.01, mean_median_r2, rf"{mean_median_r2:.2f} $\%$", transform=ax.get_yaxis_transform(), color=color, va="center", ha="left", fontsize=9)
+        ax.axhline(mean_median_r2, color=color, linestyle="--", linewidth=1, alpha=0.8)
 
     ax.set_xticks(x)
     ax.set_xticklabels(subjects)
@@ -371,37 +382,44 @@ def _common_abs_vmax(images, percentile=100.0):
         return 1.0
     return vmax
 
-
 def _transparent_diverging_cmap(name="RdBu_r", n=256, alpha_power=1.5):
-    """
-    Diverging colormap whose opacity decreases toward zero.
-
-    Large positive/negative values remain fully visible, while
-    values close to zero allow the anatomical background to show.
-    """
     positions = np.linspace(-1.0, 1.0, n)
-
     rgba = colormaps[name](np.linspace(0.0, 1.0, n))
     rgba[:, 3] = np.abs(positions) ** alpha_power
-
     return ListedColormap(rgba)
 
-def _get_cut_coords(reference_img, mask_img, direction, n_cuts):
-    return find_cut_slices(
-        reference_img,
-        direction=direction,
-        n_cuts=n_cuts,
-    )
+def _add_manual_colorbar(fig, vmax, cmap, threshold=None, cbar_rect=(0.92, 0.35, 0.015, 0.76), tick_color="white"):
+    norm = Normalize(vmin=-vmax, vmax=vmax)
 
-def _plot_map_comparison(images, mask_img, background_img, title, threshold, output_path=None, display_mode="z", cut_coords=None, n_cuts=5, vmax_percentile=100.0, cmap="RdBu_r"):
-    reference_img = images["standard_glm"]
+    sm = ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])
 
-    if cut_coords is None:
-        cut_coords = _get_cut_coords(reference_img, mask_img, direction=display_mode, n_cuts=n_cuts)
+    cax = fig.add_axes(cbar_rect)
+    cax.set_facecolor("grey")
 
+    cbar = fig.colorbar(sm, cax=cax,)
+    cbar.ax.set_facecolor("grey")
+    cbar.outline.set_edgecolor(tick_color)
+    cbar.ax.tick_params(colors=tick_color, length=3)
+
+    for spine in cbar.ax.spines.values():
+        spine.set_edgecolor(tick_color)
+
+    ticks = np.linspace(-vmax, vmax, 5)
+    cbar.set_ticks(ticks)
+
+    if threshold is not None and np.isfinite(threshold) and threshold > 0:
+        cbar.ax.axhspan(-threshold, threshold, color="black", alpha=0.8, zorder=3)
+
+        cbar.ax.axhline(-threshold, color=tick_color, linewidth=1.0, linestyle="--", zorder=4)
+        cbar.ax.axhline(threshold, color=tick_color, linewidth=1.0, linestyle="--", zorder=4)
+
+    return cbar
+
+def _plot_map_comparison(images, background_img, title, threshold, cut_coords, output_path=None, vmax_percentile=100.0, cmap="RdBu_r"):
     vmax = _common_abs_vmax(images, percentile=vmax_percentile)
 
-    fig, axes = plt.subplots(len(METHOD_ORDER), 1, figsize=(13, 9), facecolor="black")
+    fig, axes = plt.subplots(len(METHOD_ORDER), 1, figsize=(8, 7), facecolor="black")
 
     for index, method in enumerate(METHOD_ORDER):
         ax = axes[index]
@@ -410,7 +428,7 @@ def _plot_map_comparison(images, mask_img, background_img, title, threshold, out
         plot_stat_map(
             stat_map_img=images[method],
             bg_img=background_img,
-            display_mode=display_mode,
+            display_mode="z",
             cut_coords=cut_coords,
             threshold=threshold,
             vmax=vmax,
@@ -421,18 +439,21 @@ def _plot_map_comparison(images, mask_img, background_img, title, threshold, out
             title=None,
             annotate=True,
             draw_cross=False,
-            colorbar=(index == len(METHOD_ORDER) - 1),
+            colorbar=False,
             axes=ax,
         )
-        ax.set_title(METHOD_LABELS[method], color="white", fontsize=14, loc="left", pad=4)
 
-    fig.suptitle(title, fontsize=18, color="white")
-    fig.subplots_adjust(top=0.93, bottom=0.03, hspace=0.12)
+        ax.text(0.0, 0.5, METHOD_LABELS[method], transform=ax.transAxes, rotation=90, va="center", ha="right", color="white", fontsize=12)
+    
+    _add_manual_colorbar(fig=fig, vmax=vmax, cmap=cmap, threshold=threshold, cbar_rect=(0.92, 0.12, 0.015, 0.76), tick_color="white")
 
-    _save_figure(fig, output_path)
+    fig.suptitle(title, x=0.5, ha="center", fontsize=16, color="white")
+    fig.subplots_adjust(left=0.07, right=0.90, top=0.93, bottom=0.05, hspace=0.08)
+
+    _save_figure(fig, output_path, is_map=True)
     return fig
 
-def plot_beta_map_comparison(result, category, mask_img, t1_img, output_path=None, display_mode="z", cut_coords=None, n_cuts=5):
+def plot_beta_map_comparison(result, category, mask_img, t1_img, cut_coords, subject_name, output_path=None):
     images = {
         method: beta_to_img(
             task_coef=result.final_task_coef[method],
@@ -446,19 +467,51 @@ def plot_beta_map_comparison(result, category, mask_img, t1_img, output_path=Non
 
     return _plot_map_comparison(
         images=images,
-        mask_img=mask_img,
         background_img=t1_img,
-        title=f"Beta maps: {category}",
+        title=f"Beta maps for {subject_name}: {category}",
         threshold=None,
         output_path=output_path,
-        display_mode=display_mode,
         cut_coords=cut_coords,
-        n_cuts=n_cuts,
         vmax_percentile=99.0,   # Avoid one extreme voxel destroying contrast in the entire map.
         cmap=beta_cmap,
     )
 
-def plot_contrast_t_map_comparison(result, contrast, contrast_name, mask_img, t1_img, threshold=3.0, output_path=None, display_mode="z", cut_coords=None, n_cuts=5):
+def _select_active_z_cuts(stat_img, threshold=3.0, n_cuts=3, min_slice_distance=5):
+    data = stat_img.get_fdata()
+
+    counts = np.sum(np.abs(data) >= threshold, axis=(0, 1))
+    candidates = np.argsort(counts)[::-1]
+
+    selected = []
+
+    for slice_index in candidates:
+        if counts[slice_index] == 0:
+            break
+        if all(abs(slice_index - previous) >= min_slice_distance for previous in selected):
+            selected.append(slice_index)
+        if len(selected) == n_cuts:
+            break
+
+    affine = stat_img.affine
+    cut_coords = [
+        nib.affines.apply_affine(affine, [0, 0, slice_index])[2]
+        for slice_index in sorted(selected)
+    ]
+    return cut_coords
+
+def construct_cut_coords(result, contrast, mask_img, display_mode="z"):
+    standard_t_img = contrast_t_to_img(
+        task_coef=result.final_task_coef["standard_glm"],
+        task_covariance_base=result.final_task_covariance_base["standard_glm"],
+        residual_variance=result.final_residual_variance["standard_glm"],
+        contrast=contrast,
+        mask_img=mask_img,
+    )
+    cut_coords = _select_active_z_cuts(standard_t_img, threshold=3.0, n_cuts=3)
+    return cut_coords
+
+
+def plot_contrast_t_map_comparison(result, contrast, contrast_name, mask_img, t1_img, cut_coords, subject_name, threshold=3.0, output_path=None):
     images = {}
 
     for method in METHOD_ORDER:
@@ -472,15 +525,12 @@ def plot_contrast_t_map_comparison(result, contrast, contrast_name, mask_img, t1
 
     return _plot_map_comparison(
         images=images,
-        mask_img=mask_img,
         background_img=t1_img,
-        title=f"Contrast t-maps: {contrast_name}",
+        title=f"Contrast t-maps for {subject_name}: {contrast_name}",
         threshold=threshold,
         output_path=output_path,
-        display_mode=display_mode,
         cut_coords=cut_coords,
-        n_cuts=n_cuts,
-        vmax_percentile=100.0,
+        vmax_percentile=99.0,
         cmap="RdBu_r",
     )
 
