@@ -48,6 +48,8 @@
 \RequirePackage{arydshln}
 \RequirePackage{algorithm}
 \RequirePackage{algpseudocode}
+\RequirePackage{threeparttable}
+\RequirePackage{enumitem}
 
 \definecolor{col1}{RGB}{35,31,32}
 \definecolor{col2}{RGB}{255,255,255}
