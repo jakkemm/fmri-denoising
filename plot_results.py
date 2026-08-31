@@ -65,7 +65,7 @@ def plot_subject(subject, beta_category="face", positive_contrast="face", negati
         t1_img=t1_img,
         cut_coords=cut_coords,
         subject_name=subject,
-        output_path=output_dir / f"{subject}_beta_{beta_category}.pdf"
+        output_path=output_dir / f"{subject}_beta_{beta_category}.png"
     )
     _close(fig)
 
@@ -78,7 +78,7 @@ def plot_subject(subject, beta_category="face", positive_contrast="face", negati
         threshold=3.0,
         cut_coords=cut_coords,
         subject_name=subject,
-        output_path=output_dir / f"{subject}_t_{positive_contrast}_vs_{negative_contrast}.pdf"
+        output_path=output_dir / f"{subject}_t_{positive_contrast}_vs_{negative_contrast}.png"
     )
     _close(fig)
     
@@ -110,7 +110,7 @@ def plot_groups_statistics():
     # MEDIAN R2
     fig = plot_median_r2(
         median_r2_sub=median_r2_sub,
-        output_path=output_dir / "median_r2.pdf"
+        output_path=output_dir / "median_r2.png"
     )
     _close(fig)
     
@@ -118,7 +118,7 @@ def plot_groups_statistics():
     fig = plot_runtime(
         fit_runtime_sub=fit_runtime_sub,
         outer_cv_runtime_sub=outer_cv_runtime_sub,
-        output_path=output_dir / "runtime.pdf"
+        output_path=output_dir / "runtime.png"
     )
     _close(fig)
 
@@ -128,7 +128,7 @@ def plot_groups_statistics():
         candidate_mask_sub=candidate_mask_sub,
         method="glm_pca",
         bin_width_pp=10.0,
-        output_path=output_dir / "r2_improvement_binned_glm_pca.pdf"
+        output_path=output_dir / "r2_improvement_binned_glm_pca.png"
     )
     _close(fig)    
     fig = plot_binned_r2_improvement(
@@ -136,7 +136,7 @@ def plot_groups_statistics():
         candidate_mask_sub=candidate_mask_sub,
         method="ica",
         bin_width_pp=10.0,
-        output_path=output_dir / "r2_improvement_binned_ica.pdf"
+        output_path=output_dir / "r2_improvement_binned_ica.png"
     )
     _close(fig)
 
@@ -145,14 +145,14 @@ def plot_groups_statistics():
         delta_r2_vs_standard_sub=delta_r2_vs_standard_sub,
         candidate_mask_sub=candidate_mask_sub,
         method="glm_pca",
-        output_path=output_dir / "delta_r2_distribution_glm_pca.pdf"
+        output_path=output_dir / "delta_r2_distribution_glm_pca.png"
     )
     _close(fig)
     fig = plot_delta_r2_distribution(
         delta_r2_vs_standard_sub=delta_r2_vs_standard_sub,
         candidate_mask_sub=candidate_mask_sub,
         method="ica",
-        output_path=output_dir / "delta_r2_distribution_ica.pdf"
+        output_path=output_dir / "delta_r2_distribution_ica.png"
     )
     _close(fig)
     
@@ -161,14 +161,14 @@ def plot_groups_statistics():
         r2_per_voxel_sub=r2_per_voxel_sub,
         candidate_mask_sub=candidate_mask_sub,
         method="glm_pca",
-        output_path=output_dir / "r2_scatter_glm_pca.pdf"
+        output_path=output_dir / "r2_scatter_glm_pca.png"
     )
     _close(fig)
     fig = plot_r2_scatter(
         r2_per_voxel_sub=r2_per_voxel_sub,
         candidate_mask_sub=candidate_mask_sub,
         method="ica",
-        output_path=output_dir / "r2_scatter_ica.pdf"
+        output_path=output_dir / "r2_scatter_ica.png"
     )
     _close(fig)
 
@@ -178,14 +178,14 @@ def plot_groups_statistics():
         snr_by_method_sub=jackknife_snr_sub,
         candidate_mask_sub=candidate_mask_sub,
         method="glm_pca",
-        output_path=output_dir / "snr_scatter_glm_pca.pdf"
+        output_path=output_dir / "snr_scatter_glm_pca.png"
     )
     _close(fig)
     fig = plot_snr_scatter(
         snr_by_method_sub=jackknife_snr_sub,
         candidate_mask_sub=candidate_mask_sub,
         method="ica",
-        output_path=output_dir / "snr_scatter_ica.pdf"
+        output_path=output_dir / "snr_scatter_ica.png"
     )
     _close(fig)
 
@@ -213,7 +213,7 @@ def plot_component_comparison():
     fig = plot_pca_selected_components(
         cv_scores_sub=pca_cv_scores,
         best_num_sub=pca_best_component,
-        output_path=output_dir / "pca_component_comparison.pdf"
+        output_path=output_dir / "pca_component_comparison.png"
     )
     _close(fig)
     
@@ -228,7 +228,7 @@ def plot_component_comparison():
     fig = plot_ica_z_scores(
         z_scores_by_run_sub=ica_z_scores,
         threshold=0.0,
-        output_path=output_dir / "ica_z_scores_comparison.pdf"
+        output_path=output_dir / "ica_z_scores_comparison.png"
     )
 
 
