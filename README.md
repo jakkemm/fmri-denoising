@@ -19,6 +19,7 @@ Data: [OpenNeuro ds000105](https://openneuro.org/datasets/ds000105) (face / hous
 Full pseudocode in [`glm_pca_pseudocode.txt`](glm_pca_pseudocode.txt).
 
 **ICA**
+
 Decompose each run with ICA, use permutation testing (1000 permutations) to separate task components from nuisance ones, remove the nuisance part, refit.
 
 ## How it's judged
