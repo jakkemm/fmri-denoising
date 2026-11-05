@@ -2,25 +2,29 @@
 
 My master's thesis project comparing three statistical approaches to denoising task-based functional MRI (fMRI): **standard General Linear Model (GLM), PCA-assisted GLM, and Independent Component Analysis (ICA)**.
 
-The project combines statistical modeling, time-series analysis, dimensionality reduction, cross-validation, and computational benchmarking to investigate how different denoising strategies affect the estimation of task-related brain activity.
+fMRI brain scans are noisy (head motion, scanner drift, heartbeat and more), and many methods exist to clean them up. This project asks whether more elaborate denoising actually helps: each method is judged by how well it predicts task-related brain activity in scans it has not seen. Along the way it combines statistical modeling, time-series analysis, dimensionality reduction, cross-validation, and computational benchmarking.
 
 **Dataset:** [Visual Object Recognition (OpenNeuro ds000105)](https://openneuro.org/datasets/ds000105)
 
+**Thesis:** *Selected Statistical Methods in fMRI Image Denoising* ([full text](thesis/))
+
 ## Key findings
 
-- **PCA-assisted GLM had the highest CV prediction accuracy for all six participants**.
-- **Standard GLM -- the best trade-off between accuracy and computational cost.**
+- **PCA-assisted GLM had the highest CV prediction accuracy for all six participants**, but only by a small margin (1.62% vs. 1.48% for standard GLM), at roughly 200 times the fitting time.
+- **Standard GLM - the best trade-off between accuracy and computational cost.**
 - **ICA-based denoising performed worse than standard GLM for four of the six participants.**
 
-Main conclusions from the analysis showed, that **more elaborate denoising does not automatically produce meaningfully better results**, or more conscisely: more math, does not equal better math.
+The main conclusion of the analysis is that **more elaborate denoising does not automatically produce meaningfully better results**: the benefit depends on the experimental design, the preprocessing, the baseline model and how components are selected.
 
 ## Results at a glance
 
-| Method | Mean per-subject median outer-CV \(R^2\) | Mean full-data fitting time | Mean outer-CV runtime |
+| Method | Mean per-subject median outer-CV $R^2$ | Mean full-data fitting time | Mean outer-CV runtime |
 | --- | ---: | ---: | ---: |
 | Standard GLM | 1.48% | **1.7 s** | 16.8 s |
 | PCA-assisted GLM | **1.62%** | 356.1 s | 3,137.2 s |
 | ICA-based denoising | 0.76% | 64.3 s | 695.9 s |
+
+*$R^2$ is computed per voxel on held-out runs, summarized as the median over voxels for each participant, then averaged over the six participants. Absolute values are small because most of the variance in a voxel's time series is noise rather than task response, so the comparison between methods is what matters. Runtimes were measured on a MacBook Air (M1, 2020) with 8 GB of RAM.*
 
 ### Selected results
 
@@ -36,19 +40,19 @@ Main conclusions from the analysis showed, that **more elaborate denoising does 
 
 *The additional model selection and component-analysis steps substantially increased runtime without delivering a proportional improvement in predictive performance.*
 
-**Face-versus-house contrast t-maps**
+**Face-versus-house contrast $t$-maps**
 
-![Comparison of face-versus-house contrast t-maps across methods](results/plots/individual/sub-3_t_face_vs_house.png)
+![Comparison of face-versus-house contrast $t$-maps across methods](results/plots/individual/sub-3_t_face_vs_house.png)
 
 *Contrast t-maps for participant 3, showing the face > house comparison. Standard GLM and PCA-assisted GLM produce similar spatial patterns; ICA-based denoising introduces more noticeable differences.*
 
 ## Detailed findings
 
-The outer leave-one-run-out CV results showed that PCA-assisted GLM produces consistent (and small) improvement in task-response prediction. The median $R^2$ values per participant was $1.62\%$ for this method, compared with $1.48\%$ for standard GLM. The improvement did not translate into consistently more stable beta coefficients, measured by jackknife signal-to-noise ratio.
+The outer leave-one-run-out CV results showed that PCA-assisted GLM produces consistent (and small) improvement in task-response prediction. The mean of the per-subject median $R^2$ values was 1.62% for this method, compared with 1.48% for standard GLM. The improvement did not translate into consistently more stable beta coefficients, measured by jackknife signal-to-noise ratio.
 
 Standard GLM achieved very similar predictive performance, while being much less computationally heavy, making it the most favorable overall trade-off in this analysis, as well as a strong comparative baseline.
 
-ICA-based denoising had the smalles mean median $R^2$ of $0.76\%$, with poor results for subjects 1-4 and small improvements over standard GLM for participants 5 and 6. Its results additionally showed greater subject dependence and differences in the estimated spatial patterns. The possible explanations include uncertain component classification and the absence of explicit pre-processing motion correction.
+ICA-based denoising had the smallest mean median $R^2$ of 0.76%, with poor results for subjects 1-4 and small improvements over standard GLM for participants 5 and 6. Its results additionally showed greater subject dependence and differences in the estimated spatial patterns. The possible explanations include uncertain component classification and the absence of explicit pre-processing motion correction.
 
 ## Methods
 
@@ -60,7 +64,7 @@ Regression coefficients are estimated using **Feasible Generalized Least Squares
 
 ### 2. PCA-assisted GLM
 
-Inspired by GLMdenoise, this method extends the baseline model with data-derived nuisance regressors.
+Inspired by GLMdenoise [[1]](#references), this method extends the baseline model with data-derived nuisance regressors.
 
 1. Fit the baseline GLM and identify a noise pool using inner CV task-prediction accuracy and a mean-signal criterion.
 2. Apply PCA to the detrended noise-pool time series for each run.
@@ -83,9 +87,9 @@ All three approaches are evaluated using a common **leave-one-run-out cross-vali
 
 The comparison includes:
 
-- **Predictive performance:** voxelwise CV \(R^2\), including changes relative to the standard GLM.
+- **Predictive performance:** voxelwise CV $R^2$, including changes relative to the standard GLM.
 - **Coefficient stability:** jackknife SNR of task-related estimates across training sets.
-- **Spatial interpretation:** task-related beta maps and face-versus-house contrast \(t\)-maps.
+- **Spatial interpretation:** task-related beta maps and face-versus-house contrast $t$-maps.
 - **Computational efficiency:** full-data fitting time and total outer-CV runtime.
 
 The dataset contains six participants performing a one-back repetition-detection task involving eight visual categories. Each participant has 11 or 12 functional runs, with 121 time points per run.
@@ -104,7 +108,8 @@ fmri-denoising/
 ├── independent_component_analysis/   # ICA-based denoising
 ├── evaluation/                       # Metrics, maps, and comparisons
 ├── utils/                            # Data loading and utilities
-├── thesis/                           # Master's thesis source code
+├── thesis/                           # Master's thesis (LaTeX source and PDF)
+├── figures/                          # Selected result figures used in this README
 ├── main.py                           # Pipelines and evaluation
 └── plot_results.py                   # Result visualization
 ```
@@ -129,9 +134,16 @@ python plot_results.py --group
 python plot_results.py --components
 ```
 
+Evaluating one participant takes roughly an hour in total on average (outer-CV runtime of about 52 minutes for PCA-assisted GLM and about 12 minutes for ICA, see the table above).
+
 Results are serialized under `results/` (not included in the repo), with generated plots stored in `results/plots/`.
 
 ## Limitations and scope
 
 This is an academic research implementation built for a master's thesis, definitely not a production-ready neuroimaging package. The analysis is limited to six participants and one visual block-design experiment. Explicit motion correction and regressors derived from external physiological recordings were not included in the dataset, thus also not included in the models.
 These limitations, together with the component-selection procedures, matter when interpreting the results or generalizing them to other fMRI experiments.
+
+## References
+
+1. Kay, K. N., Rokem, A., Winawer, J., Dougherty, R. F., & Wandell, B. A. (2013). GLMdenoise: a fast, automated technique for denoising task-based fMRI data. *Frontiers in Neuroscience*, 7, 247.
+2. Dataset: [OpenNeuro ds000105](https://openneuro.org/datasets/ds000105). See the dataset page for the recommended citation.
